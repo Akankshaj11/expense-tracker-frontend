@@ -1,46 +1,28 @@
-import { useState } from 'react'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import Landing from './pages/Landing'
+import Login from './pages/Login'
+import Register from './pages/Register'
+import CurrencySelect from './pages/CurrencySelect'
+import CreateOrganization from './pages/CreateOrganization'
+import ManageOrganization from './pages/ManageOrganization'
+import Dashboard from './pages/Dashboard'
+import AddTransaction from './pages/AddTransaction'
+import ModuleTransactions from './pages/ModuleTransactions'
 
-const sampleExpenses = [
-  { id: 1, title: 'Office supplies', amount: 42.5, category: 'Work' },
-  { id: 2, title: 'Lunch', amount: 18.2, category: 'Food' },
-  { id: 3, title: 'Internet', amount: 79.0, category: 'Utilities' },
-]
-
-export default function App() {
-  const [expenses] = useState(sampleExpenses)
-
+export default function App(){
   return (
-    <main className="shell">
-      <section className="hero">
-        <p className="eyebrow">React frontend only</p>
-        <h1>Expense tracker starter</h1>
-        <p className="lede">
-          A clean frontend-only starting point for building an expense tracker in React.
-        </p>
-        <div className="status-card">
-          <span>Project status</span>
-          <strong>Frontend lives at root</strong>
-        </div>
-      </section>
-
-      <section className="panel">
-        <div className="panel-header">
-          <h2>Recent expenses</h2>
-          <button type="button">Add expense</button>
-        </div>
-
-        <div className="expense-list">
-          {expenses.map((expense) => (
-            <article key={expense.id} className="expense-item">
-              <div>
-                <h3>{expense.title}</h3>
-                <p>{expense.category}</p>
-              </div>
-              <strong>${expense.amount.toFixed(2)}</strong>
-            </article>
-          ))}
-        </div>
-      </section>
-    </main>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/select-currency" element={<CurrencySelect />} />
+        <Route path="/create-organization" element={<CreateOrganization />} />
+        <Route path="/manage-organization" element={<ManageOrganization />} />
+        <Route path="/add-transaction" element={<AddTransaction />} />
+        <Route path="/module/:moduleName" element={<ModuleTransactions />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
