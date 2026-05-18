@@ -192,11 +192,11 @@ export default function ModuleTransactions() {
 
   if (!activeOrganization) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-        <div className="w-full max-w-xl rounded-[2rem] border border-slate-200 bg-white p-8 text-center shadow-sm">
-          <h1 className="text-3xl font-light tracking-tight text-slate-900">No organization found</h1>
-          <p className="mt-3 text-base leading-7 text-slate-600">Create an organization first to view module transactions.</p>
-          <Link to="/create-organization" className="mt-6 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 px-5 py-3 text-sm font-light text-white shadow-lg shadow-blue-500/25">
+      <div className="theme-light-violet flex min-h-screen items-center justify-center bg-[var(--card)] px-4">
+        <div className="w-full max-w-xl rounded-[2rem] border border-white/6 bg-[var(--card)] p-8 text-center shadow-sm">
+          <h1 className="text-3xl font-light tracking-tight text-[var(--text)]">No organization found</h1>
+          <p className="mt-3 text-base leading-7 text-[var(--muted)]">Create an organization first to view module transactions.</p>
+          <Link to="/create-organization" className="mt-6 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary-500 to-primary-600 px-5 py-3 text-sm font-light text-white shadow-lg shadow-primary-500/25">
             Create Organization
           </Link>
         </div>
@@ -205,28 +205,28 @@ export default function ModuleTransactions() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 px-4 py-6 text-slate-900 sm:px-6 lg:px-8">
+    <div className="theme-light-violet min-h-screen bg-[var(--card)] px-4 py-6 text-[var(--text)] sm:px-6 lg:px-8">
       <div className="mx-auto max-w-6xl">
         <div className="mb-6 flex items-center justify-between gap-3">
           <button
             type="button"
             onClick={() => navigate('/dashboard')}
-            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-light text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+            className="inline-flex items-center gap-2 rounded-full border border-white/6 bg-[var(--card)] px-4 py-2.5 text-sm font-light text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
           >
             <ArrowLeftIcon className="h-4 w-4" />
             Back to dashboard
           </button>
 
-          <div className="rounded-full bg-blue-50 px-4 py-2 text-sm font-light text-blue-700">
+          <div className="rounded-full bg-primary-50 px-4 py-2 text-sm font-light text-primary-700">
             {moduleName}
           </div>
         </div>
 
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="rounded-[2rem] border border-white bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-8">
-          <div className="flex flex-col gap-4 border-b border-slate-100 pb-6 sm:flex-row sm:items-end sm:justify-between">
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="rounded-[2rem] border border-white bg-[var(--card)] p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-8">
+          <div className="flex flex-col gap-4 border-b border-white/4 pb-6 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-sm font-light uppercase tracking-[0.22em] text-blue-600">Module transactions</p>
-              <h1 className="mt-2 text-3xl font-light tracking-tight text-slate-900">{moduleName}</h1>
+              <p className="text-sm font-light uppercase tracking-[0.22em] text-primary-600">Module transactions</p>
+              <h1 className="mt-2 text-3xl font-light tracking-tight text-[var(--text)]">{moduleName}</h1>
               <p className="mt-2 text-sm text-slate-500">See every transaction done under this module on the chosen date.</p>
             </div>
 
@@ -237,7 +237,7 @@ export default function ModuleTransactions() {
                   type="date"
                   value={selectedDate}
                   onChange={(event) => setSelectedDate(event.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-light text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 sm:w-[220px]"
+                  className="w-full rounded-xl border border-white/6 bg-[var(--card)] px-4 py-3 text-sm font-light text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 sm:w-[220px]"
                 />
               </div>
 
@@ -245,7 +245,7 @@ export default function ModuleTransactions() {
                 <button
                   type="button"
                   onClick={handleDownloadPDF}
-                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-light text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                  className="inline-flex items-center gap-2 rounded-full border border-white/6 bg-[var(--card)] px-4 py-2.5 text-sm font-light text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                 >
                   <ArrowDownTrayIcon className="h-4 w-4" />
                   Download PDF
@@ -257,7 +257,7 @@ export default function ModuleTransactions() {
           <div className="mt-6">
             <div className="mb-4 flex items-center justify-between gap-4">
               <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-sm font-light text-slate-700">
-                <TagIcon className="h-4 w-4 text-blue-600" />
+                <TagIcon className="h-4 w-4 text-primary-600" />
                 {moduleData?.submodules?.length || 0} submodules
               </div>
               <div className="text-sm text-slate-500">{formatDateLabel(selectedDate)}</div>
@@ -271,27 +271,27 @@ export default function ModuleTransactions() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.25 }}
-                    className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 sm:p-5"
+                    className="rounded-[1.5rem] border border-white/6 bg-[var(--card)] p-4 sm:p-5"
                   >
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                       <div className="min-w-0 flex-1">
-                        <p className="text-lg font-light text-slate-900">{transaction.submodule || 'Unnamed submodule'}</p>
+                        <p className="text-lg font-light text-[var(--text)]">{transaction.submodule || 'Unnamed submodule'}</p>
                         <p className="mt-1 text-sm text-slate-500">Module: {transaction.module}</p>
                       </div>
 
                       <div className="text-left sm:text-right">
-                        <p className="text-lg font-light tracking-tight text-slate-900">{formatMoney(transaction.amount, selectedCurrency)}</p>
+                        <p className="text-lg font-light tracking-tight text-[var(--text)]">{formatMoney(transaction.amount, selectedCurrency)}</p>
                         <p className="text-sm text-slate-500">{formatTime(transaction.createdAt)}</p>
                       </div>
                     </div>
 
-                    <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-slate-600">
-                      {transaction.note ? <span className="rounded-full bg-white px-3 py-1.5 ring-1 ring-slate-200">{transaction.note}</span> : null}
+                    <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-[var(--muted)]">
+                      {transaction.note ? <span className="rounded-full bg-[var(--card)] px-3 py-1.5 ring-1 ring-slate-200">{transaction.note}</span> : null}
                       {transaction.attachmentName ? (
                         <button
                           type="button"
                           onClick={() => setPreviewAttachment({ ...transaction, ...resolveAttachmentPreview(transaction) })}
-                          className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 ring-1 ring-slate-200 transition hover:bg-blue-50 hover:text-blue-700"
+                          className="inline-flex items-center gap-2 rounded-full bg-[var(--card)] px-3 py-1.5 ring-1 ring-slate-200 transition hover:bg-primary-50 hover:text-primary-700"
                         >
                           <PaperClipIcon className="h-4 w-4 text-slate-500" />
                           {transaction.attachmentName}
@@ -301,7 +301,7 @@ export default function ModuleTransactions() {
                   </motion.div>
                 ))
               ) : (
-                <div className="rounded-[1.5rem] border border-dashed border-slate-200 bg-slate-50 px-5 py-10 text-center text-sm text-slate-500">
+                <div className="rounded-[1.5rem] border border-dashed border-white/6 bg-[var(--card)] px-5 py-10 text-center text-sm text-slate-500">
                   No transactions found for {moduleName} on {formatDateLabel(selectedDate)}.
                 </div>
               )}
@@ -310,24 +310,24 @@ export default function ModuleTransactions() {
         </motion.div>
 
         {previewAttachment ? (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-sm p-4">
             <div className="w-full max-w-4xl overflow-hidden rounded-[2rem] bg-white shadow-2xl">
-              <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+              <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
                 <div>
                   <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">Attachment preview</p>
-                  <h2 className="mt-1 text-lg font-light text-slate-900">{previewAttachment.attachmentName}</h2>
+                  <h2 className="mt-1 text-lg font-light text-[var(--text)]">{previewAttachment.attachmentName}</h2>
                 </div>
                 <button
                   type="button"
                   onClick={() => setPreviewAttachment(null)}
-                  className="rounded-full border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+                  className="rounded-full border border-slate-200 bg-white p-2 text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
                   aria-label="Close attachment preview"
                 >
                   <XMarkIcon className="h-5 w-5" />
                 </button>
               </div>
 
-              <div className="bg-slate-50 p-5">
+              <div className="bg-[var(--card)] p-5">
                 {previewAttachment.dataUrl || previewAttachment.attachmentDataUrl ? (
                   (previewAttachment.type || previewAttachment.attachmentType)?.startsWith('image/') ? (
                     <img
@@ -336,20 +336,20 @@ export default function ModuleTransactions() {
                       className="max-h-[75vh] w-full rounded-2xl object-contain"
                     />
                   ) : (
-                    <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 text-center">
-                      <p className="text-sm font-light text-slate-600">This attachment is ready to open in a new tab.</p>
+                    <div className="space-y-4 rounded-2xl border border-white/6 bg-[var(--card)] p-6 text-center">
+                      <p className="text-sm font-light text-[var(--muted)]">This attachment is ready to open in a new tab.</p>
                       <a
                         href={previewAttachment.dataUrl || previewAttachment.attachmentDataUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center justify-center rounded-full bg-blue-600 px-5 py-3 text-sm font-light text-white transition hover:bg-blue-700"
+                        className="inline-flex items-center justify-center rounded-full bg-primary-600 px-5 py-3 text-sm font-light text-white transition hover:bg-primary-700"
                       >
                         Open Attachment
                       </a>
                     </div>
                   )
                 ) : (
-                  <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-5 py-10 text-center text-sm text-slate-500">
+                  <div className="rounded-2xl border border-dashed border-white/6 bg-[var(--card)] px-5 py-10 text-center text-sm text-slate-500">
                     No preview data is available for this attachment yet.
                   </div>
                 )}

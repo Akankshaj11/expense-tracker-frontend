@@ -56,10 +56,10 @@ export default function Login() {
   }
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center px-4 py-12 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100">
+    <div className="theme-light-violet relative h-screen overflow-hidden flex items-center justify-center px-4 py-6 sm:px-6 lg:px-8 bg-[var(--bg)]">
       {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-200/30 rounded-full blur-3xl" />
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary-200/30 rounded-full blur-3xl" />
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-slate-200/20 rounded-full blur-3xl" />
       </div>
 
@@ -69,14 +69,14 @@ export default function Login() {
         transition={{ duration: 0.5 }}
         className="relative w-full max-w-md"
       >
-        <div className="bg-white rounded-2xl shadow-xl shadow-blue-500/10 p-8 sm:p-10">
+        <div className="bg-[var(--card)] rounded-2xl shadow-glass p-6 sm:p-8">
           {/* Header */}
-          <div className="text-center mb-8">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white font-light text-lg mx-auto mb-4">
+          <div className="text-center mb-6">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 text-white font-light text-lg mx-auto mb-4">
               FT
             </div>
-            <h1 className="text-3xl font-light text-slate-900">Welcome Back</h1>
-            <p className="mt-2 text-slate-600">Sign in to your FinTrack account</p>
+            <h1 className="text-3xl font-light text-[var(--text)]">Welcome Back</h1>
+            <p className="mt-2 text-[var(--muted)]">Sign in to your FinTrack account</p>
           </div>
 
           {/* Error message */}
@@ -84,14 +84,14 @@ export default function Login() {
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-6 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm"
+              className="mb-6 p-3 rounded-lg bg-red-900/10 border border-red-200 text-rose-400 text-sm"
             >
               {error}
             </motion.div>
           )}
 
           {/* Form */}
-          <form onSubmit={handleLogin} className="space-y-5">
+          <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label htmlFor="email" className="block text-sm font-light text-slate-700 mb-2">
                 Email Address
@@ -102,7 +102,7 @@ export default function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="w-full px-4 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                className="w-full px-4 py-2.5 rounded-lg border border-white/6 bg-[var(--card)] text-[var(--text)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
               />
             </div>
 
@@ -116,16 +116,16 @@ export default function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full px-4 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                className="w-full px-4 py-2.5 rounded-lg border border-white/6 bg-[var(--card)] text-[var(--text)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
               />
             </div>
 
             <div className="flex items-center justify-between text-sm">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" className="rounded border-slate-300" />
-                <span className="text-slate-600">Remember me</span>
+                <span className="text-[var(--muted)]">Remember me</span>
               </label>
-              <a href="#" className="text-blue-600 hover:text-blue-700 font-light">
+              <a href="#" className="text-primary-600 hover:text-primary-700 font-light">
                 Forgot password?
               </a>
             </div>
@@ -133,7 +133,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-6 px-4 py-2.5 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 text-white font-light shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40 transition hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full mt-4 px-4 py-2.5 rounded-lg bg-gradient-to-r from-primary-500 to-primary-600 text-white font-light shadow-glass hover:shadow-primary-500/40 transition hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? 'Signing in...' : 'Sign In'}
               {!loading && <ArrowRightIcon className="h-4 w-4" />}
@@ -141,19 +141,19 @@ export default function Login() {
           </form>
 
           {/* Divider */}
-          <div className="relative my-6">
+          <div className="relative my-5">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-slate-200" />
+              <div className="w-full border-t border-white/6" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-slate-500">or</span>
+              <span className="px-2 bg-[var(--card)] text-slate-500">or</span>
             </div>
           </div>
 
           {/* Footer */}
-          <p className="text-center text-slate-600">
+          <p className="text-center text-[var(--muted)]">
             Don't have an account?{' '}
-            <Link to="/register" className="text-blue-600 font-light hover:text-blue-700">
+            <Link to="/register" className="text-primary-600 font-light hover:text-primary-700">
               Create one
             </Link>
           </p>

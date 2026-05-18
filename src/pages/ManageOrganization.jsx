@@ -52,12 +52,12 @@ export default function ManageOrganization() {
 
   if (!activeOrganization) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-        <div className="w-full max-w-xl rounded-[2rem] border border-slate-200 bg-white p-8 text-center shadow-sm">
+      <div className="theme-light-violet flex min-h-screen items-center justify-center bg-[var(--card)] px-4">
+        <div className="w-full max-w-xl rounded-[2rem] border border-white/6 bg-[var(--card)] p-8 text-center shadow-sm">
           <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">No organization found</p>
-          <h1 className="mt-3 text-3xl font-light tracking-tight text-slate-900">Create an organization first</h1>
-          <p className="mt-3 text-base leading-7 text-slate-600">You need at least one organization before managing modules.</p>
-          <Link to="/create-organization" className="mt-6 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 px-5 py-3 text-sm font-light text-white shadow-lg shadow-blue-500/25">
+          <h1 className="mt-3 text-3xl font-light tracking-tight text-[var(--text)]">Create an organization first</h1>
+          <p className="mt-3 text-base leading-7 text-[var(--muted)]">You need at least one organization before managing modules.</p>
+          <Link to="/create-organization" className="mt-6 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary-500 to-primary-600 px-5 py-3 text-sm font-light text-white shadow-lg shadow-primary-500/25">
             Create Organization
             <PlusIcon className="h-4 w-4" />
           </Link>
@@ -158,23 +158,23 @@ export default function ManageOrganization() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 px-4 py-6 text-slate-900 sm:px-6 lg:px-8">
+    <div className="theme-light-violet min-h-screen bg-[var(--card)] px-4 py-6 text-[var(--text)] sm:px-6 lg:px-8">
       <div className="mx-auto max-w-6xl">
         <div className="mb-6 flex items-center justify-between gap-3">
-          <Link to="/dashboard" className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-light text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+          <Link to="/dashboard" className="inline-flex items-center gap-2 rounded-full border border-white/6 bg-[var(--card)] px-4 py-2.5 text-sm font-light text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
             <ArrowLeftIcon className="h-4 w-4" />
             Back to dashboard
           </Link>
-          <div className="rounded-full bg-blue-50 px-4 py-2 text-sm font-light text-blue-700">
+          <div className="rounded-full bg-primary-50 px-4 py-2 text-sm font-light text-primary-700">
             {activeOrganization.organizationName}
           </div>
         </div>
 
-        <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} className="rounded-[2rem] border border-white bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-8">
-          <div className="flex flex-col gap-3 border-b border-slate-100 pb-6">
-            <p className="text-sm font-light uppercase tracking-[0.26em] text-blue-600">Manage Organization</p>
-            <h1 className="text-3xl font-light tracking-tight text-slate-900">{activeOrganization.organizationName}</h1>
-            <p className="max-w-3xl text-base leading-7 text-slate-600">Update the organization details, edit module names, rename submodules, delete anything you no longer need, or add new items.</p>
+        <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} className="rounded-[2rem] border border-white bg-[var(--card)] p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-8">
+          <div className="flex flex-col gap-3 border-b border-white/4 pb-6">
+            <p className="text-sm font-light uppercase tracking-[0.26em] text-primary-600">Manage Organization</p>
+            <h1 className="text-3xl font-light tracking-tight text-[var(--text)]">{activeOrganization.organizationName}</h1>
+            <p className="max-w-3xl text-base leading-7 text-[var(--muted)]">Update the organization details, edit module names, rename submodules, delete anything you no longer need, or add new items.</p>
           </div>
 
           <form onSubmit={handleSave} className="mt-8 space-y-8">
@@ -185,7 +185,7 @@ export default function ManageOrganization() {
                   type="text"
                   value={organizationName}
                   onChange={(event) => setOrganizationName(event.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                  className="w-full rounded-xl border border-white/6 bg-[var(--card)] px-4 py-3 text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
                 />
               </div>
               <div>
@@ -194,20 +194,20 @@ export default function ManageOrganization() {
                   type="text"
                   value={description}
                   onChange={(event) => setDescription(event.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                  className="w-full rounded-xl border border-white/6 bg-[var(--card)] px-4 py-3 text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
                 />
               </div>
             </div>
 
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h2 className="text-xl font-light text-slate-900">Modules & Submodules</h2>
+                <h2 className="text-xl font-light text-[var(--text)]">Modules & Submodules</h2>
                 <p className="text-sm text-slate-500">Edit every module directly.</p>
               </div>
               <button
                 type="button"
                 onClick={addModule}
-                className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-light text-blue-700 transition hover:bg-blue-100"
+                className="inline-flex items-center gap-2 rounded-full border border-primary-200 bg-primary-50 px-4 py-2.5 text-sm font-light text-primary-700 transition hover:bg-primary-100"
               >
                 Add Module
                 <PlusIcon className="h-4 w-4" />
@@ -216,15 +216,15 @@ export default function ManageOrganization() {
 
             <ul className="space-y-4">
               {modules.map((module, moduleIndex) => (
-                <li key={module.id} className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
-                  <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-4">
+                <li key={module.id} className="rounded-[1.5rem] border border-white/6 bg-[var(--card)] p-5">
+                  <div className="flex items-center justify-between gap-3 border-b border-white/6 pb-4">
                     <div className="flex-1">
                       <label className="mb-2 block text-xs font-light uppercase tracking-[0.18em] text-slate-500">Module {moduleIndex + 1}</label>
                       <input
                         type="text"
                         value={module.name}
                         onChange={(event) => updateModule(module.id, 'name', event.target.value)}
-                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                        className="w-full rounded-xl border border-white/6 bg-[var(--card)] px-4 py-3 text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
                         placeholder="Module name"
                       />
                     </div>
@@ -244,7 +244,7 @@ export default function ManageOrganization() {
                       <button
                         type="button"
                         onClick={() => addSubmodule(module.id)}
-                        className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-light text-slate-700 transition hover:border-blue-300 hover:text-blue-700"
+                        className="inline-flex items-center gap-2 rounded-full border border-white/6 bg-[var(--card)] px-3 py-2 text-xs font-light text-slate-700 transition hover:border-primary-300 hover:text-primary-700"
                       >
                         <PlusIcon className="h-3.5 w-3.5" />
                         Add Submodule
@@ -254,18 +254,18 @@ export default function ManageOrganization() {
                     <ul className="space-y-3 border-l border-dashed border-slate-300 pl-4">
                       {module.submodules.map((submodule, subIndex) => (
                         <li key={`${module.id}-${subIndex}`} className="flex items-center gap-2">
-                          <span className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-blue-500" />
+                          <span className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-primary-500" />
                           <input
                             type="text"
                             value={submodule}
                             onChange={(event) => updateSubmodule(module.id, subIndex, event.target.value)}
-                            className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                            className="min-w-0 flex-1 rounded-xl border border-white/6 bg-[var(--card)] px-3 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
                             placeholder={`Submodule ${subIndex + 1}`}
                           />
                           <button
                             type="button"
                             onClick={() => removeSubmodule(module.id, subIndex)}
-                            className="rounded-xl border border-slate-200 bg-slate-50 p-2 text-slate-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
+                            className="rounded-xl border border-white/6 bg-[var(--card)] p-2 text-slate-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
                             aria-label="Remove submodule"
                           >
                             <TrashIcon className="h-4 w-4" />
@@ -282,7 +282,7 @@ export default function ManageOrganization() {
             {savedMessage ? <p className="text-sm font-light text-emerald-600">{savedMessage}</p> : null}
 
             <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-              <button type="submit" className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-3 text-sm font-light text-white shadow-lg shadow-blue-500/25 transition hover:-translate-y-0.5">
+              <button type="submit" className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-primary-500 to-primary-600 px-6 py-3 text-sm font-light text-white shadow-lg shadow-primary-500/25 transition hover:-translate-y-0.5">
                 Save Changes
                 <PlusIcon className="h-4 w-4" />
               </button>

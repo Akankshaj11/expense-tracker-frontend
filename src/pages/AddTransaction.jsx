@@ -11,6 +11,7 @@ import {
   TagIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline'
+import { apiRequest } from '../utils/api'
 
 function readJSON(key, fallback) {
   try {
@@ -304,8 +305,8 @@ export default function AddTransaction() {
       }
     }
 
-    const nextTransaction = {
-      id: Date.now().toString(),
+    const currentUser = readJSON('currentUser', null)
+    const transactionPayload = {
       organizationId: activeOrganization?.id || '',
       module: selectedModule,
       submodule: selectedSubmodule,
@@ -317,7 +318,28 @@ export default function AddTransaction() {
       attachmentDataUrl,
       date,
       currency: selectedCurrency?.code || 'USD',
+      ownerId: currentUser?.id || currentUser?._id || currentUser?.email || '',
+    }
+
+    let savedTransaction = null
+
+    try {
+      const response = await apiRequest('/transactions', {
+        method: 'POST',
+        body: JSON.stringify(transactionPayload),
+      })
+
+      savedTransaction = response?.data?.transaction || null
+    } catch (requestError) {
+      setError(requestError.message || 'Unable to save transaction')
+      return
+    }
+
+    const nextTransaction = savedTransaction || {
+      id: Date.now().toString(),
+      ...transactionPayload,
       createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     }
 
     localStorage.setItem('transactions', JSON.stringify([nextTransaction, ...transactions]))
@@ -350,12 +372,12 @@ export default function AddTransaction() {
 
   if (!activeOrganization) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-        <div className="w-full max-w-xl rounded-[2rem] border border-slate-200 bg-white p-8 text-center shadow-sm">
+      <div className="theme-light-violet flex min-h-screen items-center justify-center bg-[var(--card)] px-4">
+        <div className="w-full max-w-xl rounded-[2rem] border border-white/6 bg-[var(--card)] p-8 text-center shadow-sm">
           <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">No organization found</p>
-          <h1 className="mt-3 text-3xl font-light tracking-tight text-slate-900">Create an organization first</h1>
-          <p className="mt-3 text-base leading-7 text-slate-600">You need at least one organization before adding transactions.</p>
-          <Link to="/create-organization" className="mt-6 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 px-5 py-3 text-sm font-light text-white shadow-lg shadow-blue-500/25">
+          <h1 className="mt-3 text-3xl font-light tracking-tight text-[var(--text)]">Create an organization first</h1>
+          <p className="mt-3 text-base leading-7 text-[var(--muted)]">You need at least one organization before adding transactions.</p>
+          <Link to="/create-organization" className="mt-6 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary-500 to-primary-600 px-5 py-3 text-sm font-light text-white shadow-lg shadow-primary-500/25">
             Create Organization
             <PlusIcon className="h-4 w-4" />
           </Link>
@@ -366,14 +388,14 @@ export default function AddTransaction() {
 
   if (selectionModalOpen) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-50 p-4">
-        <div className="w-full max-w-2xl overflow-hidden rounded-[2rem] border border-slate-100 bg-white shadow-xl">
-          <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4 sm:px-6">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-sm p-4">
+        <div className="w-full max-w-2xl overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-xl">
+          <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 sm:px-6">
             <div>
-              <h2 className="text-2xl font-light tracking-tight text-slate-900">{step === 1 ? 'Select Module' : 'Select Submodule'}</h2>
+              <h2 className="text-2xl font-light tracking-tight text-slate-800">{step === 1 ? 'Select Module' : 'Select Submodule'}</h2>
               <p className="mt-1 text-sm text-slate-500">{step === 1 ? 'Choose a module to continue.' : `Choose a submodule for ${selectedModuleData?.name}.`}</p>
             </div>
-            <button type="button" onClick={closeSelectionModal} className="rounded-full border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-slate-300 hover:text-slate-700" aria-label="Close">
+            <button type="button" onClick={closeSelectionModal} className="rounded-full border border-slate-200 bg-white p-2 text-slate-700 transition hover:border-slate-300 hover:text-slate-900" aria-label="Close">
               <XMarkIcon className="h-5 w-5" />
             </button>
           </div>
@@ -385,8 +407,8 @@ export default function AddTransaction() {
               <div className="mt-4 grid gap-3 md:grid-cols-2">
                 {activeOrganization.modules.map((module, index) => {
                   const isSelected = selectedModule === module.name
-                  const cardStyles = ['border-orange-200 bg-orange-50 text-orange-700', 'border-blue-200 bg-blue-50 text-blue-700', 'border-violet-200 bg-violet-50 text-violet-700', 'border-emerald-200 bg-emerald-50 text-emerald-700']
-                  const selectedStyles = ['border-orange-300 bg-orange-100 shadow-[0_0_0_1px_rgba(249,115,22,0.12)]', 'border-blue-300 bg-blue-100 shadow-[0_0_0_1px_rgba(59,130,246,0.12)]', 'border-violet-300 bg-violet-100 shadow-[0_0_0_1px_rgba(139,92,246,0.12)]', 'border-emerald-300 bg-emerald-100 shadow-[0_0_0_1px_rgba(16,185,129,0.12)]']
+                  const cardStyles = ['border-orange-200 bg-orange-50 text-orange-700', 'border-primary-200 bg-primary-50 text-primary-700', 'border-violet-200 bg-violet-50 text-violet-700', 'border-emerald-200 bg-emerald-50 text-emerald-700']
+                  const selectedStyles = ['border-orange-300 bg-orange-100 shadow-[0_0_0_1px_rgba(249,115,22,0.12)]', 'border-primary-300 bg-primary-100 shadow-[0_0_0_1px_rgba(59,130,246,0.12)]', 'border-violet-300 bg-violet-100 shadow-[0_0_0_1px_rgba(139,92,246,0.12)]', 'border-emerald-300 bg-emerald-10<PASSWORD> shadow-[<PASSWORD>px_rgba(16,185,129,0.12)]']
                   const tone = cardStyles[index % cardStyles.length]
                   const activeTone = selectedStyles[index % selectedStyles.length]
                   return (
@@ -418,7 +440,7 @@ export default function AddTransaction() {
               <>
                 <div className="mt-4 flex items-center justify-between gap-3">
                   <div className="rounded-full bg-slate-100 px-4 py-2 text-sm font-light text-slate-700">{selectedModuleData?.name}</div>
-                  <button type="button" onClick={() => setStep(1)} className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-light text-slate-600 transition hover:border-slate-300">Back</button>
+                  <button type="button" onClick={() => setStep(1)} className="rounded-full border border-white/6 bg-[var(--card)] px-4 py-2 text-sm font-light text-[var(--muted)] transition hover:border-slate-300">Back</button>
                 </div>
 
                 <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -436,14 +458,14 @@ export default function AddTransaction() {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         transition={{ duration: 0.22, ease: 'easeOut', delay: index * 0.04 }}
                         whileHover={{ y: -2 }}
-                        className={`rounded-[1.25rem] border px-4 py-4 text-left transition-shadow hover:shadow-md ${isSelected ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-white'}`}
+                        className={`rounded-[1.25rem] border px-4 py-4 text-left transition-shadow hover:shadow-md ${isSelected ? 'border-primary-500 bg-primary-50' : 'border-white/6 bg-[var(--card)]'}`}
                       >
                         <div className="flex items-center justify-between gap-3">
                           <div>
-                            <p className="font-light text-slate-900">{submodule}</p>
+                            <p className="font-light text-[var(--text)]">{submodule}</p>
                             <p className="text-sm text-slate-500">Click to continue</p>
                           </div>
-                          <TagIcon className="h-5 w-5 text-blue-600" />
+                          <TagIcon className="h-5 w-5 text-primary-600" />
                         </div>
                       </motion.button>
                     )
@@ -458,35 +480,35 @@ export default function AddTransaction() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 px-4 py-6 text-slate-900 sm:px-6 lg:px-8">
+    <div className="theme-light-violet min-h-screen bg-[var(--card)] px-4 py-6 text-[var(--text)] sm:px-6 lg:px-8">
       <div className="mx-auto max-w-5xl">
         <div className="mb-6 flex items-center justify-between gap-3">
-          <Link to="/dashboard" className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-light text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+          <Link to="/dashboard" className="inline-flex items-center gap-2 rounded-full border border-white/6 bg-[var(--card)] px-4 py-2.5 text-sm font-light text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
             <ArrowLeftIcon className="h-4 w-4" />
             Back to dashboard
           </Link>
-          <div className="rounded-full bg-blue-50 px-4 py-2 text-sm font-light text-blue-700">
+          <div className="rounded-full bg-primary-50 px-4 py-2 text-sm font-light text-primary-700">
             {activeOrganization.organizationName}
           </div>
         </div>
 
-        <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} className="rounded-[2rem] border border-white bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-8">
+        <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} className="rounded-[2rem] border border-white bg-[var(--card)] p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-8">
           {step === 3 ? (
             <section className="mt-6">
-              <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-4 sm:p-5">
+              <div className="rounded-[1.75rem] border border-white/6 bg-[var(--card)] p-4 sm:p-5">
                 <div className="flex items-center justify-between gap-4">
                   <div>
                     <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">Transaction form</p>
-                    <h2 className="mt-2 text-2xl font-light tracking-tight text-slate-900">{selectedModuleData?.name} · {selectedSubmodule}</h2>
+                    <h2 className="mt-2 text-2xl font-light tracking-tight text-[var(--text)]">{selectedModuleData?.name} · {selectedSubmodule}</h2>
                   </div>
-                  <button type="button" onClick={() => setStep(2)} className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-light text-slate-600">Back</button>
+                  <button type="button" onClick={() => setStep(2)} className="rounded-full border border-white/6 bg-[var(--card)] px-4 py-2 text-sm font-light text-[var(--muted)]">Back</button>
                 </div>
 
                 <div className="mt-5 space-y-4">
                   <div>
                     <label className="mb-1.5 block text-sm font-light text-slate-700">Enter Amount</label>
-                    <div className="relative rounded-xl border border-blue-500 bg-white px-3 py-2.5 shadow-[0_0_0_1px_rgba(59,130,246,0.08)] focus-within:ring-2 focus-within:ring-blue-500/20">
-                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-base font-light text-slate-900">{selectedCurrency?.symbol || '$'}</div>
+                    <div className="relative rounded-xl border border-primary-500 bg-[var(--card)] px-3 py-2.5 shadow-[0_0_0_1px_rgba(59,130,246,0.08)] focus-within:ring-2 focus-within:ring-primary-500/20">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-base font-light text-[var(--text)]">{selectedCurrency?.symbol || '$'}</div>
                       <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-light text-slate-500">
                         {previewAmount !== null ? formatMoney(previewAmount, selectedCurrency) : ''}
                       </div>
@@ -498,7 +520,7 @@ export default function AddTransaction() {
                           setError('')
                         }}
                         placeholder="600"
-                        className="w-full bg-transparent pl-7 pr-24 text-base font-light text-slate-900 outline-none placeholder:text-slate-400"
+                        className="w-full bg-transparent pl-7 pr-24 text-base font-light text-[var(--text)] outline-none placeholder:text-slate-400"
                       />
                     </div>
                   </div>
@@ -507,9 +529,9 @@ export default function AddTransaction() {
                     <div className="flex flex-wrap items-center gap-2 text-sm font-light">
                       {tokens.map((token, index) =>
                         /\d/.test(token) ? (
-                          <span key={`${token}-${index}`} className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-blue-700 shadow-sm">
+                          <span key={`${token}-${index}`} className="inline-flex items-center gap-1.5 rounded-full border border-primary-200 bg-primary-50 px-2.5 py-1 text-primary-700 shadow-sm">
                             {selectedCurrency?.symbol || '$'}{token}
-                            <button type="button" onClick={() => setAmountExpression(removeTokenFromExpression(amountExpression, index))} className="rounded-full p-0.5 text-blue-600 transition hover:bg-blue-100" aria-label={`Remove ${token}`}>
+                            <button type="button" onClick={() => setAmountExpression(removeTokenFromExpression(amountExpression, index))} className="rounded-full p-0.5 text-primary-600 transition hover:bg-primary-100" aria-label={`Remove ${token}`}>
                               <XMarkIcon className="h-3.5 w-3.5" />
                             </button>
                           </span>
@@ -528,15 +550,15 @@ export default function AddTransaction() {
                         value={note}
                         onChange={(event) => setNote(event.target.value)}
                         placeholder="Add a short note"
-                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                        className="w-full rounded-xl border border-white/6 bg-[var(--card)] px-3 py-2.5 text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
                       />
                     </div>
                     <div className="grid gap-4 md:grid-cols-2">
                       <div>
                         <label className="mb-1.5 block text-sm font-light text-slate-700">Attachment (Optional)</label>
-                        <label className="flex cursor-pointer items-center justify-between rounded-xl border border-dashed border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-600 transition hover:border-blue-400 hover:bg-blue-50">
+                        <label className="flex cursor-pointer items-center justify-between rounded-xl border border-dashed border-slate-300 bg-[var(--card)] px-3 py-2.5 text-sm text-[var(--muted)] transition hover:border-primary-400 hover:bg-primary-50">
                           <span className="inline-flex items-center gap-2">
-                            <PaperClipIcon className="h-4 w-4 text-blue-600" />
+                            <PaperClipIcon className="h-4 w-4 text-primary-600" />
                             {attachment?.name || 'Upload a file'}
                           </span>
                           <input type="file" className="hidden" onChange={(event) => setAttachment(event.target.files?.[0] || null)} />
@@ -544,7 +566,7 @@ export default function AddTransaction() {
                       </div>
                       <div>
                         <label className="mb-1.5 block text-sm font-light text-slate-700">Date</label>
-                        <input type="date" value={date} onChange={(event) => setDate(event.target.value)} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
+                        <input type="date" value={date} onChange={(event) => setDate(event.target.value)} className="w-full rounded-xl border border-white/6 bg-[var(--card)] px-3 py-2.5 text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20" />
                       </div>
                     </div>
                   </div>
@@ -557,7 +579,7 @@ export default function AddTransaction() {
                       Save
                       <CheckCircleIcon className="h-4 w-4" />
                     </button>
-                    <button type="button" disabled={!canSave} onClick={() => saveTransaction(true)} className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 px-5 py-3 text-sm font-light text-white shadow-lg shadow-blue-500/25 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50">
+                    <button type="button" disabled={!canSave} onClick={() => saveTransaction(true)} className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-primary-500 to-primary-600 px-5 py-3 text-sm font-light text-white shadow-lg shadow-primary-500/25 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50">
                       Save and Add Another
                       <PlusIcon className="h-4 w-4" />
                     </button>
