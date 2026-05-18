@@ -153,15 +153,15 @@ export default function CreateOrganization() {
       >
         <div className="w-full rounded-[2rem] border border-white/80 bg-white p-6 shadow-2xl shadow-blue-500/10 sm:p-10">
           <div className="mx-auto max-w-3xl text-center">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-600">Setup Step 2 of 2</p>
-            <h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">Create Organization</h1>
+            <p className="text-xs font-light uppercase tracking-[0.3em] text-blue-600">Setup Step 2 of 2</p>
+            <h1 className="mt-3 text-3xl font-light tracking-tight text-slate-900 sm:text-4xl">Create Organization</h1>
             <p className="mt-3 text-base leading-7 text-slate-600">Set up your organization and choose the modules you want to use.</p>
           </div>
 
           <form onSubmit={handleCreateOrganization} className="mt-8 space-y-8">
             <div className="grid gap-6 lg:grid-cols-2">
               <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-700">Organization Name *</label>
+                <label className="mb-2 block text-sm font-light text-slate-700">Organization Name *</label>
                 <input
                   type="text"
                   value={organizationName}
@@ -172,7 +172,7 @@ export default function CreateOrganization() {
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-700">Description (Optional)</label>
+                <label className="mb-2 block text-sm font-light text-slate-700">Description (Optional)</label>
                 <input
                   type="text"
                   value={description}
@@ -184,7 +184,7 @@ export default function CreateOrganization() {
             </div>
 
             <div>
-              <label className="mb-3 block text-sm font-semibold text-slate-700">Select Modules *</label>
+              <label className="mb-3 block text-sm font-light text-slate-700">Select Modules *</label>
               <div className="grid gap-4 md:grid-cols-2">
                 {moduleItems.map((module) => {
                   const isSelected = selectedModules.includes(module)
@@ -205,12 +205,12 @@ export default function CreateOrganization() {
                                 type="text"
                                 value={customModuleName}
                                 onChange={(e) => setCustomModuleName(e.target.value)}
-                                className="w-full bg-transparent px-1 text-base font-semibold text-slate-900 outline-none placeholder:text-slate-400"
+                                className="w-full bg-transparent px-1 text-base font-light text-slate-900 outline-none placeholder:text-slate-400"
                                 placeholder="Custom module"
                               />
                             </div>
                           ) : (
-                            <p className="text-base font-semibold capitalize text-slate-900">{module}</p>
+                            <p className="text-base font-light capitalize text-slate-900">{module}</p>
                           )}
                           <p className="text-sm text-slate-600">{isCustom ? 'Add your own module name' : `Default module for ${module}`}</p>
                         </div>
@@ -223,11 +223,11 @@ export default function CreateOrganization() {
                       </label>
 
                       <div className="mt-4">
-                        <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Submodules</label>
+                        <label className="mb-2 block text-xs font-light uppercase tracking-[0.18em] text-slate-500">Submodules</label>
                         {isCustom ? (
                           <div className="space-y-3">
                             <div>
-                              <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Add submodule</label>
+                              <label className="mb-2 block text-xs font-light uppercase tracking-[0.18em] text-slate-500">Add submodule</label>
                               <div className="flex gap-2">
                                 <input
                                   type="text"
@@ -272,7 +272,7 @@ export default function CreateOrganization() {
                         {moduleSubmodules.length > 0 ? (
                           <div className="mt-3 flex flex-wrap gap-2">
                             {moduleSubmodules.map((item) => (
-                              <span key={item} className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200">
+                              <span key={item} className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-xs font-light text-slate-700 shadow-sm ring-1 ring-slate-200">
                                 {item}
                                 <button
                                   type="button"
@@ -298,7 +298,7 @@ export default function CreateOrganization() {
             <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
               <button
                 type="submit"
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:-translate-y-0.5"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-3 text-sm font-light text-white shadow-lg shadow-blue-500/25 transition hover:-translate-y-0.5"
               >
                 Create Organization
                 <PlusIcon className="h-4 w-4" />

@@ -166,12 +166,12 @@ export default function Dashboard() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <div className="flex h-20 items-center justify-between gap-4">
             <Link to="/" className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 font-bold text-white shadow-lg shadow-blue-500/20">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 font-light text-white shadow-lg shadow-blue-500/20">
                 FT
               </div>
               <div>
                 <p className="text-[11px] uppercase tracking-[0.28em] text-slate-500">FinTrack</p>
-                <p className="text-lg font-semibold text-slate-900">Wallet App</p>
+                <p className="text-lg font-light text-slate-900">Wallet App</p>
               </div>
             </Link>
 
@@ -183,7 +183,7 @@ export default function Dashboard() {
                     setOrgMenuOpen((current) => !current)
                     setProfileOpen(false)
                   }}
-                  className="inline-flex items-center gap-3 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                  className="inline-flex items-center gap-3 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-light text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                 >
                   <BuildingOffice2Icon className="h-4 w-4 text-blue-600" />
                   <span className="max-w-[130px] truncate sm:max-w-[180px]">
@@ -195,7 +195,7 @@ export default function Dashboard() {
                 {orgMenuOpen ? (
                   <div className="absolute right-0 mt-3 w-72 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-200/80">
                     <div className="border-b border-slate-100 px-4 py-3">
-                      <p className="text-sm font-semibold text-slate-900">Organizations</p>
+                      <p className="text-sm font-light text-slate-900">Organizations</p>
                       <p className="text-xs text-slate-500">Switch between workspace organizations</p>
                     </div>
                     <div className="max-h-64 overflow-auto p-2">
@@ -210,10 +210,10 @@ export default function Dashboard() {
                             }`}
                           >
                             <div>
-                              <p className="text-sm font-semibold text-slate-900">{organization.organizationName}</p>
+                              <p className="text-sm font-light text-slate-900">{organization.organizationName}</p>
                               <p className="text-xs text-slate-500">{organization.description || 'No description'}</p>
                             </div>
-                            {activeOrgId === organization.id ? <span className="rounded-full bg-blue-600 px-2 py-1 text-[10px] font-semibold text-white">Active</span> : null}
+                            {activeOrgId === organization.id ? <span className="rounded-full bg-blue-600 px-2 py-1 text-[10px] font-light text-white">Active</span> : null}
                           </button>
                         ))
                       ) : (
@@ -224,7 +224,7 @@ export default function Dashboard() {
                       <button
                         type="button"
                         onClick={handleCreateNewOrg}
-                        className="flex w-full items-center justify-between rounded-xl px-3 py-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-50"
+                        className="flex w-full items-center justify-between rounded-xl px-3 py-3 text-sm font-light text-blue-700 transition hover:bg-blue-50"
                       >
                         Create new organization
                         <PlusIcon className="h-4 w-4" />
@@ -250,11 +250,11 @@ export default function Dashboard() {
                 {profileOpen ? (
                   <div className="absolute right-0 mt-3 w-72 rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl shadow-slate-200/80">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 text-lg font-bold text-white">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 text-lg font-light text-white">
                         {firstName.charAt(0)}
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-slate-900">{firstName}</p>
+                        <p className="text-sm font-light text-slate-900">{firstName}</p>
                         <p className="text-xs text-slate-500">{currentUser?.email || 'No email found'}</p>
                       </div>
                     </div>
@@ -262,15 +262,15 @@ export default function Dashboard() {
                     <div className="mt-4 space-y-3 rounded-2xl bg-slate-50 p-3 text-sm text-slate-600">
                       <div className="flex items-center justify-between">
                         <span>Organization</span>
-                        <span className="font-medium text-slate-900">{activeOrganization?.organizationName || 'None'}</span>
+                        <span className="font-light text-slate-900">{activeOrganization?.organizationName || 'None'}</span>
                       </div>
                       <div className="flex items-center justify-between">
                         <span>Currency</span>
-                        <span className="font-medium text-slate-900">{activeCurrency?.code || 'USD'}</span>
+                        <span className="font-light text-slate-900">{activeCurrency?.code || 'USD'}</span>
                       </div>
                       <div className="flex items-center justify-between">
                         <span>Workspace status</span>
-                        <span className="inline-flex items-center gap-1 font-medium text-emerald-600">
+                        <span className="inline-flex items-center gap-1 font-light text-emerald-600">
                           <ShieldCheckIcon className="h-4 w-4" />
                           Active
                         </span>
@@ -288,8 +288,8 @@ export default function Dashboard() {
         <section className="rounded-[2rem] border border-white bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-8">
           <div className="flex flex-col gap-6">
             <div>
-              <p className="text-sm font-medium uppercase tracking-[0.26em] text-blue-600">Dashboard</p>
-              <h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+              <p className="text-sm font-light uppercase tracking-[0.26em] text-blue-600">Dashboard</p>
+              <h1 className="mt-3 text-3xl font-light tracking-tight text-slate-900 sm:text-4xl">
                 Good afternoon, {firstName}
               </h1>
               <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600">
@@ -301,7 +301,7 @@ export default function Dashboard() {
               <button
                 type="button"
                 onClick={() => navigate('/add-transaction')}
-                className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:-translate-y-0.5"
+                className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 px-5 py-3 text-sm font-light text-white shadow-lg shadow-blue-500/25 transition hover:-translate-y-0.5"
               >
                 Add Transaction
                 <PlusIcon className="h-4 w-4" />
@@ -309,7 +309,7 @@ export default function Dashboard() {
               <button
                 type="button"
                 onClick={() => navigate('/manage-organization')}
-                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-light text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
               >
                 Manage Organization
                 <BuildingOffice2Icon className="h-4 w-4" />
@@ -337,8 +337,8 @@ export default function Dashboard() {
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="text-sm font-medium text-slate-500">{card.label}</p>
-                      <p className={`mt-2 text-3xl font-bold tracking-tight ${card.accent}`}>{card.value}</p>
+                      <p className="text-sm font-light text-slate-500">{card.label}</p>
+                      <p className={`mt-2 text-3xl font-light tracking-tight ${card.accent}`}>{card.value}</p>
                     </div>
                     <div className="rounded-2xl p-3" style={{ backgroundColor: card.bg, color: card.fg }}>
                       <card.icon className="h-5 w-5" />
@@ -351,10 +351,10 @@ export default function Dashboard() {
             <section className="mt-8 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-500">Modules</p>
-                  <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">Modules you added</h2>
+                  <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">Modules</p>
+                  <h2 className="mt-2 text-2xl font-light tracking-tight text-slate-900">Modules you added</h2>
                 </div>
-                <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700">
+                <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-4 py-2 text-sm font-light text-blue-700">
                   <Squares2X2Icon className="h-4 w-4" />
                   {moduleCards.length} modules
                 </div>
@@ -385,7 +385,7 @@ export default function Dashboard() {
                           <module.theme.icon className="h-5 w-5" />
                         </div>
                         <div>
-                          <p className="text-base font-semibold capitalize text-slate-900">{module.label}</p>
+                          <p className="text-base font-light capitalize text-slate-900">{module.label}</p>
                           <p className="text-sm text-slate-500">{module.submodules.length} submodules</p>
                         </div>
                       </div>
@@ -396,10 +396,10 @@ export default function Dashboard() {
 
                     <div className="mt-5 flex items-end justify-between gap-4">
                       <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Amount</p>
-                        <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">{module.amount}</p>
+                        <p className="text-xs font-light uppercase tracking-[0.2em] text-slate-500">Amount</p>
+                        <p className="mt-2 text-2xl font-light tracking-tight text-slate-900">{module.amount}</p>
                       </div>
-                      <div className="text-right text-xs font-medium text-slate-500">Allocated</div>
+                      <div className="text-right text-xs font-light text-slate-500">Allocated</div>
                     </div>
 
                     <div className="mt-4 h-2 rounded-full bg-white">
@@ -408,7 +408,7 @@ export default function Dashboard() {
 
                     <div className="mt-4 flex flex-wrap gap-2">
                       {module.submodules.map((submodule) => (
-                        <span key={submodule} className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 shadow-sm ring-1 ring-slate-200">
+                        <span key={submodule} className="rounded-full bg-white px-3 py-1.5 text-xs font-light text-slate-600 shadow-sm ring-1 ring-slate-200">
                           {submodule}
                         </span>
                       ))}
@@ -422,8 +422,8 @@ export default function Dashboard() {
               <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <p className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-500">Recent activity</p>
-                    <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">Latest updates</h2>
+                    <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">Recent activity</p>
+                    <h2 className="mt-2 text-2xl font-light tracking-tight text-slate-900">Latest updates</h2>
                   </div>
                   <div className="rounded-full bg-blue-50 p-3 text-blue-600">
                     <CalendarDaysIcon className="h-5 w-5" />
@@ -441,10 +441,10 @@ export default function Dashboard() {
                       className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"
                     >
                       <div>
-                        <p className="font-semibold text-slate-900">{item.title}</p>
+                        <p className="font-light text-slate-900">{item.title}</p>
                         <p className="text-sm text-slate-500">{item.meta}</p>
                       </div>
-                      <p className={`text-sm font-semibold ${item.tone}`}>{item.amount}</p>
+                      <p className={`text-sm font-light ${item.tone}`}>{item.amount}</p>
                     </motion.div>
                   ))}
                 </div>
@@ -453,8 +453,8 @@ export default function Dashboard() {
               <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <p className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-500">Workspace</p>
-                    <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">Current summary</h2>
+                    <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">Workspace</p>
+                    <h2 className="mt-2 text-2xl font-light tracking-tight text-slate-900">Current summary</h2>
                   </div>
                   <div className="rounded-full bg-violet-50 p-3 text-violet-600">
                     <BuildingOffice2Icon className="h-5 w-5" />
@@ -464,23 +464,23 @@ export default function Dashboard() {
                 <div className="mt-6 space-y-4 rounded-[1.5rem] bg-slate-50 p-5">
                   <div className="flex items-center justify-between gap-4">
                     <span className="text-sm text-slate-500">Organization</span>
-                    <span className="font-semibold text-slate-900">{activeOrganization.organizationName}</span>
+                    <span className="font-light text-slate-900">{activeOrganization.organizationName}</span>
                   </div>
                   <div className="flex items-center justify-between gap-4">
                     <span className="text-sm text-slate-500">Currency</span>
-                    <span className="font-semibold text-slate-900">{activeCurrency?.code || 'USD'}</span>
+                    <span className="font-light text-slate-900">{activeCurrency?.code || 'USD'}</span>
                   </div>
                   <div className="flex items-center justify-between gap-4">
                     <span className="text-sm text-slate-500">Modules</span>
-                    <span className="font-semibold text-slate-900">{moduleCards.length}</span>
+                    <span className="font-light text-slate-900">{moduleCards.length}</span>
                   </div>
                 </div>
 
                 <div className="mt-5 rounded-[1.5rem] bg-slate-50 p-5">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Tip</p>
-                      <p className="mt-2 text-lg font-semibold text-slate-900">Add a transaction first to start tracking</p>
+                      <p className="text-xs font-light uppercase tracking-[0.22em] text-slate-500">Tip</p>
+                      <p className="mt-2 text-lg font-light text-slate-900">Add a transaction first to start tracking</p>
                     </div>
                     <PlusIcon className="h-6 w-6 text-blue-600" />
                   </div>
@@ -490,15 +490,15 @@ export default function Dashboard() {
           </>
         ) : (
           <section className="mt-8 rounded-[2rem] border border-slate-200 bg-white p-8 text-center shadow-sm">
-            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-500">No organization yet</p>
-            <h2 className="mt-3 text-2xl font-bold text-slate-900">Create your first organization to get started</h2>
+            <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">No organization yet</p>
+            <h2 className="mt-3 text-2xl font-light text-slate-900">Create your first organization to get started</h2>
             <p className="mx-auto mt-3 max-w-2xl text-base leading-7 text-slate-600">
               Once you create an organization and add modules, your dashboard will automatically show balances, modules, and recent activity here.
             </p>
             <button
               type="button"
               onClick={() => navigate('/create-organization')}
-              className="mt-6 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:-translate-y-0.5"
+              className="mt-6 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 px-5 py-3 text-sm font-light text-white shadow-lg shadow-blue-500/25 transition hover:-translate-y-0.5"
             >
               Create Organization
               <PlusIcon className="h-4 w-4" />

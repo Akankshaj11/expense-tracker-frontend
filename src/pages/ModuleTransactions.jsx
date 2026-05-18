@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ArrowLeftIcon, PaperClipIcon, TagIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { ArrowLeftIcon, PaperClipIcon, TagIcon, XMarkIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline'
 
 function readJSON(key, fallback) {
   try {
@@ -118,13 +118,85 @@ export default function ModuleTransactions() {
     return attachmentCache.find((item) => item.transactionId === transaction.id) || null
   }
 
+  const handleDownloadPDF = () => {
+    try {
+      const rows = moduleTransactions.map((t) => {
+        return {
+          id: t.id,
+          date: t.date || t.createdAt || '',
+          time: formatTime(t.createdAt),
+          module: t.module,
+          submodule: t.submodule || '',
+          amount: formatMoney(t.amount, selectedCurrency),
+          note: t.note || '',
+          attachmentName: t.attachmentName || '',
+        }
+      })
+
+      const tableRows = rows.map(r => `
+        <tr>
+          <td>${r.id}</td>
+          <td>${new Date(r.date).toLocaleDateString()}</td>
+          <td>${r.time}</td>
+          <td>${r.module}</td>
+          <td>${r.submodule}</td>
+          <td style="text-align:right">${r.amount}</td>
+          <td>${r.note}</td>
+          <td>${r.attachmentName}</td>
+        </tr>
+      `).join('')
+
+      const doc = `
+        <html>
+          <head>
+            <title>Transactions - ${moduleName} - ${selectedDate}</title>
+            <style>
+              body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; padding:20px; color:#0f172a }
+              h1 { font-size:18px; margin-bottom:6px }
+              table { width:100%; border-collapse:collapse; margin-top:12px }
+              th, td { border:1px solid #e6edf3; padding:8px; font-size:12px }
+              th { background:#f8fafc; text-align:left }
+            </style>
+          </head>
+          <body>
+            <h1>Transactions — ${moduleName} — ${formatDateLabel(selectedDate)}</h1>
+            <div>Exported from FinTrack</div>
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th><th>Date</th><th>Time</th><th>Module</th><th>Submodule</th><th>Amount</th><th>Note</th><th>Attachment</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${tableRows}
+              </tbody>
+            </table>
+            <script>window.onload = function(){ setTimeout(()=>{ window.print(); setTimeout(()=>{ window.close() }, 300) }, 120) }</script>
+          </body>
+        </html>
+      `
+
+      const w = window.open('', '_blank')
+      if (!w) {
+        alert('Popup blocked. Please allow popups to download the PDF via print.')
+        return
+      }
+      w.document.open()
+      w.document.write(doc)
+      w.document.close()
+    } catch (err) {
+      console.error(err)
+      alert('Failed to prepare PDF export')
+    }
+  }
+
   if (!activeOrganization) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
         <div className="w-full max-w-xl rounded-[2rem] border border-slate-200 bg-white p-8 text-center shadow-sm">
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">No organization found</h1>
+          <h1 className="text-3xl font-light tracking-tight text-slate-900">No organization found</h1>
           <p className="mt-3 text-base leading-7 text-slate-600">Create an organization first to view module transactions.</p>
-          <Link to="/create-organization" className="mt-6 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/25">
+          <Link to="/create-organization" className="mt-6 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 px-5 py-3 text-sm font-light text-white shadow-lg shadow-blue-500/25">
             Create Organization
           </Link>
         </div>
@@ -139,13 +211,13 @@ export default function ModuleTransactions() {
           <button
             type="button"
             onClick={() => navigate('/dashboard')}
-            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-light text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
           >
             <ArrowLeftIcon className="h-4 w-4" />
             Back to dashboard
           </button>
 
-          <div className="rounded-full bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700">
+          <div className="rounded-full bg-blue-50 px-4 py-2 text-sm font-light text-blue-700">
             {moduleName}
           </div>
         </div>
@@ -153,25 +225,38 @@ export default function ModuleTransactions() {
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="rounded-[2rem] border border-white bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-8">
           <div className="flex flex-col gap-4 border-b border-slate-100 pb-6 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.22em] text-blue-600">Module transactions</p>
-              <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">{moduleName}</h1>
+              <p className="text-sm font-light uppercase tracking-[0.22em] text-blue-600">Module transactions</p>
+              <h1 className="mt-2 text-3xl font-light tracking-tight text-slate-900">{moduleName}</h1>
               <p className="mt-2 text-sm text-slate-500">See every transaction done under this module on the chosen date.</p>
             </div>
 
-            <div className="w-full sm:w-auto">
-              <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Date</label>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(event) => setSelectedDate(event.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 sm:w-[220px]"
-              />
+            <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-end sm:justify-end sm:gap-4">
+              <div className="w-full sm:w-auto">
+                <label className="mb-2 block text-xs font-light uppercase tracking-[0.18em] text-slate-500">Date</label>
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(event) => setSelectedDate(event.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-light text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 sm:w-[220px]"
+                />
+              </div>
+
+              <div className="w-full sm:w-auto flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleDownloadPDF}
+                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-light text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                >
+                  <ArrowDownTrayIcon className="h-4 w-4" />
+                  Download PDF
+                </button>
+              </div>
             </div>
           </div>
 
           <div className="mt-6">
             <div className="mb-4 flex items-center justify-between gap-4">
-              <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700">
+              <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-sm font-light text-slate-700">
                 <TagIcon className="h-4 w-4 text-blue-600" />
                 {moduleData?.submodules?.length || 0} submodules
               </div>
@@ -190,12 +275,12 @@ export default function ModuleTransactions() {
                   >
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                       <div className="min-w-0 flex-1">
-                        <p className="text-lg font-semibold text-slate-900">{transaction.submodule || 'Unnamed submodule'}</p>
+                        <p className="text-lg font-light text-slate-900">{transaction.submodule || 'Unnamed submodule'}</p>
                         <p className="mt-1 text-sm text-slate-500">Module: {transaction.module}</p>
                       </div>
 
                       <div className="text-left sm:text-right">
-                        <p className="text-lg font-bold tracking-tight text-slate-900">{formatMoney(transaction.amount, selectedCurrency)}</p>
+                        <p className="text-lg font-light tracking-tight text-slate-900">{formatMoney(transaction.amount, selectedCurrency)}</p>
                         <p className="text-sm text-slate-500">{formatTime(transaction.createdAt)}</p>
                       </div>
                     </div>
@@ -229,8 +314,8 @@ export default function ModuleTransactions() {
             <div className="w-full max-w-4xl overflow-hidden rounded-[2rem] bg-white shadow-2xl">
               <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
                 <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-500">Attachment preview</p>
-                  <h2 className="mt-1 text-lg font-bold text-slate-900">{previewAttachment.attachmentName}</h2>
+                  <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">Attachment preview</p>
+                  <h2 className="mt-1 text-lg font-light text-slate-900">{previewAttachment.attachmentName}</h2>
                 </div>
                 <button
                   type="button"
@@ -252,12 +337,12 @@ export default function ModuleTransactions() {
                     />
                   ) : (
                     <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 text-center">
-                      <p className="text-sm font-medium text-slate-600">This attachment is ready to open in a new tab.</p>
+                      <p className="text-sm font-light text-slate-600">This attachment is ready to open in a new tab.</p>
                       <a
                         href={previewAttachment.dataUrl || previewAttachment.attachmentDataUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center justify-center rounded-full bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
+                        className="inline-flex items-center justify-center rounded-full bg-blue-600 px-5 py-3 text-sm font-light text-white transition hover:bg-blue-700"
                       >
                         Open Attachment
                       </a>

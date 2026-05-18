@@ -15,14 +15,14 @@ export default function Stats(){
         <motion.div key={s.label} initial={{opacity:0,y:10}} whileInView={{opacity:1,y:0}} viewport={{ once:true, amount:0.4 }} transition={{delay:0.06*i}} className="card-floating group rounded-2xl p-5 transition hover:-translate-y-1 hover:shadow-xl">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-3xl font-bold tracking-tight text-[var(--text)]">{s.value}</p>
+              <p className="text-3xl font-light tracking-tight text-[var(--text)]">{s.value}</p>
               <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{s.label}</p>
             </div>
-            <div className="rounded-2xl bg-primary-50 p-3 text-primary-600 transition group-hover:bg-primary-500 group-hover:text-white">
+            <div className="rounded-2xl bg-white/6 p-3 text-primary-400 transition group-hover:bg-gradient-to-br group-hover:from-primary-500 group-hover:to-primary-600 group-hover:text-white">
               <s.icon className="h-5 w-5" />
             </div>
           </div>
-          <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-primary-100">
+          <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/8">
             <motion.div initial={{width:0}} whileInView={{width:'68%'}} viewport={{ once:true }} transition={{delay:0.2 + i*0.05, duration:0.8}} className="h-full rounded-full bg-gradient-to-r from-primary-400 to-primary-600" />
           </div>
         </motion.div>

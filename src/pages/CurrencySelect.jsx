@@ -45,8 +45,8 @@ export default function CurrencySelect() {
       >
         <div className="w-full rounded-[2rem] border border-white/80 bg-white p-6 shadow-2xl shadow-blue-500/10 sm:p-10">
           <div className="mx-auto max-w-2xl text-center">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-600">Setup Step 1 of 2</p>
-            <h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">Select Your Currency</h1>
+            <p className="text-xs font-light uppercase tracking-[0.3em] text-blue-600">Setup Step 1 of 2</p>
+            <h1 className="mt-3 text-3xl font-light tracking-tight text-slate-900 sm:text-4xl">Select Your Currency</h1>
             <p className="mt-3 text-base leading-7 text-slate-600">Choose the default currency you want to use for your workspace.</p>
           </div>
 
@@ -65,10 +65,10 @@ export default function CurrencySelect() {
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-lg font-semibold text-slate-900">{item.code}</p>
+                      <p className="text-lg font-light text-slate-900">{item.code}</p>
                       <p className="text-sm text-slate-600">{item.name}</p>
                     </div>
-                    <div className="text-2xl font-bold text-blue-600">{item.symbol}</div>
+                    <div className="text-2xl font-light text-blue-600">{item.symbol}</div>
                   </div>
                 </button>
               ))}
@@ -79,7 +79,7 @@ export default function CurrencySelect() {
             <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
               <button
                 type="submit"
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:-translate-y-0.5"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-3 text-sm font-light text-white shadow-lg shadow-blue-500/25 transition hover:-translate-y-0.5"
               >
                 Continue
                 <ArrowRightIcon className="h-4 w-4" />

@@ -1,6 +1,7 @@
 import Navbar from '../components/Navbar'
 import Hero from '../components/Hero'
 import Stats from '../components/Stats'
+import About from '../components/About'
 import Features from '../components/Features'
 import ModulesShowcase from '../components/ModulesShowcase'
 import HowItWorks from '../components/HowItWorks'
@@ -18,10 +19,11 @@ export default function Landing(){
         <Hero />
 
         <section className="container-max mx-auto px-4 pb-16 sm:px-6">
+          <About />
           <Stats />
           <Features />
           <ModulesShowcase />
-          <HowItWorks />
+          {/* <HowItWorks /> */}
           <DashboardPreview />
           <Testimonials />
           <CTA />

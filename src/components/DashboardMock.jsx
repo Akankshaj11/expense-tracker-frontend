@@ -6,7 +6,7 @@ export default function DashboardMock(){
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm text-[var(--muted)]">Balance</p>
-          <p className="text-xl font-semibold">$24,532</p>
+          <p className="text-xl font-light">$24,532</p>
         </div>
         <div className="text-sm text-[var(--muted)]">Live</div>
       </div>
@@ -14,11 +14,11 @@ export default function DashboardMock(){
       <div className="mt-4 grid grid-cols-2 gap-3">
         <div className="p-3 rounded-lg bg-gray-50">
           <p className="text-xs text-[var(--muted)]">Revenue</p>
-          <p className="font-medium">$12,120</p>
+          <p className="font-light">$12,120</p>
         </div>
         <div className="p-3 rounded-lg bg-gray-50">
           <p className="text-xs text-[var(--muted)]">Expenses</p>
-          <p className="font-medium">$4,220</p>
+          <p className="font-light">$4,220</p>
         </div>
       </div>
 

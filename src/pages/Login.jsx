@@ -72,10 +72,10 @@ export default function Login() {
         <div className="bg-white rounded-2xl shadow-xl shadow-blue-500/10 p-8 sm:p-10">
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white font-bold text-lg mx-auto mb-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white font-light text-lg mx-auto mb-4">
               FT
             </div>
-            <h1 className="text-3xl font-bold text-slate-900">Welcome Back</h1>
+            <h1 className="text-3xl font-light text-slate-900">Welcome Back</h1>
             <p className="mt-2 text-slate-600">Sign in to your FinTrack account</p>
           </div>
 
@@ -93,7 +93,7 @@ export default function Login() {
           {/* Form */}
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
+              <label htmlFor="email" className="block text-sm font-light text-slate-700 mb-2">
                 Email Address
               </label>
               <input
@@ -107,7 +107,7 @@ export default function Login() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-2">
+              <label htmlFor="password" className="block text-sm font-light text-slate-700 mb-2">
                 Password
               </label>
               <input
@@ -125,7 +125,7 @@ export default function Login() {
                 <input type="checkbox" className="rounded border-slate-300" />
                 <span className="text-slate-600">Remember me</span>
               </label>
-              <a href="#" className="text-blue-600 hover:text-blue-700 font-medium">
+              <a href="#" className="text-blue-600 hover:text-blue-700 font-light">
                 Forgot password?
               </a>
             </div>
@@ -133,7 +133,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-6 px-4 py-2.5 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40 transition hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full mt-6 px-4 py-2.5 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 text-white font-light shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40 transition hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? 'Signing in...' : 'Sign In'}
               {!loading && <ArrowRightIcon className="h-4 w-4" />}
@@ -153,7 +153,7 @@ export default function Login() {
           {/* Footer */}
           <p className="text-center text-slate-600">
             Don't have an account?{' '}
-            <Link to="/register" className="text-blue-600 font-semibold hover:text-blue-700">
+            <Link to="/register" className="text-blue-600 font-light hover:text-blue-700">
               Create one
             </Link>
           </p>

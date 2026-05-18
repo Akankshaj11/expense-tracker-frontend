@@ -15,8 +15,8 @@ export default function FAB(){
           <div className="absolute inset-0 bg-[rgba(16,24,40,0.28)] backdrop-blur-sm" onClick={()=>setOpen(false)} />
           <div className="relative w-full max-w-md rounded-[1.75rem] border border-white bg-white p-6 shadow-[0_25px_60px_rgba(16,24,40,0.16)]">
             <div className="flex items-center justify-between">
-              <h4 className="text-lg font-semibold text-[var(--text)]">Add Transaction</h4>
-              <span className="rounded-full bg-primary-50 px-3 py-1 text-xs font-semibold text-primary-700">Quick entry</span>
+              <h4 className="text-lg font-light text-[var(--text)]">Add Transaction</h4>
+              <span className="rounded-full bg-primary-50 px-3 py-1 text-xs font-light text-primary-700">Quick entry</span>
             </div>
             <p className="mt-2 text-sm text-[var(--muted)]">Fast mock entry with a soft premium form surface.</p>
             <form className="mt-5 space-y-3">
@@ -27,8 +27,8 @@ export default function FAB(){
                 <div className="text-right">Amount history</div>
               </div>
               <div className="flex gap-3">
-                <button type="button" className="flex-1 rounded-full bg-gradient-to-r from-primary-500 to-primary-600 py-2.5 font-semibold text-white shadow-lg shadow-primary-500/20">Add</button>
-                <button type="button" onClick={()=>setOpen(false)} className="flex-1 rounded-full border border-gray-200 py-2.5 font-medium text-[var(--text)]">Cancel</button>
+                <button type="button" className="flex-1 rounded-full bg-gradient-to-r from-primary-500 to-primary-600 py-2.5 font-light text-white shadow-lg shadow-primary-500/20">Add</button>
+                <button type="button" onClick={()=>setOpen(false)} className="flex-1 rounded-full border border-gray-200 py-2.5 font-light text-[var(--text)]">Cancel</button>
               </div>
             </form>
           </div>
