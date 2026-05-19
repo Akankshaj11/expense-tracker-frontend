@@ -5,6 +5,7 @@ import {
   ArrowsRightLeftIcon,
   ArrowTrendingDownIcon,
   ArrowTrendingUpIcon,
+  ArrowDownTrayIcon,
   BanknotesIcon,
   BuildingOffice2Icon,
   CalendarDaysIcon,
@@ -62,6 +63,28 @@ function loadOrganizations() {
   return []
 }
 
+function getTransactionDirection(transaction) {
+  if (transaction?.transactionDirection === 'in' || transaction?.transactionDirection === 'out') {
+    return transaction.transactionDirection
+  }
+
+  const amount = Number(transaction?.amount || 0)
+  if (!Number.isFinite(amount)) {
+    return 'in'
+  }
+
+  return amount < 0 ? 'out' : 'in'
+}
+
+function getSignedTransactionAmount(transaction) {
+  const amount = Number(transaction?.amount || 0)
+  if (!Number.isFinite(amount)) {
+    return 0
+  }
+
+  return getTransactionDirection(transaction) === 'out' ? -Math.abs(amount) : Math.abs(amount)
+}
+
 const moduleThemes = {
   lend: { label: 'Lend', bg: '#fcf5ff', fg: '#7A0099', iconBg: '#fae8ff', icon: BanknotesIcon },
   borrow: { label: 'Borrow', bg: '#FFF7ED', fg: '#EA580C', iconBg: '#FFEDD5', icon: ArrowsRightLeftIcon },
@@ -70,39 +93,70 @@ const moduleThemes = {
   custom: { label: 'Custom', bg: '#F8FAFC', fg: '#0F172A', iconBg: '#E2E8F0', icon: Squares2X2Icon },
 }
 
-function buildModuleCards(activeOrganization, currency) {
+function buildModuleCards(activeOrganization, currency, transactions) {
   if (!activeOrganization?.modules?.length) {
     return []
   }
 
-  const baseAmounts = [12240, 6840, 18750, 9430, 5620, 8110]
-
-  return activeOrganization.modules.map((module, index) => {
+  const moduleAmounts = activeOrganization.modules.map((module) => {
     const normalizedName = module.name.toLowerCase()
     const theme = moduleThemes[normalizedName] || moduleThemes.custom
-    const amount = baseAmounts[index % baseAmounts.length] + index * 450
+    const amount = (transactions || [])
+      .filter((transaction) => transaction.module === module.name)
+      .reduce((sum, transaction) => sum + getSignedTransactionAmount(transaction), 0)
 
     return {
-      id: `${module.name}-${index}`,
       label: module.name,
       submodules: module.submodules || [],
-      amount: formatMoney(amount, currency),
+      amount,
       theme,
-      fill: Math.min(92, 45 + index * 12),
+    }
+  })
+
+  const maxAmount = moduleAmounts.reduce((max, item) => Math.max(max, Math.abs(item.amount)), 0)
+
+  return moduleAmounts.map((item, index) => {
+    const fill = maxAmount > 0 ? Math.min(92, Math.max(0, Math.round((Math.abs(item.amount) / maxAmount) * 92))) : 0
+
+    return {
+      id: `${item.label}-${index}`,
+      label: item.label,
+      submodules: item.submodules,
+      amountValue: item.amount,
+      amount: formatMoney(Math.abs(item.amount), currency),
+      theme: item.theme,
+      fill,
     }
   })
 }
 
-function buildRecentActivity(activeOrganization, currency) {
-  const modules = activeOrganization?.modules || []
-  const names = modules.length > 0 ? modules.map((module) => module.name) : ['dashboard']
+function buildRecentActivity(transactions, currency) {
+  return [...(transactions || [])]
+    .filter((transaction) => Number.isFinite(Number(transaction?.amount)))
+    .sort((left, right) => new Date(right.createdAt || right.date || 0) - new Date(left.createdAt || left.date || 0))
+    .slice(0, 4)
+    .map((transaction, idx) => {
+      const amount = getSignedTransactionAmount(transaction)
+      const activityTime = transaction.createdAt || transaction.date || ''
+      const metaDate = activityTime
+        ? new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(activityTime))
+        : 'No date'
 
-  return [
-    { title: 'New funds allocated', meta: `${capitalize(names[0])} · 12 min ago`, amount: formatMoney(1420, currency), tone: 'text-emerald-600' },
-    { title: 'Monthly expense cleared', meta: `${capitalize(names[1] || names[0])} · 1 hr ago`, amount: `-${formatMoney(560, currency)}`, tone: 'text-rose-600' },
-    { title: 'Savings updated', meta: `${capitalize(names[2] || names[0])} · 3 hrs ago`, amount: formatMoney(880, currency), tone: 'text-sky-600' },
-    { title: 'Investment review', meta: `${capitalize(names[3] || names[0])} · Yesterday`, amount: formatMoney(2140, currency), tone: 'text-violet-600' },
-  ]
+      return {
+        id: transaction.id || `${transaction.module || 'txn'}-${idx}`,
+        title: transaction.note?.trim() || `${capitalize(transaction.module || 'Transaction')} update`,
+        meta: `${capitalize(transaction.module || 'Dashboard')} · ${metaDate}`,
+        amount: amount >= 0 ? formatMoney(amount, currency) : `-${formatMoney(Math.abs(amount), currency)}`,
+        tone: amount >= 0 ? 'text-emerald-600' : 'text-rose-600',
+      }
+    })
+}
+
+function formatDateLabel(value) {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(date)
 }
 
 export default function Dashboard() {
@@ -135,14 +189,35 @@ export default function Dashboard() {
   }, [organizations, activeOrgId])
 
   const activeCurrency = activeOrganization?.currency || selectedCurrency
-  const firstName = deriveFirstName(currentUser)
-  const moduleCards = buildModuleCards(activeOrganization, activeCurrency)
-  const recentActivity = buildRecentActivity(activeOrganization, activeCurrency)
+  const transactions = readJSON('transactions', [])
+  const activeOrganizationTransactions = useMemo(() => {
+    if (!activeOrganization) {
+      return []
+    }
 
-  const totalBalance = formatMoney(moduleCards.reduce((sum, card, index) => sum + [12240, 6840, 18750, 9430, 5620, 8110][index % 6] + index * 450, 0), activeCurrency)
-  const revenueAmount = formatMoney(Math.round(moduleCards.length * 8400 + 1480), activeCurrency)
-  const expensesAmount = formatMoney(Math.round(moduleCards.length * 2350 + 720), activeCurrency)
-  const savingsAmount = formatMoney(Math.round(moduleCards.length * 1780 + 1180), activeCurrency)
+    return transactions.filter((transaction) => {
+      if (transaction.organizationId && transaction.organizationId !== activeOrganization.id) {
+        return false
+      }
+
+      return true
+    })
+  }, [transactions, activeOrganization])
+  const firstName = deriveFirstName(currentUser)
+  const moduleCards = buildModuleCards(activeOrganization, activeCurrency, activeOrganizationTransactions)
+  const recentActivity = buildRecentActivity(activeOrganizationTransactions, activeCurrency)
+
+  const revenueAmountValue = activeOrganizationTransactions.reduce((sum, transaction) => {
+    return getTransactionDirection(transaction) === 'in' ? sum + Math.abs(Number(transaction?.amount || 0)) : sum
+  }, 0)
+  const expensesAmountValue = activeOrganizationTransactions.reduce((sum, transaction) => {
+    return getTransactionDirection(transaction) === 'out' ? sum + Math.abs(Number(transaction?.amount || 0)) : sum
+  }, 0)
+  const totalBalanceValue = revenueAmountValue - expensesAmountValue
+
+  const totalBalance = formatMoney(totalBalanceValue, activeCurrency)
+  const revenueAmount = formatMoney(revenueAmountValue, activeCurrency)
+  const expensesAmount = formatMoney(expensesAmountValue, activeCurrency)
 
   const handleSwitchOrg = (organizationId) => {
     setActiveOrgId(organizationId)
@@ -158,6 +233,87 @@ export default function Dashboard() {
   const handleManageOrg = () => {
     setOrgMenuOpen(false)
     navigate('/manage-organization')
+  }
+
+  const handleLogout = () => {
+    try {
+      localStorage.removeItem('currentUser')
+      localStorage.removeItem('accessToken')
+      localStorage.removeItem('authToken')
+      localStorage.removeItem('activeOrgId')
+    } catch {}
+    setProfileOpen(false)
+    navigate('/login')
+  }
+
+  const handleDownloadWorkspacePDF = () => {
+    try {
+      const rows = activeOrganizationTransactions.map((t) => {
+        const amount = Number(t.amount || t.amountExpression || 0)
+        const signed = getTransactionDirection(t) === 'out' ? -Math.abs(amount) : Math.abs(amount)
+        return {
+          id: t.id,
+          date: t.date || t.createdAt || '',
+          module: t.module || '',
+          submodule: t.submodule || '',
+          amount: `${signed < 0 ? '-' : signed > 0 ? '+' : ''}${formatMoney(Math.abs(signed), activeCurrency)}`,
+          note: t.note || '',
+        }
+      })
+
+      const tableRows = rows.map(r => `
+        <tr>
+          <td>${r.id}</td>
+          <td>${new Date(r.date).toLocaleDateString()}</td>
+          <td>${r.module}</td>
+          <td>${r.submodule}</td>
+          <td style="text-align:right">${r.amount}</td>
+          <td>${r.note}</td>
+        </tr>
+      `).join('')
+
+      const doc = `
+        <html>
+          <head>
+            <title>Workspace Report - ${activeOrganization?.organizationName || ''}</title>
+            <style>
+              body { font-family: Inter, system-ui, -apple-system, Roboto, 'Helvetica Neue', Arial; padding:20px; color:#0f172a }
+              h1 { font-size:18px; margin-bottom:6px }
+              table { width:100%; border-collapse:collapse; margin-top:12px }
+              th, td { border:1px solid #e6edf3; padding:8px; font-size:12px }
+              th { background:#f8fafc; text-align:left }
+            </style>
+          </head>
+          <body>
+            <h1>Workspace Report — ${activeOrganization?.organizationName || ''} — ${formatDateLabel(new Date())}</h1>
+            <div>Exported from FinTrack</div>
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th><th>Date</th><th>Module</th><th>Submodule</th><th>Amount</th><th>Note</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${tableRows}
+              </tbody>
+            </table>
+            <script>window.onload = function(){ setTimeout(()=>{ window.print(); setTimeout(()=>{ window.close() }, 300) }, 120) }</script>
+          </body>
+        </html>
+      `
+
+      const w = window.open('', '_blank')
+      if (!w) {
+        alert('Popup blocked. Please allow popups to download the PDF via print.')
+        return
+      }
+      w.document.open()
+      w.document.write(doc)
+      w.document.close()
+    } catch (err) {
+      console.error(err)
+      alert('Failed to prepare Workspace report')
+    }
   }
 
   return (
@@ -276,6 +432,11 @@ export default function Dashboard() {
                         </span>
                       </div>
                     </div>
+                    <div className="mt-3 border-t border-white/4 pt-3">
+                      <button type="button" onClick={handleLogout} className="w-full rounded-xl px-3 py-3 text-left text-sm font-light text-rose-600 transition hover:bg-rose-50">
+                        Logout
+                      </button>
+                    </div>
                   </div>
                 ) : null}
               </div>
@@ -320,32 +481,57 @@ export default function Dashboard() {
 
         {activeOrganization ? (
           <>
-            <section className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <section className="mt-8 grid gap-4 sm:grid-cols-2 md:grid-cols-3">
               {[
-                { label: 'Total balance', value: totalBalance, icon: BanknotesIcon, bg: '#fcf5ff', fg: '#7A0099', accent: 'text-[var(--text)]' },
-                { label: 'Revenue', value: revenueAmount, icon: ArrowTrendingUpIcon, bg: '#ECFDF5', fg: '#059669', accent: 'text-emerald-600' },
-                { label: 'Expenses', value: expensesAmount, icon: ArrowTrendingDownIcon, bg: '#FEF2F2', fg: '#DC2626', accent: 'text-rose-600' },
-                { label: 'Savings', value: savingsAmount, icon: CircleStackIcon, bg: '#F5F3FF', fg: '#7C3AED', accent: 'text-violet-600' },
-              ].map((card, index) => (
-                <motion.article
-                  key={card.label}
-                  initial={{ opacity: 0, y: 14 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, amount: 0.35 }}
-                  transition={{ delay: index * 0.06, duration: 0.45 }}
-                  className="rounded-[1.75rem] border border-white/6 bg-[var(--card)] p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
+                { label: 'Total balance', value: totalBalance, accent: 'text-[var(--text)]' },
+                { label: 'Revenue', value: revenueAmount, accent: 'text-emerald-600' },
+                { label: 'Expenses', value: expensesAmount, accent: 'text-rose-600' },
+              ].map((card, index) => {
+                const isBalanceCard = card.label === 'Total balance'
+                const isNegativeBalance = isBalanceCard && totalBalanceValue < 0
+                const isPositiveBalance = isBalanceCard && totalBalanceValue > 0
+                const isZeroBalance = isBalanceCard && totalBalanceValue === 0
+                const DisplayArrow = card.label === 'Expenses' || isNegativeBalance ? ArrowTrendingDownIcon : ArrowTrendingUpIcon
+                const displayAccent = isBalanceCard
+                  ? isPositiveBalance
+                    ? 'text-emerald-600'
+                    : isNegativeBalance
+                      ? 'text-rose-600'
+                      : 'text-blue-600'
+                  : card.accent
+                const displaySign = isBalanceCard
+                  ? isPositiveBalance
+                    ? '+'
+                    : isNegativeBalance
+                      ? '-'
+                      : ''
+                  : card.label === 'Revenue'
+                    ? '+'
+                    : card.label === 'Expenses'
+                      ? '-'
+                      : ''
+                const displayValue = isBalanceCard ? formatMoney(Math.abs(totalBalanceValue), activeCurrency) : card.value
+
+                return (
+                  <motion.article
+                    key={card.label}
+                    initial={{ opacity: 0, y: 14 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, amount: 0.35 }}
+                    transition={{ delay: index * 0.06, duration: 0.45 }}
+                    className="rounded-[1.75rem] border border-white/6 bg-[var(--card)] p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+                  >
+                    <div className="flex flex-col items-start gap-1">
                       <p className="text-sm font-light text-slate-500">{card.label}</p>
-                      <p className={`mt-2 text-3xl font-light tracking-tight ${card.accent}`}>{card.value}</p>
+                      <p className={`mt-1 inline-flex items-center gap-1 text-3xl font-light tracking-tight ${displayAccent}`}>
+                        <span>{displaySign}</span>
+                        {displayValue}
+                        <DisplayArrow className={`h-5 w-5 ${isNegativeBalance || card.label === 'Expenses' ? 'text-rose-600' : 'text-emerald-600'}`} />
+                      </p>
                     </div>
-                    <div className="rounded-2xl p-3" style={{ backgroundColor: card.bg, color: card.fg }}>
-                      <card.icon className="h-5 w-5" />
-                    </div>
-                  </div>
-                </motion.article>
-              ))}
+                  </motion.article>
+                )
+              })}
             </section>
 
             <section className="mt-8 rounded-[2rem] border border-white/6 bg-[var(--card)] p-6 shadow-sm sm:p-8">
@@ -397,7 +583,10 @@ export default function Dashboard() {
                     <div className="mt-5 flex items-end justify-between gap-4">
                       <div>
                         <p className="text-xs font-light uppercase tracking-[0.2em] text-slate-500">Amount</p>
-                        <p className="mt-2 text-2xl font-light tracking-tight text-[var(--text)]">{module.amount}</p>
+                        <p className={`mt-2 inline-flex items-center gap-1 text-2xl font-light tracking-tight ${module.amountValue < 0 ? 'text-rose-600' : 'text-blue-600'}`}>
+                          <span>{module.amountValue < 0 ? '-' : module.amountValue > 0 ? '+' : ''}</span>
+                          <span>{module.amount}</span>
+                        </p>
                       </div>
                       <div className="text-right text-xs font-light text-slate-500">Allocated</div>
                     </div>
@@ -430,24 +619,30 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                <div className="mt-6 space-y-3">
-                  {recentActivity.map((item, index) => (
-                    <motion.div
-                      key={item.title}
-                      initial={{ opacity: 0, y: 10 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      viewport={{ once: true, amount: 0.2 }}
-                      transition={{ delay: index * 0.05, duration: 0.4 }}
-                      className="flex items-center justify-between rounded-2xl border border-white/6 bg-[var(--card)] px-4 py-4"
-                    >
-                      <div>
-                        <p className="font-light text-[var(--text)]">{item.title}</p>
-                        <p className="text-sm text-slate-500">{item.meta}</p>
-                      </div>
-                      <p className={`text-sm font-light ${item.tone}`}>{item.amount}</p>
-                    </motion.div>
-                  ))}
-                </div>
+                {recentActivity.length > 0 ? (
+                  <div className="mt-6 space-y-3">
+                    {recentActivity.map((item, index) => (
+                      <motion.div
+                        key={item.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true, amount: 0.2 }}
+                        transition={{ delay: index * 0.05, duration: 0.4 }}
+                        className="flex items-center justify-between rounded-2xl border border-white/6 bg-[var(--card)] px-4 py-4"
+                      >
+                        <div>
+                          <p className="font-light text-[var(--text)]">{item.title}</p>
+                          <p className="text-sm text-slate-500">{item.meta}</p>
+                        </div>
+                        <p className={`text-sm font-light ${item.tone}`}>{item.amount}</p>
+                      </motion.div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-[var(--card)] px-4 py-6 text-sm text-slate-500">
+                    No transactions yet. Add your first transaction to see activity here.
+                  </div>
+                )}
               </div>
 
               <div className="rounded-[2rem] border border-white/6 bg-[var(--card)] p-6 shadow-sm sm:p-8">
@@ -484,6 +679,12 @@ export default function Dashboard() {
                     </div>
                     <PlusIcon className="h-6 w-6 text-primary-600" />
                   </div>
+                </div>
+                <div className="mt-4">
+                  <button type="button" onClick={handleDownloadWorkspacePDF} className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-rose-600 px-4 py-2.5 text-sm font-light text-white shadow-sm transition hover:bg-rose-700 hover:-translate-y-0.5">
+                    <ArrowDownTrayIcon className="h-4 w-4" />
+                    Download report
+                  </button>
                 </div>
               </div>
             </section>

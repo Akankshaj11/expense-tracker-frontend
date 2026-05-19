@@ -1,12 +1,6 @@
 import { motion } from 'framer-motion'
 import { ArrowTrendingUpIcon, ChartPieIcon, PlusIcon } from '@heroicons/react/24/outline'
 
-const activity = [
-	{ title: 'Salary credited', meta: 'Revenue · 09:12', amount: '+$3,200', accent: 'text-primary-600' },
-	{ title: 'Fuel expense', meta: 'Expenses · 11:40', amount: '-$48', accent: 'text-red-500' },
-	{ title: 'Index fund', meta: 'Investments · 14:22', amount: '-$250', accent: 'text-amber-500' },
-]
-
 export default function DashboardPreview() {
 	return (
 		<section id="analytics" className="mt-16 scroll-mt-28">
@@ -27,8 +21,8 @@ export default function DashboardPreview() {
 						<div>
 							<p className="text-sm font-light text-[var(--muted)]">Balance overview</p>
 							<div className="mt-1 flex items-end gap-3">
-								<h4 className="text-3xl font-light tracking-tight text-[var(--text)]">$24,532.40</h4>
-								<span className="rounded-full bg-primary-50 px-3 py-1 text-xs font-light text-primary-700">+12.4%</span>
+								<h4 className="text-3xl font-light tracking-tight text-[var(--text)]">$0</h4>
+								<span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-light text-slate-600">No data yet</span>
 							</div>
 						</div>
 						<div className="rounded-2xl bg-white/6 p-3 text-primary-400">
@@ -38,10 +32,10 @@ export default function DashboardPreview() {
 
 					<div className="mt-6 grid gap-4 md:grid-cols-4">
 						{[
-							{ label: 'Revenue', value: '$12,120', from: '#0EA5A0', to: '#06B6D4' },
-							{ label: 'Expenses', value: '$4,220', from: '#EF4444', to: '#F97316' },
-							{ label: 'Savings', value: '$6,780', from: '#06B6D4', to: '#6366F1' },
-							{ label: 'Investments', value: '$1,412', from: '#7C3AED', to: '#4C1D95' },
+							{ label: 'Revenue', value: '$0', from: '#0EA5A0', to: '#06B6D4' },
+							{ label: 'Expenses', value: '$0', from: '#EF4444', to: '#F97316' },
+							{ label: 'Savings', value: '$0', from: '#06B6D4', to: '#6366F1' },
+							{ label: 'Investments', value: '$0', from: '#7C3AED', to: '#4C1D95' },
 						].map((card) => (
 							<div key={card.label} className={`rounded-2xl p-4 shadow-sm`} style={{background:`linear-gradient(135deg, ${card.from}, ${card.to})`}}>
 								<p className="text-xs font-light uppercase tracking-[0.18em] text-white/80">{card.label}</p>
@@ -102,20 +96,14 @@ export default function DashboardPreview() {
 					</div>
 
 					<div className="mt-5 space-y-3">
-						{activity.map((item) => (
-							<div key={item.title} className="flex items-center justify-between rounded-2xl border border-white/6 bg-white/4 px-4 py-3 shadow-sm">
-								<div>
-									<p className="font-light text-white">{item.title}</p>
-									<p className="text-xs text-[var(--muted)]">{item.meta}</p>
-								</div>
-								<p className={`text-sm font-light ${item.accent}`}>{item.amount}</p>
-							</div>
-						))}
+						<div className="rounded-2xl border border-dashed border-white/10 bg-white/4 px-4 py-4 text-sm text-[var(--muted)]">
+							No transactions yet.
+						</div>
 					</div>
 
 					<div className="mt-5 rounded-2xl bg-white/6 p-4">
 						<p className="text-sm font-light text-white">Smart summary</p>
-						<p className="mt-2 text-sm leading-6 text-[var(--muted)]">Your top spending cluster is food and fuel. Savings remain above target for the month.</p>
+						<p className="mt-2 text-sm leading-6 text-[var(--muted)]">No transaction history yet. Add your first entry to populate the dashboard.</p>
 					</div>
 				</aside>
 			</motion.div>

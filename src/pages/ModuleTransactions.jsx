@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ArrowLeftIcon, PaperClipIcon, TagIcon, XMarkIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline'
+import { ArrowLeftIcon, PaperClipIcon, TagIcon, XMarkIcon, ArrowDownTrayIcon, PlusIcon } from '@heroicons/react/24/outline'
 
 function readJSON(key, fallback) {
   try {
@@ -75,6 +75,28 @@ function formatDateLabel(value) {
   }).format(date)
 }
 
+function getTransactionDirection(transaction) {
+  if (transaction?.transactionDirection === 'in' || transaction?.transactionDirection === 'out') {
+    return transaction.transactionDirection
+  }
+
+  const amount = Number(transaction?.amount || 0)
+  if (!Number.isFinite(amount)) {
+    return 'in'
+  }
+
+  return amount < 0 ? 'out' : 'in'
+}
+
+function getSignedAmount(transaction) {
+  const amount = Number(transaction?.amount || 0)
+  if (!Number.isFinite(amount)) {
+    return 0
+  }
+
+  return getTransactionDirection(transaction) === 'out' ? -Math.abs(amount) : Math.abs(amount)
+}
+
 export default function ModuleTransactions() {
   const navigate = useNavigate()
   const { moduleName: encodedModuleName } = useParams()
@@ -121,13 +143,14 @@ export default function ModuleTransactions() {
   const handleDownloadPDF = () => {
     try {
       const rows = moduleTransactions.map((t) => {
+        const signedAmount = getSignedAmount(t)
         return {
           id: t.id,
           date: t.date || t.createdAt || '',
           time: formatTime(t.createdAt),
           module: t.module,
           submodule: t.submodule || '',
-          amount: formatMoney(t.amount, selectedCurrency),
+          amount: `${signedAmount < 0 ? '-' : signedAmount > 0 ? '+' : ''}${formatMoney(Math.abs(signedAmount), selectedCurrency)}`,
           note: t.note || '',
           attachmentName: t.attachmentName || '',
         }
@@ -231,17 +254,21 @@ export default function ModuleTransactions() {
             </div>
 
             <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-end sm:justify-end sm:gap-4">
-              <div className="w-full sm:w-auto">
-                <label className="mb-2 block text-xs font-light uppercase tracking-[0.18em] text-slate-500">Date</label>
+              <div className="w-full sm:w-auto flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => navigate('/add-transaction')}
+                  aria-label="Add transaction"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg shadow-primary-500/25 transition hover:-translate-y-0.5"
+                >
+                  <PlusIcon className="h-4 w-4" />
+                </button>
                 <input
                   type="date"
                   value={selectedDate}
                   onChange={(event) => setSelectedDate(event.target.value)}
                   className="w-full rounded-xl border border-white/6 bg-[var(--card)] px-4 py-3 text-sm font-light text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 sm:w-[220px]"
                 />
-              </div>
-
-              <div className="w-full sm:w-auto flex items-center gap-2">
                 <button
                   type="button"
                   onClick={handleDownloadPDF}
@@ -280,7 +307,19 @@ export default function ModuleTransactions() {
                       </div>
 
                       <div className="text-left sm:text-right">
-                        <p className="text-lg font-light tracking-tight text-[var(--text)]">{formatMoney(transaction.amount, selectedCurrency)}</p>
+                        {(() => {
+                          const signedAmount = getSignedAmount(transaction)
+                          const isExpense = getTransactionDirection(transaction) === 'out'
+                          const amountColor = isExpense ? 'text-rose-600' : 'text-blue-600'
+                          const amountSign = signedAmount < 0 ? '-' : signedAmount > 0 ? '+' : ''
+
+                          return (
+                            <p className={`inline-flex items-center gap-1 text-lg font-light tracking-tight ${amountColor}`}>
+                              <span>{amountSign}</span>
+                              <span>{formatMoney(Math.abs(signedAmount), selectedCurrency)}</span>
+                            </p>
+                          )
+                        })()}
                         <p className="text-sm text-slate-500">{formatTime(transaction.createdAt)}</p>
                       </div>
                     </div>

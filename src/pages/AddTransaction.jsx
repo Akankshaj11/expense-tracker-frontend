@@ -253,19 +253,13 @@ export default function AddTransaction() {
   const [step, setStep] = useState(1)
   const [selectedModule, setSelectedModule] = useState('')
   const [selectedSubmodule, setSelectedSubmodule] = useState('')
+  const [transactionDirection, setTransactionDirection] = useState('')
   const [amountExpression, setAmountExpression] = useState('')
   const [note, setNote] = useState('')
   const [attachment, setAttachment] = useState(null)
   const [date, setDate] = useState(getTodayDate())
   const [error, setError] = useState('')
   const [savedMessage, setSavedMessage] = useState('')
-
-  useEffect(() => {
-    if (activeOrganization?.modules?.length && !selectedModule) {
-      setSelectedModule(activeOrganization.modules[0].name)
-      setSelectedSubmodule(activeOrganization.modules[0].submodules?.[0] || '')
-    }
-  }, [activeOrganization, selectedModule])
 
   useEffect(() => {
     const currentModule = activeOrganization?.modules?.find((module) => module.name === selectedModule)
@@ -280,16 +274,16 @@ export default function AddTransaction() {
   const totalAmount = evaluateExpression(amountExpression)
   const previewAmount = evaluateExpression(getPreviewExpression(amountExpression))
   const amountDisplayValue = getAmountInputDisplay(amountExpression)
-  const canSave = totalAmount !== null && selectedModule && selectedSubmodule
-  const selectionModalOpen = step < 3
+  const canSave = totalAmount !== null && selectedModule && selectedSubmodule && transactionDirection
+  const selectionModalOpen = step < 4
 
   const closeSelectionModal = () => {
-    navigate('/dashboard')
+    navigate(-1)
   }
 
   const saveTransaction = async (stayOnPage) => {
     if (!canSave) {
-      setError('Enter a valid amount and choose a module and submodule')
+      setError('Enter a valid amount, choose a module, submodule, and in or out')
       return
     }
 
@@ -310,6 +304,7 @@ export default function AddTransaction() {
       organizationId: activeOrganization?.id || '',
       module: selectedModule,
       submodule: selectedSubmodule,
+      transactionDirection,
       amountExpression,
       amount: totalAmount,
       note: note.trim(),
@@ -322,6 +317,7 @@ export default function AddTransaction() {
     }
 
     let savedTransaction = null
+    let offlineFallback = false
 
     try {
       const response = await apiRequest('/transactions', {
@@ -331,16 +327,30 @@ export default function AddTransaction() {
 
       savedTransaction = response?.data?.transaction || null
     } catch (requestError) {
-      setError(requestError.message || 'Unable to save transaction')
-      return
+      const msg = (requestError && requestError.message) ? String(requestError.message) : ''
+      const lower = msg.toLowerCase()
+      // If auth or network related, fallback to local save; otherwise show error
+      if (lower.includes('auth') || lower.includes('unauthorized') || lower.includes('request failed') || lower.includes('network')) {
+        offlineFallback = true
+        savedTransaction = null
+      } else {
+        setError(msg || 'Unable to save transaction')
+        return
+      }
     }
 
-    const nextTransaction = savedTransaction || {
-      id: Date.now().toString(),
-      ...transactionPayload,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }
+    const nextTransaction = savedTransaction
+      ? {
+          ...savedTransaction,
+          ...transactionPayload,
+          transactionDirection: transactionPayload.transactionDirection,
+        }
+      : {
+          id: Date.now().toString(),
+          ...transactionPayload,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }
 
     localStorage.setItem('transactions', JSON.stringify([nextTransaction, ...transactions]))
 
@@ -357,9 +367,13 @@ export default function AddTransaction() {
     }
 
     setError('')
-    setSavedMessage('Transaction saved successfully')
+    setSavedMessage(offlineFallback ? 'Transaction saved locally (offline)' : 'Transaction saved successfully')
 
     if (stayOnPage) {
+      setStep(1)
+      setSelectedModule('')
+      setSelectedSubmodule('')
+      setTransactionDirection('')
       setAmountExpression('')
       setNote('')
       setAttachment(null)
@@ -392,8 +406,16 @@ export default function AddTransaction() {
         <div className="w-full max-w-2xl overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-xl">
           <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 sm:px-6">
             <div>
-              <h2 className="text-2xl font-light tracking-tight text-slate-800">{step === 1 ? 'Select Module' : 'Select Submodule'}</h2>
-              <p className="mt-1 text-sm text-slate-500">{step === 1 ? 'Choose a module to continue.' : `Choose a submodule for ${selectedModuleData?.name}.`}</p>
+              <h2 className="text-2xl font-light tracking-tight text-slate-800">
+                {step === 1 ? 'Select Money Flow' : step === 2 ? 'Select Module' : 'Select Submodule'}
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">
+                {step === 1
+                  ? 'Choose whether the transaction is coming in or going out.'
+                  : step === 2
+                    ? 'Choose a module to continue.'
+                    : `Choose a submodule for ${selectedModuleData?.name}.`}
+              </p>
             </div>
             <button type="button" onClick={closeSelectionModal} className="rounded-full border border-slate-200 bg-white p-2 text-slate-700 transition hover:border-slate-300 hover:text-slate-900" aria-label="Close">
               <XMarkIcon className="h-5 w-5" />
@@ -401,14 +423,54 @@ export default function AddTransaction() {
           </div>
 
           <div className="px-5 py-5 sm:px-6">
-            <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">{step === 1 ? 'All Modules' : 'All Submodules'}</p>
+            <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">{step === 1 ? 'Choose flow' : step === 2 ? 'All Modules' : 'All Submodules'}</p>
 
             {step === 1 ? (
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <motion.button
+                  type="button"
+                  onClick={() => {
+                    setTransactionDirection('in')
+                    setSelectedModule('')
+                    setSelectedSubmodule('')
+                    setError('')
+                    setStep(2)
+                  }}
+                  initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ duration: 0.22, ease: 'easeOut' }}
+                  whileHover={{ y: -2 }}
+                  className="rounded-[1.25rem] border border-emerald-600 bg-emerald-600 px-5 py-5 text-left text-white shadow-[0_10px_24px_rgba(16,185,129,0.22)] transition-shadow hover:border-emerald-700 hover:bg-emerald-700 hover:shadow-md"
+                >
+                  <p className="text-lg font-light">In</p>
+                  <p className="mt-1 text-sm text-white/80">Money coming in</p>
+                </motion.button>
+
+                <motion.button
+                  type="button"
+                  onClick={() => {
+                    setTransactionDirection('out')
+                    setSelectedModule('')
+                    setSelectedSubmodule('')
+                    setError('')
+                    setStep(2)
+                  }}
+                  initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ duration: 0.22, ease: 'easeOut', delay: 0.04 }}
+                  whileHover={{ y: -2 }}
+                  className="rounded-[1.25rem] border border-rose-600 bg-rose-600 px-5 py-5 text-left text-white shadow-[0_10px_24px_rgba(244,63,94,0.22)] transition-shadow hover:border-rose-700 hover:bg-rose-700 hover:shadow-md"
+                >
+                  <p className="text-lg font-light">Out</p>
+                  <p className="mt-1 text-sm text-white/80">Money going out</p>
+                </motion.button>
+              </div>
+            ) : step === 2 ? (
               <div className="mt-4 grid gap-3 md:grid-cols-2">
                 {activeOrganization.modules.map((module, index) => {
                   const isSelected = selectedModule === module.name
                   const cardStyles = ['border-orange-200 bg-orange-50 text-orange-700', 'border-primary-200 bg-primary-50 text-primary-700', 'border-violet-200 bg-violet-50 text-violet-700', 'border-emerald-200 bg-emerald-50 text-emerald-700']
-                  const selectedStyles = ['border-orange-300 bg-orange-100 shadow-[0_0_0_1px_rgba(249,115,22,0.12)]', 'border-primary-300 bg-primary-100 shadow-[0_0_0_1px_rgba(59,130,246,0.12)]', 'border-violet-300 bg-violet-100 shadow-[0_0_0_1px_rgba(139,92,246,0.12)]', 'border-emerald-300 bg-emerald-10<PASSWORD> shadow-[<PASSWORD>px_rgba(16,185,129,0.12)]']
+                  const selectedStyles = ['border-orange-300 bg-orange-100 shadow-[0_0_0_1px_rgba(249,115,22,0.12)]', 'border-primary-300 bg-primary-100 shadow-[0_0_0_1px_rgba(59,130,246,0.12)]', 'border-violet-300 bg-violet-100 shadow-[0_0_0_1px_rgba(139,92,246,0.12)]', 'border-emerald-300 bg-emerald-100 shadow-[0_0_0_1px_rgba(16,185,129,0.12)]']
                   const tone = cardStyles[index % cardStyles.length]
                   const activeTone = selectedStyles[index % selectedStyles.length]
                   return (
@@ -419,7 +481,7 @@ export default function AddTransaction() {
                         setSelectedModule(module.name)
                         setSelectedSubmodule(module.submodules?.[0] || '')
                         setError('')
-                        setStep(2)
+                        setStep(3)
                       }}
                       initial={{ opacity: 0, y: 10, scale: 0.98 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -440,7 +502,7 @@ export default function AddTransaction() {
               <>
                 <div className="mt-4 flex items-center justify-between gap-3">
                   <div className="rounded-full bg-slate-100 px-4 py-2 text-sm font-light text-slate-700">{selectedModuleData?.name}</div>
-                  <button type="button" onClick={() => setStep(1)} className="rounded-full border border-white/6 bg-[var(--card)] px-4 py-2 text-sm font-light text-[var(--muted)] transition hover:border-slate-300">Back</button>
+                  <button type="button" onClick={() => setStep(2)} className="rounded-full border border-white/6 bg-[var(--card)] px-4 py-2 text-sm font-light text-[var(--muted)] transition hover:border-slate-300">Back</button>
                 </div>
 
                 <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -452,17 +514,17 @@ export default function AddTransaction() {
                         type="button"
                         onClick={() => {
                           setSelectedSubmodule(submodule)
-                          setStep(3)
+                          setStep(4)
                         }}
                         initial={{ opacity: 0, y: 10, scale: 0.98 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         transition={{ duration: 0.22, ease: 'easeOut', delay: index * 0.04 }}
                         whileHover={{ y: -2 }}
-                        className={`rounded-[1.25rem] border px-4 py-4 text-left transition-shadow hover:shadow-md ${isSelected ? 'border-primary-500 bg-primary-50' : 'border-white/6 bg-[var(--card)]'}`}
+                        className={`rounded-[1.25rem] border px-4 py-4 text-left transition-shadow hover:shadow-md ${isSelected ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-white/6 bg-[var(--card)] text-[var(--text)]'}`}
                       >
                         <div className="flex items-center justify-between gap-3">
                           <div>
-                            <p className="font-light text-[var(--text)]">{submodule}</p>
+                            <p className={`font-light ${isSelected ? 'text-primary-700' : 'text-[var(--text)]'}`}>{submodule}</p>
                             <p className="text-sm text-slate-500">Click to continue</p>
                           </div>
                           <TagIcon className="h-5 w-5 text-primary-600" />
@@ -493,7 +555,7 @@ export default function AddTransaction() {
         </div>
 
         <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} className="rounded-[2rem] border border-white bg-[var(--card)] p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-8">
-          {step === 3 ? (
+          {step === 4 ? (
             <section className="mt-6">
               <div className="rounded-[1.75rem] border border-white/6 bg-[var(--card)] p-4 sm:p-5">
                 <div className="flex items-center justify-between gap-4">
@@ -501,7 +563,7 @@ export default function AddTransaction() {
                     <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">Transaction form</p>
                     <h2 className="mt-2 text-2xl font-light tracking-tight text-[var(--text)]">{selectedModuleData?.name} · {selectedSubmodule}</h2>
                   </div>
-                  <button type="button" onClick={() => setStep(2)} className="rounded-full border border-white/6 bg-[var(--card)] px-4 py-2 text-sm font-light text-[var(--muted)]">Back</button>
+                  <button type="button" onClick={() => setStep(3)} className="rounded-full border border-white/6 bg-[var(--card)] px-4 py-2 text-sm font-light text-[var(--muted)]">Back</button>
                 </div>
 
                 <div className="mt-5 space-y-4">
