@@ -1,7 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ArrowLeftIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
+import { apiRequest } from '../utils/api'
+import { loadOrganizationsFromBackend, readCachedOrganizations } from '../utils/organizationSync'
 
 function readJSON(key, fallback) {
   try {
@@ -12,22 +14,20 @@ function readJSON(key, fallback) {
   }
 }
 
-function loadOrganizations() {
-  const organizations = readJSON('organizations', [])
-  if (organizations.length > 0) {
-    return organizations
-  }
-
-  const organization = readJSON('organization', null)
-  return organization ? [{ ...organization, id: organization.id || Date.now().toString() }] : []
-}
-
-function createModuleItem(module, index) {
+function createModuleItem(module, index, organizationSubmodules = {}) {
   return {
     id: `${module.name}-${index}-${Date.now()}`,
     name: module.name || '',
-    submodules: Array.isArray(module.submodules) ? module.submodules : [],
+    submodules: Array.isArray(module.submodules)
+      ? module.submodules
+      : Array.isArray(organizationSubmodules?.[module.name])
+        ? organizationSubmodules[module.name]
+        : [],
   }
+}
+
+function buildModuleItems(organization) {
+  return (organization?.modules || []).map((module, index) => createModuleItem(module, index, organization?.submodules || {}))
 }
 
 function createEmptyModule() {
@@ -40,15 +40,42 @@ function createEmptyModule() {
 
 export default function ManageOrganization() {
   const navigate = useNavigate()
-  const organizations = useMemo(() => loadOrganizations(), [])
+  const [organizations, setOrganizations] = useState(() => readCachedOrganizations())
   const activeOrgId = localStorage.getItem('activeOrgId') || organizations[0]?.id || ''
   const activeOrganization = organizations.find((item) => item.id === activeOrgId) || organizations[0] || null
 
   const [organizationName, setOrganizationName] = useState(activeOrganization?.organizationName || '')
   const [description, setDescription] = useState(activeOrganization?.description || '')
-  const [modules, setModules] = useState(() => (activeOrganization?.modules || []).map(createModuleItem))
+  const [modules, setModules] = useState(() => buildModuleItems(activeOrganization))
   const [error, setError] = useState('')
   const [savedMessage, setSavedMessage] = useState('')
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  // Reload organizations from the backend on mount to ensure fresh data.
+  useEffect(() => {
+    let cancelled = false
+
+    loadOrganizationsFromBackend().then((refreshedOrganizations) => {
+      if (!cancelled) {
+        setOrganizations(refreshedOrganizations)
+      }
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!activeOrganization) {
+      return
+    }
+
+    setOrganizationName(activeOrganization.organizationName || '')
+    setDescription(activeOrganization.description || '')
+    setModules(buildModuleItems(activeOrganization))
+  }, [activeOrganization])
 
   if (!activeOrganization) {
     return (
@@ -112,7 +139,7 @@ export default function ManageOrganization() {
     )
   }
 
-  const handleSave = (event) => {
+  const handleSave = async (event) => {
     event.preventDefault()
 
     const normalizedModules = modules
@@ -137,24 +164,109 @@ export default function ManageOrganization() {
       return
     }
 
-    const updatedOrganization = {
-      ...activeOrganization,
+    // Transform modules structure: separate module names from submodules dict
+    const modulesForBackend = normalizedModules.map((module) => ({ name: module.name }))
+    const submodulesForBackend = {}
+    normalizedModules.forEach((module) => {
+      submodulesForBackend[module.name] = module.submodules
+    })
+
+    const updatePayload = {
       organizationName: organizationName.trim(),
       description: description.trim(),
-      modules: normalizedModules,
+      modules: modulesForBackend,
+      submodules: submodulesForBackend,
     }
 
-    const updatedOrganizations = organizations.map((organization) =>
-      organization.id === activeOrganization.id ? updatedOrganization : organization,
-    )
+    // Check if this is a local ID (from offline mode) or a MongoDB ObjectId
+    const isMongoId = /^[a-f0-9]{24}$/.test(activeOrganization.id)
 
-    localStorage.setItem('organizations', JSON.stringify(updatedOrganizations))
-    localStorage.setItem('organization', JSON.stringify(updatedOrganization))
-    localStorage.setItem('activeOrgId', updatedOrganization.id)
+    try {
+      let updatedOrg = null
 
-    setError('')
-    setSavedMessage('Organization updated successfully')
-    navigate('/dashboard')
+      if (isMongoId) {
+        // Call backend for MongoDB-backed organization
+        const response = await apiRequest(`/organizations/${activeOrganization.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify(updatePayload),
+        })
+        updatedOrg = response?.data || null
+      } else {
+        // For local IDs (offline mode), just update localStorage
+        updatedOrg = {
+          ...activeOrganization,
+          ...updatePayload,
+          updatedAt: new Date().toISOString(),
+        }
+      }
+
+      if (updatedOrg) {
+        const updatedOrganizations = organizations.map((org) =>
+          org.id === activeOrganization.id
+            ? {
+                ...org,
+                organizationName: updatedOrg.organizationName,
+                description: updatedOrg.description,
+                modules: updatedOrg.modules,
+                submodules: updatedOrg.submodules,
+              }
+            : org,
+        )
+
+        localStorage.setItem('organizations', JSON.stringify(updatedOrganizations))
+        localStorage.setItem('organization', JSON.stringify(updatedOrg))
+        localStorage.setItem('activeOrgId', updatedOrg.id)
+
+        setError('')
+        setSavedMessage('Organization updated successfully')
+        setTimeout(() => {
+          navigate('/dashboard')
+        }, 800)
+      }
+    } catch (err) {
+      setError(err?.message || 'Unable to save organization')
+    }
+  }
+
+  const handleDelete = async () => {
+    setIsDeleting(true)
+    const isMongoId = /^[a-f0-9]{24}$/.test(activeOrganization.id)
+
+    try {
+      if (isMongoId) {
+        // Call backend to delete
+        await apiRequest(`/organizations/${activeOrganization.id}`, {
+          method: 'DELETE',
+        })
+      }
+
+      // Remove from localStorage
+      const updatedOrganizations = organizations.filter((org) => org.id !== activeOrganization.id)
+      localStorage.setItem('organizations', JSON.stringify(updatedOrganizations))
+
+      // Clear active org if it was the deleted one
+      if (localStorage.getItem('activeOrgId') === activeOrganization.id) {
+        localStorage.removeItem('organization')
+        localStorage.removeItem('activeOrgId')
+      }
+
+      setError('')
+      setSavedMessage('Organization deleted successfully')
+      setDeleteConfirmOpen(false)
+
+      setTimeout(() => {
+        if (updatedOrganizations.length === 0) {
+          navigate('/create-organization')
+        } else {
+          navigate('/dashboard')
+        }
+      }, 800)
+    } catch (err) {
+      setIsDeleting(false)
+      const errorMsg = err?.message || 'Unable to delete organization'
+      setError(errorMsg)
+      setDeleteConfirmOpen(false)
+    }
   }
 
   return (
@@ -281,7 +393,15 @@ export default function ManageOrganization() {
             {error ? <p className="text-sm font-light text-rose-600">{error}</p> : null}
             {savedMessage ? <p className="text-sm font-light text-emerald-600">{savedMessage}</p> : null}
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+            <div className="flex flex-col gap-4 border-t border-white/6 pt-6 sm:flex-row sm:items-center sm:justify-between">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmOpen(true)}
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-6 py-3 text-sm font-light text-rose-600 transition hover:bg-rose-100"
+              >
+                <TrashIcon className="h-4 w-4" />
+                Delete Organization
+              </button>
               <button type="submit" className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-primary-500 to-primary-600 px-6 py-3 text-sm font-light text-white shadow-lg shadow-primary-500/25 transition hover:-translate-y-0.5">
                 Save Changes
                 <PlusIcon className="h-4 w-4" />
@@ -289,6 +409,36 @@ export default function ManageOrganization() {
             </div>
           </form>
         </motion.div>
+
+        {deleteConfirmOpen ? (
+          <div className="fixed inset-0 flex items-center justify-center bg-black/30 px-4 py-6 backdrop-blur-sm">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md rounded-[2rem] border border-white bg-[var(--card)] p-6 shadow-lg sm:p-8">
+              <div className="mb-6">
+                <h2 className="text-2xl font-light text-[var(--text)]">Delete Organization</h2>
+                <p className="mt-2 text-base leading-7 text-[var(--muted)]">Are you sure you want to delete <strong>{activeOrganization.organizationName}</strong>? This action cannot be undone.</p>
+              </div>
+              <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirmOpen(false)}
+                  disabled={isDeleting}
+                  className="inline-flex items-center justify-center rounded-full border border-white/6 bg-[var(--card)] px-6 py-3 text-sm font-light text-[var(--text)] transition hover:border-white/10 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-6 py-3 text-sm font-light text-rose-600 transition hover:bg-rose-100 disabled:opacity-50"
+                >
+                  <TrashIcon className="h-4 w-4" />
+                  {isDeleting ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        ) : null}
       </div>
     </div>
   )

@@ -1,14 +1,27 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowRightIcon } from '@heroicons/react/24/outline'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { apiRequest } from '../utils/api'
 
 export default function Login() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    const storedNotice = sessionStorage.getItem('authNotice')
+    const routeNotice = location.state?.message
+    const notice = routeNotice || storedNotice
+
+    if (notice) {
+      setError(notice)
+      sessionStorage.removeItem('authNotice')
+    }
+  }, [location.state])
 
   const deriveFirstName = (value) => {
     const localPart = value.split('@')[0] || 'user'
@@ -27,29 +40,26 @@ export default function Login() {
         setLoading(false)
         return
       }
+      // Call backend login
+      const payload = await apiRequest('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      })
 
-      const users = JSON.parse(localStorage.getItem('users') || '[]')
-      const existingUser = users.find((user) => user.email === email)
+      const user = payload?.data?.user
+      const accessToken = payload?.data?.access_token
 
-      if (!existingUser) {
-        sessionStorage.setItem('signupEmail', email)
-        navigate('/register')
-        return
+      if (accessToken) {
+        localStorage.setItem('accessToken', accessToken)
       }
 
-      if (existingUser.password !== password) {
-        setError('Incorrect password')
-        setLoading(false)
-        return
+      if (user) {
+        localStorage.setItem('currentUser', JSON.stringify(user))
       }
 
-      localStorage.setItem('currentUser', JSON.stringify({
-        ...existingUser,
-        firstName: existingUser.firstName || deriveFirstName(existingUser.email),
-      }))
       navigate('/dashboard')
     } catch (err) {
-      setError('Login failed. Please try again.')
+      setError(err?.message || 'Login failed. Please try again.')
     } finally {
       setLoading(false)
     }

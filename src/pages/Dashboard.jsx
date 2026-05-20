@@ -18,6 +18,8 @@ import {
   UserCircleIcon,
   ShieldCheckIcon,
 } from '@heroicons/react/24/outline'
+import { authenticatedFetch } from '../utils/api'
+import { loadOrganizationsFromBackend, readCachedOrganizations } from '../utils/organizationSync'
 
 function readJSON(key, fallback) {
   try {
@@ -49,23 +51,17 @@ function formatMoney(value, currency) {
   }
 }
 
-function loadOrganizations() {
-  const storedOrganizations = readJSON('organizations', [])
-  if (storedOrganizations.length > 0) {
-    return storedOrganizations
-  }
-
-  const singleOrganization = readJSON('organization', null)
-  if (singleOrganization) {
-    return [{ ...singleOrganization, id: singleOrganization.id || Date.now().toString() }]
-  }
-
-  return []
-}
-
 function getTransactionDirection(transaction) {
+  if (transaction?.direction === 'in' || transaction?.direction === 'out') {
+    return transaction.direction
+  }
+
   if (transaction?.transactionDirection === 'in' || transaction?.transactionDirection === 'out') {
     return transaction.transactionDirection
+  }
+
+  if (transaction?.transactionType === 'revenue' || transaction?.transactionType === 'expense') {
+    return transaction.transactionType === 'expense' ? 'out' : 'in'
   }
 
   const amount = Number(transaction?.amount || 0)
@@ -93,6 +89,18 @@ const moduleThemes = {
   custom: { label: 'Custom', bg: '#F8FAFC', fg: '#0F172A', iconBg: '#E2E8F0', icon: Squares2X2Icon },
 }
 
+function getModuleSubmodules(module, organization) {
+  if (Array.isArray(module?.submodules)) {
+    return module.submodules
+  }
+
+  if (module?.name && Array.isArray(organization?.submodules?.[module.name])) {
+    return organization.submodules[module.name]
+  }
+
+  return []
+}
+
 function buildModuleCards(activeOrganization, currency, transactions) {
   if (!activeOrganization?.modules?.length) {
     return []
@@ -107,7 +115,7 @@ function buildModuleCards(activeOrganization, currency, transactions) {
 
     return {
       label: module.name,
-      submodules: module.submodules || [],
+      submodules: getModuleSubmodules(module, activeOrganization),
       amount,
       theme,
     }
@@ -161,18 +169,29 @@ function formatDateLabel(value) {
 
 export default function Dashboard() {
   const navigate = useNavigate()
-  const [organizations, setOrganizations] = useState(() => loadOrganizations())
-  const [activeOrgId, setActiveOrgId] = useState(() => localStorage.getItem('activeOrgId') || loadOrganizations()[0]?.id || '')
+  const [organizations, setOrganizations] = useState(() => readCachedOrganizations())
+  const [activeOrgId, setActiveOrgId] = useState(() => localStorage.getItem('activeOrgId') || readCachedOrganizations()[0]?.id || '')
   const [orgMenuOpen, setOrgMenuOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const currentUser = readJSON('currentUser', null)
   const selectedCurrency = readJSON('selectedCurrency', { code: 'USD', symbol: '$' })
 
   useEffect(() => {
-    if (!activeOrgId && organizations[0]) {
-      setActiveOrgId(organizations[0].id)
+    let cancelled = false
+
+    loadOrganizationsFromBackend().then((refreshedOrganizations) => {
+      if (cancelled) {
+        return
+      }
+
+      setOrganizations(refreshedOrganizations)
+      setActiveOrgId(localStorage.getItem('activeOrgId') || refreshedOrganizations[0]?.id || '')
+    })
+
+    return () => {
+      cancelled = true
     }
-  }, [activeOrgId, organizations])
+  }, [])
 
   useEffect(() => {
     localStorage.setItem('organizations', JSON.stringify(organizations))
@@ -246,73 +265,49 @@ export default function Dashboard() {
     navigate('/login')
   }
 
-  const handleDownloadWorkspacePDF = () => {
+  const handleDownloadWorkspacePDF = async () => {
     try {
-      const rows = activeOrganizationTransactions.map((t) => {
-        const amount = Number(t.amount || t.amountExpression || 0)
-        const signed = getTransactionDirection(t) === 'out' ? -Math.abs(amount) : Math.abs(amount)
-        return {
-          id: t.id,
-          date: t.date || t.createdAt || '',
-          module: t.module || '',
-          submodule: t.submodule || '',
-          amount: `${signed < 0 ? '-' : signed > 0 ? '+' : ''}${formatMoney(Math.abs(signed), activeCurrency)}`,
-          note: t.note || '',
-        }
+      const response = await authenticatedFetch(`/dashboard/report?organizationId=${encodeURIComponent(activeOrganization.id)}`, {
+        method: 'GET',
       })
 
-      const tableRows = rows.map(r => `
-        <tr>
-          <td>${r.id}</td>
-          <td>${new Date(r.date).toLocaleDateString()}</td>
-          <td>${r.module}</td>
-          <td>${r.submodule}</td>
-          <td style="text-align:right">${r.amount}</td>
-          <td>${r.note}</td>
-        </tr>
-      `).join('')
+      if (!response.ok) {
+        if (response.status === 401) {
+          return
+        }
 
-      const doc = `
-        <html>
-          <head>
-            <title>Workspace Report - ${activeOrganization?.organizationName || ''}</title>
-            <style>
-              body { font-family: Inter, system-ui, -apple-system, Roboto, 'Helvetica Neue', Arial; padding:20px; color:#0f172a }
-              h1 { font-size:18px; margin-bottom:6px }
-              table { width:100%; border-collapse:collapse; margin-top:12px }
-              th, td { border:1px solid #e6edf3; padding:8px; font-size:12px }
-              th { background:#f8fafc; text-align:left }
-            </style>
-          </head>
-          <body>
-            <h1>Workspace Report — ${activeOrganization?.organizationName || ''} — ${formatDateLabel(new Date())}</h1>
-            <div>Exported from FinTrack</div>
-            <table>
-              <thead>
-                <tr>
-                  <th>ID</th><th>Date</th><th>Module</th><th>Submodule</th><th>Amount</th><th>Note</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${tableRows}
-              </tbody>
-            </table>
-            <script>window.onload = function(){ setTimeout(()=>{ window.print(); setTimeout(()=>{ window.close() }, 300) }, 120) }</script>
-          </body>
-        </html>
-      `
-
-      const w = window.open('', '_blank')
-      if (!w) {
-        alert('Popup blocked. Please allow popups to download the PDF via print.')
-        return
+        const payload = await response.json().catch(() => null)
+        throw new Error(payload?.message || 'Failed to download report')
       }
-      w.document.open()
-      w.document.write(doc)
-      w.document.close()
+
+      const payload = await response.json()
+      const reportData = payload?.data || {}
+      const base64Pdf = reportData.base64 || ''
+
+      if (!base64Pdf) {
+        throw new Error('Failed to download report')
+      }
+
+      const binaryString = atob(base64Pdf)
+      const bytes = new Uint8Array(binaryString.length)
+      for (let index = 0; index < binaryString.length; index += 1) {
+        bytes[index] = binaryString.charCodeAt(index)
+      }
+
+      const pdfBlob = new Blob([bytes], { type: reportData.contentType || 'application/pdf' })
+      const downloadUrl = URL.createObjectURL(pdfBlob)
+      const anchor = document.createElement('a')
+      anchor.href = downloadUrl
+      anchor.download = reportData.filename || `workspace-report-${activeOrganization?.organizationName || 'report'}.pdf`
+      document.body.appendChild(anchor)
+      anchor.click()
+      anchor.remove()
+      URL.revokeObjectURL(downloadUrl)
     } catch (err) {
       console.error(err)
-      alert('Failed to prepare Workspace report')
+      if (err?.message !== 'Your session has expired. Please login again.') {
+        alert('Failed to download Workspace report')
+      }
     }
   }
 

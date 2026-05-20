@@ -129,7 +129,7 @@ export default function CreateOrganization() {
         body: JSON.stringify(organizationPayload),
       })
 
-      savedOrganization = response?.data?.organization || null
+      savedOrganization = response?.data || null
     } catch (requestError) {
       setError(requestError.message || 'Unable to save organization')
       return

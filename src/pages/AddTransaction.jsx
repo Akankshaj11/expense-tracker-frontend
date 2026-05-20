@@ -12,6 +12,7 @@ import {
   XMarkIcon,
 } from '@heroicons/react/24/outline'
 import { apiRequest } from '../utils/api'
+import { loadOrganizationsFromBackend, readCachedOrganizations } from '../utils/organizationSync'
 
 function readJSON(key, fallback) {
   try {
@@ -22,14 +23,16 @@ function readJSON(key, fallback) {
   }
 }
 
-function loadOrganizations() {
-  const organizations = readJSON('organizations', [])
-  if (organizations.length > 0) {
-    return organizations
+function getModuleSubmodules(module, organization) {
+  if (Array.isArray(module?.submodules)) {
+    return module.submodules
   }
 
-  const organization = readJSON('organization', null)
-  return organization ? [{ ...organization, id: organization.id || Date.now().toString() }] : []
+  if (module?.name && Array.isArray(organization?.submodules?.[module.name])) {
+    return organization.submodules[module.name]
+  }
+
+  return []
 }
 
 function formatMoney(value, currency) {
@@ -246,9 +249,26 @@ function removeTokenFromExpression(expression, removeIndex) {
 
 export default function AddTransaction() {
   const navigate = useNavigate()
-  const organizations = useMemo(() => loadOrganizations(), [])
+  const [organizations, setOrganizations] = useState(() => readCachedOrganizations())
+  
+  // Reload organizations from localStorage on component mount to ensure fresh data after updates
+  useEffect(() => {
+    let cancelled = false
+
+    loadOrganizationsFromBackend().then((refreshedOrganizations) => {
+      if (!cancelled) {
+        setOrganizations(refreshedOrganizations)
+      }
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+  
   const activeOrgId = localStorage.getItem('activeOrgId') || organizations[0]?.id || ''
   const activeOrganization = organizations.find((item) => item.id === activeOrgId) || organizations[0] || null
+  const organizationModules = Array.isArray(activeOrganization?.modules) ? activeOrganization.modules : []
   const selectedCurrency = activeOrganization?.currency || readJSON('selectedCurrency', { code: 'USD', symbol: '$' })
   const [step, setStep] = useState(1)
   const [selectedModule, setSelectedModule] = useState('')
@@ -262,14 +282,15 @@ export default function AddTransaction() {
   const [savedMessage, setSavedMessage] = useState('')
 
   useEffect(() => {
-    const currentModule = activeOrganization?.modules?.find((module) => module.name === selectedModule)
-    if (currentModule && !currentModule.submodules.includes(selectedSubmodule)) {
-      setSelectedSubmodule(currentModule.submodules[0] || '')
+    const currentModule = organizationModules.find((module) => module.name === selectedModule)
+    const currentSubmodules = getModuleSubmodules(currentModule, activeOrganization)
+    if (currentModule && !currentSubmodules.includes(selectedSubmodule)) {
+      setSelectedSubmodule(currentSubmodules[0] || '')
     }
-  }, [activeOrganization, selectedModule, selectedSubmodule])
+  }, [organizationModules, selectedModule, selectedSubmodule])
 
-  const selectedModuleData = activeOrganization?.modules?.find((module) => module.name === selectedModule) || null
-  const selectedModuleSubmodules = selectedModuleData?.submodules || []
+  const selectedModuleData = organizationModules.find((module) => module.name === selectedModule) || null
+  const selectedModuleSubmodules = getModuleSubmodules(selectedModuleData, activeOrganization)
   const tokens = tokenizeExpression(amountExpression)
   const totalAmount = evaluateExpression(amountExpression)
   const previewAmount = evaluateExpression(getPreviewExpression(amountExpression))
@@ -304,7 +325,7 @@ export default function AddTransaction() {
       organizationId: activeOrganization?.id || '',
       module: selectedModule,
       submodule: selectedSubmodule,
-      transactionDirection,
+      direction: transactionDirection,
       amountExpression,
       amount: totalAmount,
       note: note.trim(),
@@ -343,7 +364,6 @@ export default function AddTransaction() {
       ? {
           ...savedTransaction,
           ...transactionPayload,
-          transactionDirection: transactionPayload.transactionDirection,
         }
       : {
           id: Date.now().toString(),
@@ -467,7 +487,7 @@ export default function AddTransaction() {
               </div>
             ) : step === 2 ? (
               <div className="mt-4 grid gap-3 md:grid-cols-2">
-                {activeOrganization.modules.map((module, index) => {
+                {organizationModules.map((module, index) => {
                   const isSelected = selectedModule === module.name
                   const cardStyles = ['border-orange-200 bg-orange-50 text-orange-700', 'border-primary-200 bg-primary-50 text-primary-700', 'border-violet-200 bg-violet-50 text-violet-700', 'border-emerald-200 bg-emerald-50 text-emerald-700']
                   const selectedStyles = ['border-orange-300 bg-orange-100 shadow-[0_0_0_1px_rgba(249,115,22,0.12)]', 'border-primary-300 bg-primary-100 shadow-[0_0_0_1px_rgba(59,130,246,0.12)]', 'border-violet-300 bg-violet-100 shadow-[0_0_0_1px_rgba(139,92,246,0.12)]', 'border-emerald-300 bg-emerald-100 shadow-[0_0_0_1px_rgba(16,185,129,0.12)]']
@@ -479,7 +499,7 @@ export default function AddTransaction() {
                       type="button"
                       onClick={() => {
                         setSelectedModule(module.name)
-                        setSelectedSubmodule(module.submodules?.[0] || '')
+                        setSelectedSubmodule(getModuleSubmodules(module, activeOrganization)[0] || '')
                         setError('')
                         setStep(3)
                       }}
@@ -491,7 +511,7 @@ export default function AddTransaction() {
                     >
                       <div>
                         <p className="text-lg font-light capitalize">{module.name}</p>
-                        <p className="mt-1 text-sm opacity-80">{module.submodules.length} submodules</p>
+                        <p className="mt-1 text-sm opacity-80">{getModuleSubmodules(module, activeOrganization).length} submodules</p>
                       </div>
                       <Squares2X2Icon className="h-7 w-7 opacity-90" />
                     </motion.button>

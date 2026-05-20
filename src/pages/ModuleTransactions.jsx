@@ -1,7 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ArrowLeftIcon, PaperClipIcon, TagIcon, XMarkIcon, ArrowDownTrayIcon, PlusIcon } from '@heroicons/react/24/outline'
+import { authenticatedFetch } from '../utils/api'
+import { loadOrganizationsFromBackend, readCachedOrganizations } from '../utils/organizationSync'
 
 function readJSON(key, fallback) {
   try {
@@ -10,20 +12,6 @@ function readJSON(key, fallback) {
   } catch {
     return fallback
   }
-}
-
-function loadOrganizations() {
-  const storedOrganizations = readJSON('organizations', [])
-  if (storedOrganizations.length > 0) {
-    return storedOrganizations
-  }
-
-  const singleOrganization = readJSON('organization', null)
-  if (singleOrganization) {
-    return [{ ...singleOrganization, id: singleOrganization.id || Date.now().toString() }]
-  }
-
-  return []
 }
 
 function getTodayDate() {
@@ -76,8 +64,16 @@ function formatDateLabel(value) {
 }
 
 function getTransactionDirection(transaction) {
+  if (transaction?.direction === 'in' || transaction?.direction === 'out') {
+    return transaction.direction
+  }
+
   if (transaction?.transactionDirection === 'in' || transaction?.transactionDirection === 'out') {
     return transaction.transactionDirection
+  }
+
+  if (transaction?.transactionType === 'revenue' || transaction?.transactionType === 'expense') {
+    return transaction.transactionType === 'expense' ? 'out' : 'in'
   }
 
   const amount = Number(transaction?.amount || 0)
@@ -97,11 +93,45 @@ function getSignedAmount(transaction) {
   return getTransactionDirection(transaction) === 'out' ? -Math.abs(amount) : Math.abs(amount)
 }
 
+
+function base64ToBlob(base64, contentType = 'application/pdf') {
+  const binary = atob(base64)
+  const chunks = []
+  const chunkSize = 1024
+
+  for (let index = 0; index < binary.length; index += chunkSize) {
+    const slice = binary.slice(index, index + chunkSize)
+    const bytes = new Uint8Array(slice.length)
+    for (let offset = 0; offset < slice.length; offset += 1) {
+      bytes[offset] = slice.charCodeAt(offset)
+    }
+    chunks.push(bytes)
+  }
+
+  return new Blob(chunks, { type: contentType })
+}
+
 export default function ModuleTransactions() {
   const navigate = useNavigate()
   const { moduleName: encodedModuleName } = useParams()
   const moduleName = decodeURIComponent(encodedModuleName || '')
-  const organizations = useMemo(() => loadOrganizations(), [])
+  const [organizations, setOrganizations] = useState(() => readCachedOrganizations())
+  
+  // Reload organizations from localStorage on component mount to ensure fresh data
+  useEffect(() => {
+    let cancelled = false
+
+    loadOrganizationsFromBackend().then((refreshedOrganizations) => {
+      if (!cancelled) {
+        setOrganizations(refreshedOrganizations)
+      }
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+  
   const activeOrgId = localStorage.getItem('activeOrgId') || organizations[0]?.id || ''
   const activeOrganization = organizations.find((item) => item.id === activeOrgId) || organizations[0] || null
   const selectedCurrency = activeOrganization?.currency || readJSON('selectedCurrency', { code: 'USD', symbol: '$' })
@@ -140,76 +170,38 @@ export default function ModuleTransactions() {
     return attachmentCache.find((item) => item.transactionId === transaction.id) || null
   }
 
-  const handleDownloadPDF = () => {
+  const handleDownloadPDF = async () => {
     try {
-      const rows = moduleTransactions.map((t) => {
-        const signedAmount = getSignedAmount(t)
-        return {
-          id: t.id,
-          date: t.date || t.createdAt || '',
-          time: formatTime(t.createdAt),
-          module: t.module,
-          submodule: t.submodule || '',
-          amount: `${signedAmount < 0 ? '-' : signedAmount > 0 ? '+' : ''}${formatMoney(Math.abs(signedAmount), selectedCurrency)}`,
-          note: t.note || '',
-          attachmentName: t.attachmentName || '',
-        }
-      })
+      const response = await authenticatedFetch(
+        `/transactions/report?organizationId=${encodeURIComponent(activeOrganization.id)}&module=${encodeURIComponent(moduleName)}&date=${encodeURIComponent(selectedDate)}`,
+      )
 
-      const tableRows = rows.map(r => `
-        <tr>
-          <td>${r.id}</td>
-          <td>${new Date(r.date).toLocaleDateString()}</td>
-          <td>${r.time}</td>
-          <td>${r.module}</td>
-          <td>${r.submodule}</td>
-          <td style="text-align:right">${r.amount}</td>
-          <td>${r.note}</td>
-          <td>${r.attachmentName}</td>
-        </tr>
-      `).join('')
-
-      const doc = `
-        <html>
-          <head>
-            <title>Transactions - ${moduleName} - ${selectedDate}</title>
-            <style>
-              body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; padding:20px; color:#0f172a }
-              h1 { font-size:18px; margin-bottom:6px }
-              table { width:100%; border-collapse:collapse; margin-top:12px }
-              th, td { border:1px solid #e6edf3; padding:8px; font-size:12px }
-              th { background:#f8fafc; text-align:left }
-            </style>
-          </head>
-          <body>
-            <h1>Transactions — ${moduleName} — ${formatDateLabel(selectedDate)}</h1>
-            <div>Exported from FinTrack</div>
-            <table>
-              <thead>
-                <tr>
-                  <th>ID</th><th>Date</th><th>Time</th><th>Module</th><th>Submodule</th><th>Amount</th><th>Note</th><th>Attachment</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${tableRows}
-              </tbody>
-            </table>
-            <script>window.onload = function(){ setTimeout(()=>{ window.print(); setTimeout(()=>{ window.close() }, 300) }, 120) }</script>
-          </body>
-        </html>
-      `
-
-      const w = window.open('', '_blank')
-      if (!w) {
-        alert('Popup blocked. Please allow popups to download the PDF via print.')
-        return
+      const payload = await response.json().catch(() => null)
+      if (!response.ok) {
+        throw new Error(payload?.message || 'Unable to download module report')
       }
-      w.document.open()
-      w.document.write(doc)
-      w.document.close()
+
+      const reportData = payload?.data || {}
+      if (!reportData.base64) {
+        throw new Error('Module report data is empty')
+      }
+
+      const blob = base64ToBlob(reportData.base64, reportData.contentType || 'application/pdf')
+      const objectUrl = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = objectUrl
+      link.download = reportData.filename || `${moduleName}-${selectedDate}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(objectUrl)
     } catch (err) {
       console.error(err)
-      alert('Failed to prepare PDF export')
+      const message = err instanceof Error ? err.message : 'Failed to prepare PDF export'
+      if (message.includes('session has expired')) {
+        return
+      }
+      alert(message)
     }
   }
 

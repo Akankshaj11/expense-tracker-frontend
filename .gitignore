@@ -2,6 +2,8 @@
 node_modules/
 dist/
 .env
+.env.development
+.env.production
 
 # OS / Editor
 .DS_Store

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowRightIcon, CheckCircleIcon } from '@heroicons/react/24/outline'
 import { Link, useNavigate } from 'react-router-dom'
+import { apiRequest } from '../utils/api'
 
 export default function Register() {
   const navigate = useNavigate()
@@ -50,31 +51,28 @@ export default function Register() {
         return
       }
 
-      // Check if email already exists
-      const users = JSON.parse(localStorage.getItem('users') || '[]')
-      if (users.some(u => u.email === email)) {
-        setError('Email already registered')
-        setLoading(false)
-        return
+      // Call backend register
+      const payload = await apiRequest('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      })
+
+      const user = payload?.data?.user
+      const accessToken = payload?.data?.access_token
+
+      if (accessToken) {
+        localStorage.setItem('accessToken', accessToken)
       }
 
-      // Register user
-      const newUser = {
-        id: Date.now(),
-        email,
-        password,
-        firstName: deriveFirstName(email),
-        createdAt: new Date().toISOString()
+      if (user) {
+        localStorage.setItem('currentUser', JSON.stringify(user))
+        sessionStorage.setItem('onboardingUser', JSON.stringify(user))
       }
-
-      users.push(newUser)
-      localStorage.setItem('users', JSON.stringify(users))
 
       setSuccess(true)
       setTimeout(() => {
-        sessionStorage.setItem('onboardingUser', JSON.stringify(newUser))
         navigate('/select-currency')
-      }, 1500)
+      }, 1200)
     } catch (err) {
       setError('Registration failed. Please try again.')
     } finally {

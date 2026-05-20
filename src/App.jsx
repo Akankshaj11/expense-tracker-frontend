@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { useEffect } from 'react'
+import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Register from './pages/Register'
@@ -9,9 +10,28 @@ import Dashboard from './pages/Dashboard'
 import AddTransaction from './pages/AddTransaction'
 import ModuleTransactions from './pages/ModuleTransactions'
 
+function SessionExpiryListener() {
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    const handleSessionExpired = (event) => {
+      const message = event?.detail?.message || 'Your session has expired. Please login again.'
+      alert(message)
+      sessionStorage.setItem('authNotice', message)
+      navigate('/login', { replace: true })
+    }
+
+    window.addEventListener('auth:session-expired', handleSessionExpired)
+    return () => window.removeEventListener('auth:session-expired', handleSessionExpired)
+  }, [navigate])
+
+  return null
+}
+
 export default function App(){
   return (
     <BrowserRouter>
+      <SessionExpiryListener />
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
