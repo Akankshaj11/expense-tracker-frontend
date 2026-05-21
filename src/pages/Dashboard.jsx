@@ -17,6 +17,16 @@ import {
   Squares2X2Icon,
   UserCircleIcon,
   ShieldCheckIcon,
+  ShoppingBagIcon,
+  PaperAirplaneIcon,
+  HomeIcon,
+  CreditCardIcon,
+  HeartIcon,
+  MusicalNoteIcon,
+  AcademicCapIcon,
+  CurrencyDollarIcon,
+  TicketIcon,
+  TruckIcon,
 } from '@heroicons/react/24/outline'
 import { authenticatedFetch } from '../utils/api'
 import { loadOrganizationsFromBackend, readCachedOrganizations } from '../utils/organizationSync'
@@ -51,25 +61,44 @@ function formatMoney(value, currency) {
   }
 }
 
-function getTransactionDirection(transaction) {
-  if (transaction?.direction === 'in' || transaction?.direction === 'out') {
-    return transaction.direction
+function getTransactionCategory(transaction) {
+  const transactionType = String(transaction?.transactionType || '').toLowerCase()
+
+  if (['revenue', 'income', 'in', 'credit', 'incoming', 'plus', '+'].includes(transactionType)) {
+    return 'revenue'
   }
 
-  if (transaction?.transactionDirection === 'in' || transaction?.transactionDirection === 'out') {
-    return transaction.transactionDirection
+  if (['expense', 'expenses', 'out', 'debit', 'outgoing', 'minus', '-'].includes(transactionType)) {
+    return 'expenses'
   }
 
-  if (transaction?.transactionType === 'revenue' || transaction?.transactionType === 'expense') {
-    return transaction.transactionType === 'expense' ? 'out' : 'in'
+  if (['investment', 'investments'].includes(transactionType)) {
+    return 'investments'
+  }
+
+  if (transaction?.direction === 'investments' || transaction?.transactionDirection === 'investments') {
+    return 'investments'
+  }
+
+  if (transaction?.direction === 'in' || transaction?.transactionDirection === 'in') {
+    return 'revenue'
+  }
+
+  if (transaction?.direction === 'out' || transaction?.transactionDirection === 'out') {
+    return 'expenses'
   }
 
   const amount = Number(transaction?.amount || 0)
   if (!Number.isFinite(amount)) {
-    return 'in'
+    return 'expenses'
   }
 
-  return amount < 0 ? 'out' : 'in'
+  return amount < 0 ? 'expenses' : 'revenue'
+}
+
+function getTransactionDirection(transaction) {
+  const category = getTransactionCategory(transaction)
+  return category === 'expenses' ? 'out' : 'in'
 }
 
 function getSignedTransactionAmount(transaction) {
@@ -78,14 +107,29 @@ function getSignedTransactionAmount(transaction) {
     return 0
   }
 
-  return getTransactionDirection(transaction) === 'out' ? -Math.abs(amount) : Math.abs(amount)
+  const category = getTransactionCategory(transaction)
+  if (category === 'expenses') {
+    return -Math.abs(amount)
+  }
+
+  return Math.abs(amount)
 }
 
 const moduleThemes = {
-  lend: { label: 'Lend', bg: '#fcf5ff', fg: '#7A0099', iconBg: '#fae8ff', icon: BanknotesIcon },
-  borrow: { label: 'Borrow', bg: '#FFF7ED', fg: '#EA580C', iconBg: '#FFEDD5', icon: ArrowsRightLeftIcon },
+  food: { label: 'Food', bg: '#FEF3C7', fg: '#D97706', iconBg: '#FEE8C3', icon: ShoppingBagIcon },
+  travel: { label: 'Travel', bg: '#DBEAFE', fg: '#0284C7', iconBg: '#E0F2FE', icon: PaperAirplaneIcon },
+  shopping: { label: 'Shopping', bg: '#FCE7F3', fg: '#EC4899', iconBg: '#FBCFE8', icon: ShoppingBagIcon },
+  bills: { label: 'Bills', bg: '#FEE2E2', fg: '#DC2626', iconBg: '#FECACA', icon: CreditCardIcon },
+  health: { label: 'Health', bg: '#ECE7F5', fg: '#7C3AED', iconBg: '#EDE9FE', icon: HeartIcon },
+  entertainment: { label: 'Entertainment', bg: '#F9A8D4', fg: '#BE185D', iconBg: '#FBE0F0', icon: MusicalNoteIcon },
+  education: { label: 'Education', bg: '#E0E7FF', fg: '#4F46E5', iconBg: '#EDE9FE', icon: AcademicCapIcon },
+  rent: { label: 'Rent', bg: '#F3E8FF', fg: '#7C3AED', iconBg: '#EDE9FE', icon: HomeIcon },
+  salary: { label: 'Salary', bg: '#DCFCE7', fg: '#16A34A', iconBg: '#DBEAFE', icon: CurrencyDollarIcon },
+  investment: { label: 'Investment', bg: '#F5F3FF', fg: '#7C3AED', iconBg: '#EDE9FE', icon: ChartBarIcon },
   savings: { label: 'Savings', bg: '#ECFDF5', fg: '#059669', iconBg: '#D1FAE5', icon: CircleStackIcon },
-  investments: { label: 'Investments', bg: '#F5F3FF', fg: '#7C3AED', iconBg: '#EDE9FE', icon: ChartBarIcon },
+  subscriptions: { label: 'Subscriptions', bg: '#FEF08A', fg: '#CA8A04', iconBg: '#FEF3C7', icon: TicketIcon },
+  transportation: { label: 'Transportation', bg: '#F3E8FF', fg: '#9333EA', iconBg: '#F3E8FF', icon: TruckIcon },
+  insurance: { label: 'Insurance', bg: '#F0FDFB', fg: '#0F766E', iconBg: '#CCFBF1', icon: ShieldCheckIcon },
   custom: { label: 'Custom', bg: '#F8FAFC', fg: '#0F172A', iconBg: '#E2E8F0', icon: Squares2X2Icon },
 }
 
@@ -152,12 +196,18 @@ function buildRecentActivity(transactions, currency) {
 
       return {
         id: transaction.id || `${transaction.module || 'txn'}-${idx}`,
+        transaction,
         title: transaction.note?.trim() || `${capitalize(transaction.module || 'Transaction')} update`,
         meta: `${capitalize(transaction.module || 'Dashboard')} · ${metaDate}`,
         amount: amount >= 0 ? formatMoney(amount, currency) : `-${formatMoney(Math.abs(amount), currency)}`,
         tone: amount >= 0 ? 'text-emerald-600' : 'text-rose-600',
       }
     })
+}
+
+function getTransactionEditPath(transaction) {
+  const transactionId = String(transaction?.id || transaction?._id || '')
+  return transactionId ? `/edit-transaction/${encodeURIComponent(transactionId)}` : '/add-transaction'
 }
 
 function formatDateLabel(value) {
@@ -227,16 +277,20 @@ export default function Dashboard() {
   const recentActivity = buildRecentActivity(activeOrganizationTransactions, activeCurrency)
 
   const revenueAmountValue = activeOrganizationTransactions.reduce((sum, transaction) => {
-    return getTransactionDirection(transaction) === 'in' ? sum + Math.abs(Number(transaction?.amount || 0)) : sum
+    return getTransactionCategory(transaction) === 'revenue' ? sum + Math.abs(Number(transaction?.amount || 0)) : sum
   }, 0)
   const expensesAmountValue = activeOrganizationTransactions.reduce((sum, transaction) => {
-    return getTransactionDirection(transaction) === 'out' ? sum + Math.abs(Number(transaction?.amount || 0)) : sum
+    return getTransactionCategory(transaction) === 'expenses' ? sum + Math.abs(Number(transaction?.amount || 0)) : sum
+  }, 0)
+  const investmentsAmountValue = activeOrganizationTransactions.reduce((sum, transaction) => {
+    return getTransactionCategory(transaction) === 'investments' ? sum + Math.abs(Number(transaction?.amount || 0)) : sum
   }, 0)
   const totalBalanceValue = revenueAmountValue - expensesAmountValue
 
   const totalBalance = formatMoney(totalBalanceValue, activeCurrency)
   const revenueAmount = formatMoney(revenueAmountValue, activeCurrency)
   const expensesAmount = formatMoney(expensesAmountValue, activeCurrency)
+  const investmentsAmount = formatMoney(Math.abs(investmentsAmountValue), activeCurrency)
 
   const handleSwitchOrg = (organizationId) => {
     setActiveOrgId(organizationId)
@@ -476,23 +530,37 @@ export default function Dashboard() {
 
         {activeOrganization ? (
           <>
-            <section className="mt-8 grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+            <section className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {[
                 { label: 'Total balance', value: totalBalance, accent: 'text-[var(--text)]' },
                 { label: 'Revenue', value: revenueAmount, accent: 'text-emerald-600' },
                 { label: 'Expenses', value: expensesAmount, accent: 'text-rose-600' },
+                { label: 'Investments', value: investmentsAmount, accent: 'text-violet-600' },
               ].map((card, index) => {
                 const isBalanceCard = card.label === 'Total balance'
+                const isRevenueCard = card.label === 'Revenue'
+                const isExpensesCard = card.label === 'Expenses'
+                const isInvestmentsCard = card.label === 'Investments'
                 const isNegativeBalance = isBalanceCard && totalBalanceValue < 0
                 const isPositiveBalance = isBalanceCard && totalBalanceValue > 0
                 const isZeroBalance = isBalanceCard && totalBalanceValue === 0
-                const DisplayArrow = card.label === 'Expenses' || isNegativeBalance ? ArrowTrendingDownIcon : ArrowTrendingUpIcon
+                const isZeroRevenue = isRevenueCard && revenueAmountValue === 0
+                const isZeroExpenses = isExpensesCard && expensesAmountValue === 0
+                const isNegativeInvestments = isInvestmentsCard && investmentsAmountValue < 0
+                const isPositiveInvestments = isInvestmentsCard && investmentsAmountValue > 0
+                const DisplayArrow = card.label === 'Expenses' || isNegativeBalance || isNegativeInvestments ? ArrowTrendingDownIcon : ArrowTrendingUpIcon
                 const displayAccent = isBalanceCard
                   ? isPositiveBalance
                     ? 'text-emerald-600'
                     : isNegativeBalance
                       ? 'text-rose-600'
                       : 'text-blue-600'
+                  : isInvestmentsCard
+                    ? isPositiveInvestments
+                      ? 'text-emerald-600'
+                      : isNegativeInvestments
+                        ? 'text-rose-600'
+                        : 'text-violet-600'
                   : card.accent
                 const displaySign = isBalanceCard
                   ? isPositiveBalance
@@ -500,12 +568,27 @@ export default function Dashboard() {
                     : isNegativeBalance
                       ? '-'
                       : ''
-                  : card.label === 'Revenue'
+                  : isInvestmentsCard
+                    ? isPositiveInvestments
+                      ? '+'
+                      : isNegativeInvestments
+                        ? '-'
+                        : ''
+                  : isRevenueCard && !isZeroRevenue
                     ? '+'
-                    : card.label === 'Expenses'
+                    : isExpensesCard && !isZeroExpenses
                       ? '-'
                       : ''
-                const displayValue = isBalanceCard ? formatMoney(Math.abs(totalBalanceValue), activeCurrency) : card.value
+                const displayValue = isBalanceCard
+                  ? formatMoney(Math.abs(totalBalanceValue), activeCurrency)
+                  : isInvestmentsCard
+                    ? formatMoney(Math.abs(investmentsAmountValue), activeCurrency)
+                    : card.value
+                const iconColorClass = isZeroBalance || isZeroRevenue || isZeroExpenses
+                  ? displayAccent
+                  : isNegativeBalance || isNegativeInvestments || isExpensesCard
+                    ? 'text-rose-600'
+                    : 'text-emerald-600'
 
                 return (
                   <motion.article
@@ -521,7 +604,7 @@ export default function Dashboard() {
                       <p className={`mt-1 inline-flex items-center gap-1 text-3xl font-light tracking-tight ${displayAccent}`}>
                         <span>{displaySign}</span>
                         {displayValue}
-                        <DisplayArrow className={`h-5 w-5 ${isNegativeBalance || card.label === 'Expenses' ? 'text-rose-600' : 'text-emerald-600'}`} />
+                        <DisplayArrow className={`h-5 w-5 ${iconColorClass}`} />
                       </p>
                     </div>
                   </motion.article>
@@ -609,29 +692,46 @@ export default function Dashboard() {
                     <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">Recent activity</p>
                     <h2 className="mt-2 text-2xl font-light tracking-tight text-[var(--text)]">Latest updates</h2>
                   </div>
-                  <div className="rounded-full bg-primary-50 p-3 text-primary-600">
-                    <CalendarDaysIcon className="h-5 w-5" />
+                  <div className="flex items-center gap-3">
+                    <Link
+                      to="/transactions"
+                      className="rounded-full border border-white/6 bg-[var(--card)] px-4 py-2 text-sm font-light text-primary-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                    >
+                      See all
+                    </Link>
+                    <div className="rounded-full bg-primary-50 p-3 text-primary-600">
+                      <CalendarDaysIcon className="h-5 w-5" />
+                    </div>
                   </div>
                 </div>
 
                 {recentActivity.length > 0 ? (
                   <div className="mt-6 space-y-3">
-                    {recentActivity.map((item, index) => (
-                      <motion.div
+                    {recentActivity.map((item, index) => {
+                      const editPath = getTransactionEditPath(item.transaction)
+
+                      return (
+                      <Link
                         key={item.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true, amount: 0.2 }}
-                        transition={{ delay: index * 0.05, duration: 0.4 }}
-                        className="flex items-center justify-between rounded-2xl border border-white/6 bg-[var(--card)] px-4 py-4"
+                        to={editPath}
+                        className="block rounded-2xl border border-white/6 bg-[var(--card)] transition hover:-translate-y-0.5 hover:shadow-md"
                       >
-                        <div>
-                          <p className="font-light text-[var(--text)]">{item.title}</p>
-                          <p className="text-sm text-slate-500">{item.meta}</p>
-                        </div>
-                        <p className={`text-sm font-light ${item.tone}`}>{item.amount}</p>
-                      </motion.div>
-                    ))}
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          whileInView={{ opacity: 1, y: 0 }}
+                          viewport={{ once: true, amount: 0.2 }}
+                          transition={{ delay: index * 0.05, duration: 0.4 }}
+                          className="flex items-center justify-between rounded-2xl px-4 py-4"
+                        >
+                          <div>
+                            <p className="font-light text-[var(--text)]">{item.title}</p>
+                            <p className="text-sm text-slate-500">{item.meta}</p>
+                          </div>
+                          <p className={`text-sm font-light ${item.tone}`}>{item.amount}</p>
+                        </motion.div>
+                      </Link>
+                      )
+                    })}
                   </div>
                 ) : (
                   <div className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-[var(--card)] px-4 py-6 text-sm text-slate-500">

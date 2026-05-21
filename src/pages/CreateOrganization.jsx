@@ -4,8 +4,19 @@ import { ArrowRightIcon, PlusIcon } from '@heroicons/react/24/outline'
 import { useNavigate } from 'react-router-dom'
 import { apiRequest } from '../utils/api'
 
-const defaultModules = ['lend', 'borrow', 'savings', 'investments']
+const revenueModules = ['Salary', 'Business', 'Bonus', 'Commission', 'Incentives', 'Rental Income', 'Investment Returns']
+const expenseModules = ['Food', 'Travel', 'Shopping', 'Bills', 'Health', 'Entertainment', 'Education', 'Rent', 'Subscriptions', 'Loans', 'Taxes']
+const investmentModules = ['Stocks', 'Mutual Funds', 'Fixed Deposit', 'Gold', 'Real Estate', 'PPF']
+const defaultModules = [...revenueModules, ...expenseModules, ...investmentModules]
 const allModules = [...defaultModules, 'custom']
+
+function createEmptyModuleState() {
+  return Object.fromEntries(allModules.filter((module) => module !== 'custom').map((module) => [module, []]))
+}
+
+function createEmptyDraftState() {
+  return Object.fromEntries(allModules.filter((module) => module !== 'custom').map((module) => [module, '']))
+}
 
 export default function CreateOrganization() {
   const navigate = useNavigate()
@@ -13,20 +24,8 @@ export default function CreateOrganization() {
   const [description, setDescription] = useState('')
   const [selectedModules, setSelectedModules] = useState(defaultModules)
   const [customModuleName, setCustomModuleName] = useState('')
-  const [submodules, setSubmodules] = useState({
-    lend: [],
-    borrow: [],
-    savings: [],
-    investments: [],
-    custom: [],
-  })
-  const [submoduleDrafts, setSubmoduleDrafts] = useState({
-    lend: '',
-    borrow: '',
-    savings: '',
-    investments: '',
-    custom: '',
-  })
+  const [submodules, setSubmodules] = useState(() => ({ ...createEmptyModuleState(), custom: [] }))
+  const [submoduleDrafts, setSubmoduleDrafts] = useState(() => ({ ...createEmptyDraftState(), custom: '' }))
   const [customSubmoduleDraft, setCustomSubmoduleDraft] = useState('')
   const [error, setError] = useState('')
 
@@ -208,7 +207,7 @@ export default function CreateOrganization() {
 
             <div>
               <label className="mb-3 block text-sm font-light text-slate-700">Select Modules *</label>
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 {moduleItems.map((module) => {
                   const isSelected = selectedModules.includes(module)
                   const isCustom = module === 'custom'
@@ -218,98 +217,135 @@ export default function CreateOrganization() {
                   return (
                     <div
                       key={module}
-                      className={`rounded-2xl border p-4 transition ${isSelected ? 'border-primary-500 bg-primary-50' : 'border-white/6 bg-[var(--card)]'}`}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => toggleModule(module)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault()
+                          toggleModule(module)
+                        }
+                      }}
+                      className={`rounded-xl border p-4 transition ${isSelected ? 'border-primary-500 bg-primary-50' : 'border-white/6 bg-[var(--card)]'} cursor-pointer`}
                     >
-                      <label className="flex cursor-pointer items-center justify-between gap-4">
-                        <div>
+                      <div className="flex items-center justify-between gap-3">
+                        <div onClick={(event) => event.stopPropagation()}>
                           {isCustom ? (
-                            <div className="inline-flex max-w-[240px] rounded-xl border-2 border-dashed border-primary-300 bg-primary-50/70 px-2 py-1.5 transition focus-within:border-primary-500 focus-within:bg-[var(--card)]">
+                            <div className="inline-flex max-w-[200px] rounded-xl border-2 border-dashed border-primary-300 bg-primary-50/70 px-2 py-1 transition focus-within:border-primary-500 focus-within:bg-[var(--card)]">
                               <input
                                 type="text"
                                 value={customModuleName}
                                 onChange={(e) => setCustomModuleName(e.target.value)}
-                                className="w-full bg-transparent px-1 text-base font-light text-[var(--text)] outline-none placeholder:text-slate-400"
+                                className="w-full bg-transparent px-1 text-sm font-light text-[var(--text)] outline-none placeholder:text-slate-400"
                                 placeholder="Custom module"
                               />
                             </div>
                           ) : (
                             <p className="text-base font-light capitalize text-[var(--text)]">{module}</p>
                           )}
-                          <p className="text-sm text-[var(--muted)]">{isCustom ? 'Add your own module name' : `Default module for ${module}`}</p>
                         </div>
                         <input
                           type="checkbox"
                           checked={isSelected}
                           onChange={() => toggleModule(module)}
+                          onClick={(event) => event.stopPropagation()}
                           className="h-5 w-5 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
                         />
-                      </label>
+                      </div>
 
-                      <div className="mt-4">
-                        <label className="mb-2 block text-xs font-light uppercase tracking-[0.18em] text-slate-500">Submodules</label>
-                        {isCustom ? (
-                          <div className="space-y-3">
-                            <div>
-                              <label className="mb-2 block text-xs font-light uppercase tracking-[0.18em] text-slate-500">Add submodule</label>
-                              <div className="flex gap-2">
-                                <input
-                                  type="text"
-                                  value={draftValue}
-                                  onChange={(e) => setCustomSubmoduleDraft(e.target.value)}
-                                  className="w-full rounded-xl border border-white/6 bg-[var(--card)] px-4 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
-                                  placeholder="Add submodule for custom module"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => addSubmodule(module)}
-                                  className="inline-flex shrink-0 items-center justify-center rounded-xl border border-primary-200 bg-primary-50 px-3 text-primary-600 transition hover:bg-primary-100"
-                                  aria-label={`Add submodule to ${module}`}
-                                >
-                                  <PlusIcon className="h-4 w-4" />
-                                </button>
+                      {isSelected ? (
+                        <div className="mt-3">
+                          <label className="mb-2 block text-xs font-light uppercase tracking-[0.18em] text-slate-500">Submodules</label>
+                          {isCustom ? (
+                            <div className="space-y-3">
+                              <div>
+                                <div className="flex gap-2">
+                                  <input
+                                    type="text"
+                                    value={draftValue}
+                                    onChange={(e) => setCustomSubmoduleDraft(e.target.value)}
+                                    onKeyDown={(event) => {
+                                      event.stopPropagation()
+                                      if (event.key === 'Enter') {
+                                        event.preventDefault()
+                                        addSubmodule(module)
+                                      }
+                                    }}
+                                    onClick={(event) => event.stopPropagation()}
+                                    className="w-full rounded-xl border border-white/6 bg-[var(--card)] px-4 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+                                    placeholder="Add submodule for custom module"
+                                  />
+                                  <button
+                                    type="button"
+                                    onMouseDown={(event) => event.stopPropagation()}
+                                    onClick={(event) => {
+                                      event.stopPropagation()
+                                      addSubmodule(module)
+                                    }}
+                                    className="inline-flex shrink-0 items-center justify-center rounded-xl border border-primary-200 bg-primary-50 px-3 text-primary-600 transition hover:bg-primary-100"
+                                    aria-label={`Add submodule to ${module}`}
+                                  >
+                                    <PlusIcon className="h-4 w-4" />
+                                  </button>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ) : (
-                          <div className="flex gap-2">
-                            <input
-                              type="text"
-                              value={draftValue}
-                              onChange={(e) => {
-                                setSubmoduleDrafts((current) => ({ ...current, [module]: e.target.value }))
-                              }}
-                              className="w-full rounded-xl border border-white/6 bg-[var(--card)] px-4 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
-                              placeholder={`Add submodule for ${module}`}
-                            />
-                            <button
-                              type="button"
-                              onClick={() => addSubmodule(module)}
-                              className="inline-flex shrink-0 items-center justify-center rounded-xl border border-primary-200 bg-primary-50 px-3 text-primary-600 transition hover:bg-primary-100"
-                              aria-label={`Add submodule to ${module}`}
-                            >
-                              <PlusIcon className="h-4 w-4" />
-                            </button>
-                          </div>
-                        )}
+                          ) : (
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                value={draftValue}
+                                onChange={(e) => {
+                                  setSubmoduleDrafts((current) => ({ ...current, [module]: e.target.value }))
+                                }}
+                                onKeyDown={(event) => {
+                                  event.stopPropagation()
+                                  if (event.key === 'Enter') {
+                                    event.preventDefault()
+                                    addSubmodule(module)
+                                  }
+                                }}
+                                onClick={(event) => event.stopPropagation()}
+                                className="w-full rounded-xl border border-white/6 bg-[var(--card)] px-4 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+                                placeholder={`Add submodule for ${module}`}
+                              />
+                              <button
+                                type="button"
+                                onMouseDown={(event) => event.stopPropagation()}
+                                onClick={(event) => {
+                                  event.stopPropagation()
+                                  addSubmodule(module)
+                                }}
+                                className="inline-flex shrink-0 items-center justify-center rounded-xl border border-primary-200 bg-primary-50 px-3 text-primary-600 transition hover:bg-primary-100"
+                                aria-label={`Add submodule to ${module}`}
+                              >
+                                <PlusIcon className="h-4 w-4" />
+                              </button>
+                            </div>
+                          )}
 
-                        {moduleSubmodules.length > 0 ? (
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            {moduleSubmodules.map((item) => (
-                              <span key={item} className="inline-flex items-center gap-2 rounded-full bg-[var(--card)] px-3 py-1.5 text-xs font-light text-slate-700 shadow-sm ring-1 ring-slate-200">
-                                {item}
-                                <button
-                                  type="button"
-                                  onClick={() => removeSubmodule(module, item)}
-                                  className="text-slate-400 transition hover:text-red-500"
-                                  aria-label={`Remove ${item} from ${module}`}
-                                >
-                                  ×
-                                </button>
-                              </span>
-                            ))}
-                          </div>
-                        ) : null}
-                      </div>
+                          {moduleSubmodules.length > 0 ? (
+                            <div className="no-scrollbar mt-3 overflow-x-auto pb-1">
+                              <div className="flex w-max gap-2 pr-2">
+                                {moduleSubmodules.map((item) => (
+                                  <span key={item} className="inline-flex shrink-0 items-center gap-2 rounded-full bg-[var(--card)] px-3 py-1.5 text-xs font-light text-slate-700 shadow-sm ring-1 ring-slate-200">
+                                    {item}
+                                    <button
+                                      type="button"
+                                      onClick={() => removeSubmodule(module, item)}
+                                      onMouseDown={(event) => event.stopPropagation()}
+                                      className="text-slate-400 transition hover:text-red-500"
+                                      aria-label={`Remove ${item} from ${module}`}
+                                    >
+                                      ×
+                                    </button>
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : null}
                     </div>
                   )
                 })}

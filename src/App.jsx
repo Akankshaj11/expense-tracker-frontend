@@ -9,6 +9,7 @@ import ManageOrganization from './pages/ManageOrganization'
 import Dashboard from './pages/Dashboard'
 import AddTransaction from './pages/AddTransaction'
 import ModuleTransactions from './pages/ModuleTransactions'
+import Transactions from './pages/Transactions'
 
 function SessionExpiryListener() {
   const navigate = useNavigate()
@@ -40,6 +41,8 @@ export default function App(){
         <Route path="/create-organization" element={<CreateOrganization />} />
         <Route path="/manage-organization" element={<ManageOrganization />} />
         <Route path="/add-transaction" element={<AddTransaction />} />
+        <Route path="/edit-transaction/:transactionId" element={<AddTransaction />} />
+        <Route path="/transactions" element={<Transactions />} />
         <Route path="/module/:moduleName" element={<ModuleTransactions />} />
         <Route path="/dashboard" element={<Dashboard />} />
       </Routes>

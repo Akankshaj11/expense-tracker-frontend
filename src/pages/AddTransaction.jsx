@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   ArrowLeftIcon,
@@ -13,6 +13,63 @@ import {
 } from '@heroicons/react/24/outline'
 import { apiRequest } from '../utils/api'
 import { loadOrganizationsFromBackend, readCachedOrganizations } from '../utils/organizationSync'
+
+const transactionTypeModules = {
+  revenue: ['Salary', 'Business', 'Bonus', 'Commission', 'Incentives', 'Rental Income', 'Investment Returns'],
+  expenses: ['Food', 'Travel', 'Shopping', 'Bills', 'Health', 'Entertainment', 'Education', 'Rent', 'Subscriptions', 'Loans', 'Taxes'],
+  investments: ['Stocks', 'Mutual Funds', 'Fixed Deposit', 'Gold', 'Real Estate', 'PPF'],
+}
+
+function getTransactionCategory(transaction) {
+  const transactionType = String(transaction?.transactionType || transaction?.direction || transaction?.transactionDirection || '').toLowerCase()
+
+  if (['revenue', 'income', 'in', 'credit', 'incoming', 'plus', '+'].includes(transactionType)) {
+    return 'revenue'
+  }
+
+  if (['expense', 'expenses', 'out', 'debit', 'outgoing', 'minus', '-'].includes(transactionType)) {
+    return 'expenses'
+  }
+
+  if (['investment', 'investments'].includes(transactionType)) {
+    return 'investments'
+  }
+
+  return null
+}
+
+function getModuleCategory(module) {
+  const transactionType = String(module?.transactionType || module?.type || '').toLowerCase()
+  if (transactionType === 'revenue') {
+    return 'revenue'
+  }
+  if (transactionType === 'expenses' || transactionType === 'expense') {
+    return 'expenses'
+  }
+  if (transactionType === 'investments' || transactionType === 'investment') {
+    return 'investments'
+  }
+
+  const moduleName = String(module?.name || '').toLowerCase()
+  for (const [category, names] of Object.entries(transactionTypeModules)) {
+    if (names.some((name) => name.toLowerCase() === moduleName)) {
+      return category
+    }
+  }
+
+  return null
+}
+
+function getModulesForCategory(category, modules) {
+  const normalizedCategory = String(category || '').toLowerCase()
+  return (modules || []).filter((module) => {
+    const moduleCategory = getModuleCategory(module)
+    if (moduleCategory) {
+      return moduleCategory === normalizedCategory
+    }
+    return true
+  })
+}
 
 function readJSON(key, fallback) {
   try {
@@ -89,7 +146,6 @@ function isValidExpression(expression) {
   if (/[+\-*/.]$/.test(sanitized)) {
     return false
   }
-
   if (/^[+*/]/.test(sanitized)) {
     return false
   }
@@ -249,6 +305,8 @@ function removeTokenFromExpression(expression, removeIndex) {
 
 export default function AddTransaction() {
   const navigate = useNavigate()
+  const { transactionId: encodedTransactionId } = useParams()
+  const transactionId = decodeURIComponent(encodedTransactionId || '')
   const [organizations, setOrganizations] = useState(() => readCachedOrganizations())
   
   // Reload organizations from localStorage on component mount to ensure fresh data after updates
@@ -270,9 +328,14 @@ export default function AddTransaction() {
   const activeOrganization = organizations.find((item) => item.id === activeOrgId) || organizations[0] || null
   const organizationModules = Array.isArray(activeOrganization?.modules) ? activeOrganization.modules : []
   const selectedCurrency = activeOrganization?.currency || readJSON('selectedCurrency', { code: 'USD', symbol: '$' })
-  const [step, setStep] = useState(1)
+  const isEditMode = Boolean(transactionId)
+  const [step, setStep] = useState(isEditMode ? 4 : 1)
   const [selectedModule, setSelectedModule] = useState('')
   const [selectedSubmodule, setSelectedSubmodule] = useState('')
+  const [creatingCustomModule, setCreatingCustomModule] = useState(false)
+  const [customModuleDraft, setCustomModuleDraft] = useState('')
+  const [creatingCustomSubmodule, setCreatingCustomSubmodule] = useState(false)
+  const [customSubmoduleDraft, setCustomSubmoduleDraft] = useState('')
   const [transactionDirection, setTransactionDirection] = useState('')
   const [amountExpression, setAmountExpression] = useState('')
   const [note, setNote] = useState('')
@@ -280,6 +343,39 @@ export default function AddTransaction() {
   const [date, setDate] = useState(getTodayDate())
   const [error, setError] = useState('')
   const [savedMessage, setSavedMessage] = useState('')
+  const [isHydrated, setIsHydrated] = useState(!isEditMode)
+  const [loadedTransaction, setLoadedTransaction] = useState(null)
+
+  useEffect(() => {
+    if (!isEditMode) {
+      setIsHydrated(true)
+      setLoadedTransaction(null)
+      return
+    }
+
+    const transactions = readJSON('transactions', [])
+    const existingTransaction = transactions.find((transaction) => String(transaction?.id || transaction?._id || '') === transactionId) || null
+
+    setLoadedTransaction(existingTransaction)
+
+    if (!existingTransaction) {
+      setError('Transaction not found')
+      setIsHydrated(true)
+      return
+    }
+
+    setSelectedModule(existingTransaction.module || '')
+    setSelectedSubmodule(existingTransaction.submodule || '')
+    setTransactionDirection(existingTransaction.transactionType || existingTransaction.direction || existingTransaction.transactionDirection || '')
+    setAmountExpression(existingTransaction.amountExpression || String(Math.abs(Number(existingTransaction.amount || 0))))
+    setNote(existingTransaction.note || '')
+    setAttachment(null)
+    setDate(existingTransaction.date || getTodayDate())
+    setError('')
+    setSavedMessage('')
+    setStep(4)
+    setIsHydrated(true)
+  }, [isEditMode, transactionId])
 
   useEffect(() => {
     const currentModule = organizationModules.find((module) => module.name === selectedModule)
@@ -291,14 +387,22 @@ export default function AddTransaction() {
 
   const selectedModuleData = organizationModules.find((module) => module.name === selectedModule) || null
   const selectedModuleSubmodules = getModuleSubmodules(selectedModuleData, activeOrganization)
+  const categoryModules = useMemo(() => getModulesForCategory(transactionDirection, organizationModules), [transactionDirection, organizationModules])
   const tokens = tokenizeExpression(amountExpression)
   const totalAmount = evaluateExpression(amountExpression)
   const previewAmount = evaluateExpression(getPreviewExpression(amountExpression))
   const amountDisplayValue = getAmountInputDisplay(amountExpression)
   const canSave = totalAmount !== null && selectedModule && selectedSubmodule && transactionDirection
   const selectionModalOpen = step < 4
+  const saveButtonLabel = isEditMode ? 'Update Transaction' : 'Save'
+  const secondaryButtonLabel = isEditMode ? '' : 'Save and Add Another'
 
   const closeSelectionModal = () => {
+    if (isEditMode) {
+      navigate('/transactions')
+      return
+    }
+
     navigate(-1)
   }
 
@@ -309,7 +413,9 @@ export default function AddTransaction() {
     }
 
     const transactions = readJSON('transactions', [])
-    let attachmentDataUrl = ''
+    const existingTransactionId = String(loadedTransaction?.id || loadedTransaction?._id || transactionId || '')
+    const existingAttachmentDataUrl = loadedTransaction?.attachmentDataUrl || ''
+    let attachmentDataUrl = existingAttachmentDataUrl
 
     if (attachment) {
       try {
@@ -325,6 +431,7 @@ export default function AddTransaction() {
       organizationId: activeOrganization?.id || '',
       module: selectedModule,
       submodule: selectedSubmodule,
+      transactionType: transactionDirection,
       direction: transactionDirection,
       amountExpression,
       amount: totalAmount,
@@ -340,39 +447,123 @@ export default function AddTransaction() {
     let savedTransaction = null
     let offlineFallback = false
 
-    try {
-      const response = await apiRequest('/transactions', {
-        method: 'POST',
-        body: JSON.stringify(transactionPayload),
-      })
+    if (!isEditMode) {
+      try {
+        const response = await apiRequest('/transactions', {
+          method: 'POST',
+          body: JSON.stringify(transactionPayload),
+        })
 
-      savedTransaction = response?.data?.transaction || null
-    } catch (requestError) {
-      const msg = (requestError && requestError.message) ? String(requestError.message) : ''
-      const lower = msg.toLowerCase()
-      // If auth or network related, fallback to local save; otherwise show error
-      if (lower.includes('auth') || lower.includes('unauthorized') || lower.includes('request failed') || lower.includes('network')) {
-        offlineFallback = true
-        savedTransaction = null
-      } else {
-        setError(msg || 'Unable to save transaction')
-        return
+        savedTransaction = response?.data?.transaction || null
+      } catch (requestError) {
+        const msg = (requestError && requestError.message) ? String(requestError.message) : ''
+        const lower = msg.toLowerCase()
+        // If auth or network related, fallback to local save; otherwise show error
+        if (lower.includes('auth') || lower.includes('unauthorized') || lower.includes('request failed') || lower.includes('network')) {
+          offlineFallback = true
+          savedTransaction = null
+        } else {
+          setError(msg || 'Unable to save transaction')
+          return
+        }
       }
     }
 
-    const nextTransaction = savedTransaction
+    const nextTransaction = isEditMode
       ? {
-          ...savedTransaction,
+          ...loadedTransaction,
           ...transactionPayload,
-        }
-      : {
-          id: Date.now().toString(),
-          ...transactionPayload,
-          createdAt: new Date().toISOString(),
+          id: loadedTransaction?.id || loadedTransaction?._id || transactionId || Date.now().toString(),
+          createdAt: loadedTransaction?.createdAt || new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         }
+      : savedTransaction
+        ? {
+            ...savedTransaction,
+            ...transactionPayload,
+          }
+        : {
+            id: Date.now().toString(),
+            ...transactionPayload,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          }
 
-    localStorage.setItem('transactions', JSON.stringify([nextTransaction, ...transactions]))
+    if (isEditMode) {
+      const nextTransactions = [...transactions]
+      const transactionIndex = nextTransactions.findIndex((transaction) => String(transaction?.id || transaction?._id || '') === existingTransactionId)
+
+      if (transactionIndex >= 0) {
+        nextTransactions[transactionIndex] = nextTransaction
+      } else {
+        nextTransactions.unshift(nextTransaction)
+      }
+
+      localStorage.setItem('transactions', JSON.stringify(nextTransactions))
+    } else {
+      localStorage.setItem('transactions', JSON.stringify([nextTransaction, ...transactions]))
+    }
+
+    // Ensure the module exists in the active organization's modules list
+    try {
+      const orgs = Array.isArray(organizations) ? [...organizations] : []
+      const activeId = activeOrgId || orgs[0]?.id
+      const updatedOrgs = orgs.map((org) => {
+        if (org.id !== activeId) return org
+        const modules = Array.isArray(org.modules) ? [...org.modules] : []
+        const existing = modules.find((m) => String(m.name) === String(selectedModule))
+        if (!existing) {
+          const newModule = { name: selectedModule, submodules: Array.isArray(org.submodules?.[selectedModule]) ? org.submodules[selectedModule] : [] }
+          if (selectedSubmodule && !newModule.submodules.includes(selectedSubmodule)) {
+            newModule.submodules = [...newModule.submodules, selectedSubmodule]
+          }
+          modules.push(newModule)
+        } else if (selectedSubmodule) {
+          const submods = Array.isArray(existing.submodules) ? [...existing.submodules] : []
+          if (!submods.includes(selectedSubmodule)) {
+            existing.submodules = [...submods, selectedSubmodule]
+          }
+        }
+
+        return { ...org, modules }
+      })
+
+      setOrganizations(updatedOrgs)
+      localStorage.setItem('organizations', JSON.stringify(updatedOrgs))
+
+      // Attempt to persist modules/submodules to backend when online
+      if (!offlineFallback && activeId) {
+        try {
+          const active = updatedOrgs.find((o) => o.id === activeId) || null
+          if (active) {
+            const modulesForBackend = (active.modules || []).map((m) => ({ name: m.name, submodules: Array.isArray(m.submodules) ? m.submodules : [] }))
+            const submodulesMap = {}
+            modulesForBackend.forEach((m) => {
+              submodulesMap[m.name] = Array.isArray(m.submodules) ? m.submodules : []
+            })
+
+            await apiRequest(`/organizations/${encodeURIComponent(activeId)}`, {
+              method: 'PATCH',
+              body: JSON.stringify({ modules: modulesForBackend, submodules: submodulesMap }),
+            })
+
+            // Refresh organizations from backend to get canonical data
+            try {
+              const refreshed = await loadOrganizationsFromBackend()
+              if (Array.isArray(refreshed) && refreshed.length > 0) {
+                setOrganizations(refreshed)
+              }
+            } catch {
+              // ignore refresh failure
+            }
+          }
+        } catch (err) {
+          // backend update failed — keep local changes
+        }
+      }
+    } catch (err) {
+      // ignore
+    }
 
     if (attachmentDataUrl) {
       const attachments = readJSON('attachments', [])
@@ -387,7 +578,17 @@ export default function AddTransaction() {
     }
 
     setError('')
-    setSavedMessage(offlineFallback ? 'Transaction saved locally (offline)' : 'Transaction saved successfully')
+    setSavedMessage(
+      isEditMode
+        ? 'Transaction updated successfully'
+        : offlineFallback
+          ? 'Transaction saved locally (offline)' : 'Transaction saved successfully',
+    )
+
+    if (isEditMode) {
+      navigate('/transactions')
+      return
+    }
 
     if (stayOnPage) {
       setStep(1)
@@ -420,6 +621,31 @@ export default function AddTransaction() {
     )
   }
 
+  if (!isHydrated) {
+    return (
+      <div className="theme-light-violet flex min-h-screen items-center justify-center bg-[var(--card)] px-4">
+        <div className="w-full max-w-xl rounded-[2rem] border border-white/6 bg-[var(--card)] p-8 text-center shadow-sm">
+          <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">Loading transaction</p>
+          <h1 className="mt-3 text-3xl font-light tracking-tight text-[var(--text)]">Preparing editor</h1>
+        </div>
+      </div>
+    )
+  }
+
+  if (isEditMode && !loadedTransaction) {
+    return (
+      <div className="theme-light-violet flex min-h-screen items-center justify-center bg-[var(--card)] px-4">
+        <div className="w-full max-w-xl rounded-[2rem] border border-white/6 bg-[var(--card)] p-8 text-center shadow-sm">
+          <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">Transaction not found</p>
+          <h1 className="mt-3 text-3xl font-light tracking-tight text-[var(--text)]">Unable to edit this transaction</h1>
+          <button type="button" onClick={() => navigate('/transactions')} className="mt-6 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary-500 to-primary-600 px-5 py-3 text-sm font-light text-white shadow-lg shadow-primary-500/25">
+            Back to transactions
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   if (selectionModalOpen) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-sm p-4">
@@ -427,11 +653,11 @@ export default function AddTransaction() {
           <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 sm:px-6">
             <div>
               <h2 className="text-2xl font-light tracking-tight text-slate-800">
-                {step === 1 ? 'Select Money Flow' : step === 2 ? 'Select Module' : 'Select Submodule'}
+                {step === 1 ? 'Select Transaction Type' : step === 2 ? 'Select Module' : 'Select Submodule'}
               </h2>
               <p className="mt-1 text-sm text-slate-500">
                 {step === 1
-                  ? 'Choose whether the transaction is coming in or going out.'
+                  ? 'Choose revenue, expenses, or investments.'
                   : step === 2
                     ? 'Choose a module to continue.'
                     : `Choose a submodule for ${selectedModuleData?.name}.`}
@@ -443,14 +669,14 @@ export default function AddTransaction() {
           </div>
 
           <div className="px-5 py-5 sm:px-6">
-            <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">{step === 1 ? 'Choose flow' : step === 2 ? 'All Modules' : 'All Submodules'}</p>
+            <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">{step === 1 ? 'Choose type' : step === 2 ? 'All Modules' : 'All Submodules'}</p>
 
             {step === 1 ? (
-              <div className="mt-4 grid grid-cols-2 gap-3">
+              <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
                 <motion.button
                   type="button"
                   onClick={() => {
-                    setTransactionDirection('in')
+                    setTransactionDirection('revenue')
                     setSelectedModule('')
                     setSelectedSubmodule('')
                     setError('')
@@ -462,14 +688,14 @@ export default function AddTransaction() {
                   whileHover={{ y: -2 }}
                   className="rounded-[1.25rem] border border-emerald-600 bg-emerald-600 px-5 py-5 text-left text-white shadow-[0_10px_24px_rgba(16,185,129,0.22)] transition-shadow hover:border-emerald-700 hover:bg-emerald-700 hover:shadow-md"
                 >
-                  <p className="text-lg font-light">In</p>
+                  <p className="text-lg font-light">Revenue</p>
                   <p className="mt-1 text-sm text-white/80">Money coming in</p>
                 </motion.button>
 
                 <motion.button
                   type="button"
                   onClick={() => {
-                    setTransactionDirection('out')
+                    setTransactionDirection('expenses')
                     setSelectedModule('')
                     setSelectedSubmodule('')
                     setError('')
@@ -481,13 +707,32 @@ export default function AddTransaction() {
                   whileHover={{ y: -2 }}
                   className="rounded-[1.25rem] border border-rose-600 bg-rose-600 px-5 py-5 text-left text-white shadow-[0_10px_24px_rgba(244,63,94,0.22)] transition-shadow hover:border-rose-700 hover:bg-rose-700 hover:shadow-md"
                 >
-                  <p className="text-lg font-light">Out</p>
+                  <p className="text-lg font-light">Expenses</p>
                   <p className="mt-1 text-sm text-white/80">Money going out</p>
+                </motion.button>
+
+                <motion.button
+                  type="button"
+                  onClick={() => {
+                    setTransactionDirection('investments')
+                    setSelectedModule('')
+                    setSelectedSubmodule('')
+                    setError('')
+                    setStep(2)
+                  }}
+                  initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ duration: 0.22, ease: 'easeOut', delay: 0.08 }}
+                  whileHover={{ y: -2 }}
+                  className="rounded-[1.25rem] border border-violet-600 bg-violet-600 px-5 py-5 text-left text-white shadow-[0_10px_24px_rgba(124,58,237,0.22)] transition-shadow hover:border-violet-700 hover:bg-violet-700 hover:shadow-md"
+                >
+                  <p className="text-lg font-light">Investments</p>
+                  <p className="mt-1 text-sm text-white/80">Money being invested</p>
                 </motion.button>
               </div>
             ) : step === 2 ? (
               <div className="mt-4 grid gap-3 md:grid-cols-2">
-                {organizationModules.map((module, index) => {
+                {categoryModules.map((module, index) => {
                   const isSelected = selectedModule === module.name
                   const cardStyles = ['border-orange-200 bg-orange-50 text-orange-700', 'border-primary-200 bg-primary-50 text-primary-700', 'border-violet-200 bg-violet-50 text-violet-700', 'border-emerald-200 bg-emerald-50 text-emerald-700']
                   const selectedStyles = ['border-orange-300 bg-orange-100 shadow-[0_0_0_1px_rgba(249,115,22,0.12)]', 'border-primary-300 bg-primary-100 shadow-[0_0_0_1px_rgba(59,130,246,0.12)]', 'border-violet-300 bg-violet-100 shadow-[0_0_0_1px_rgba(139,92,246,0.12)]', 'border-emerald-300 bg-emerald-100 shadow-[0_0_0_1px_rgba(16,185,129,0.12)]']
@@ -517,17 +762,130 @@ export default function AddTransaction() {
                     </motion.button>
                   )
                 })}
+                {categoryModules.length === 0 ? (
+                  <div className="rounded-[1.25rem] border border-dashed border-slate-300 bg-slate-50 px-5 py-6 text-sm text-slate-500 md:col-span-2">
+                    No modules are assigned to this category yet. Add a custom module below or edit the organization.
+                  </div>
+                ) : null}
+                {/* Custom module creator */}
+                <div className="mt-2">
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ duration: 0.22, ease: 'easeOut' }}
+                    className="flex min-h-[88px] items-center rounded-[1.25rem] border border-primary-400 bg-white px-5 py-4 text-left text-slate-500 shadow-[0_0_0_1px_rgba(59,130,246,0.10)] hover:border-primary-500 hover:bg-blue-50"
+                    onClick={() => setCreatingCustomModule(true)}
+                  >
+                    <input
+                      type="text"
+                      value={customModuleDraft}
+                      onChange={(e) => setCustomModuleDraft(e.target.value)}
+                      autoFocus
+                      onClick={(event) => event.stopPropagation()}
+                      onFocus={() => setCreatingCustomModule(true)}
+                      onKeyDown={async (e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          if (customModuleDraft.trim()) {
+                            const name = customModuleDraft.trim()
+                            const nextOrgs = organizations.map((org) => {
+                              if (org.id === activeOrganization.id) {
+                                const nextModules = Array.isArray(org.modules) ? [...org.modules] : []
+                                if (!nextModules.find((m) => m.name === name)) {
+                                  nextModules.push({ name, submodules: [], transactionType: 'custom' })
+                                }
+                                return { ...org, modules: nextModules }
+                              }
+                              return org
+                            })
+                            setOrganizations(nextOrgs)
+                            try { localStorage.setItem('organizations', JSON.stringify(nextOrgs)) } catch {}
+                            setSelectedModule(name)
+                            setSelectedSubmodule('')
+                            setCreatingCustomModule(false)
+                            setCustomModuleDraft('')
+                            setStep(3)
+
+                            try {
+                              const activeId = activeOrganization.id
+                              const active = nextOrgs.find((o) => o.id === activeId)
+                              if (active) {
+                                const modulesForBackend = (active.modules || []).map((m) => ({ name: m.name, transactionType: m.transactionType || 'custom', submodules: Array.isArray(m.submodules) ? m.submodules : [] }))
+                                const submodulesMap = {}
+                                modulesForBackend.forEach((m) => { submodulesMap[m.name] = Array.isArray(m.submodules) ? m.submodules : [] })
+                                await apiRequest(`/organizations/${encodeURIComponent(activeId)}`, { method: 'PATCH', body: JSON.stringify({ modules: modulesForBackend, submodules: submodulesMap }) })
+                                const refreshed = await loadOrganizationsFromBackend()
+                                if (Array.isArray(refreshed) && refreshed.length > 0) setOrganizations(refreshed)
+                              }
+                            } catch {
+                              // ignore
+                            }
+                          }
+                        }
+                      }}
+                      className="h-full w-full rounded-xl border-transparent bg-transparent px-4 py-3 text-lg font-light text-black outline-none placeholder:text-slate-400 focus:border-transparent focus:outline-none"
+                      placeholder="New module name"
+                    />
+                    <button
+                      type="button"
+                      onClick={async (e) => {
+                        e.stopPropagation()
+                        if (!customModuleDraft.trim()) return
+                        const name = customModuleDraft.trim()
+                        const nextOrgs = organizations.map((org) => {
+                          if (org.id === activeOrganization.id) {
+                            const nextModules = Array.isArray(org.modules) ? [...org.modules] : []
+                            if (!nextModules.find((m) => m.name === name)) {
+                              nextModules.push({ name, submodules: [], transactionType: 'custom' })
+                            }
+                            return { ...org, modules: nextModules }
+                          }
+                          return org
+                        })
+                        setOrganizations(nextOrgs)
+                        try { localStorage.setItem('organizations', JSON.stringify(nextOrgs)) } catch {}
+                        setSelectedModule(name)
+                        setSelectedSubmodule('')
+                        setCreatingCustomModule(false)
+                        setCustomModuleDraft('')
+                        setStep(3)
+
+                        try {
+                          const activeId = activeOrganization.id
+                          const active = nextOrgs.find((o) => o.id === activeId)
+                          if (active) {
+                            const modulesForBackend = (active.modules || []).map((m) => ({ name: m.name, transactionType: m.transactionType || 'custom', submodules: Array.isArray(m.submodules) ? m.submodules : [] }))
+                            const submodulesMap = {}
+                            modulesForBackend.forEach((m) => { submodulesMap[m.name] = Array.isArray(m.submodules) ? m.submodules : [] })
+                            await apiRequest(`/organizations/${encodeURIComponent(activeId)}`, { method: 'PATCH', body: JSON.stringify({ modules: modulesForBackend, submodules: submodulesMap }) })
+                            const refreshed = await loadOrganizationsFromBackend()
+                            if (Array.isArray(refreshed) && refreshed.length > 0) setOrganizations(refreshed)
+                          }
+                        } catch {
+                          // ignore
+                        }
+                      }}
+                      className="inline-flex items-center gap-2 rounded-xl border border-primary-200 bg-primary-50 px-3 py-2 text-primary-700 ml-3"
+                      aria-label="Add module"
+                    >
+                      <PlusIcon className="h-4 w-4" />
+                    </button>
+                  </motion.div>
+                </div>
               </div>
             ) : (
               <>
-                <div className="mt-4 flex items-center justify-between gap-3">
+                <div className="mt-4 flex items-center gap-3">
                   <div className="rounded-full bg-slate-100 px-4 py-2 text-sm font-light text-slate-700">{selectedModuleData?.name}</div>
-                  <button type="button" onClick={() => setStep(2)} className="rounded-full border border-white/6 bg-[var(--card)] px-4 py-2 text-sm font-light text-[var(--muted)] transition hover:border-slate-300">Back</button>
                 </div>
 
-                <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
                   {selectedModuleSubmodules.map((submodule, index) => {
                     const isSelected = selectedSubmodule === submodule
+                    const cardStyles = ['border-orange-200 bg-orange-50 text-orange-700', 'border-primary-200 bg-primary-50 text-primary-700', 'border-violet-200 bg-violet-50 text-violet-700', 'border-emerald-200 bg-emerald-50 text-emerald-700']
+                    const selectedStyles = ['border-orange-300 bg-orange-100 shadow-[0_0_0_1px_rgba(249,115,22,0.12)]', 'border-primary-300 bg-primary-100 shadow-[0_0_0_1px_rgba(59,130,246,0.12)]', 'border-violet-300 bg-violet-100 shadow-[0_0_0_1px_rgba(139,92,246,0.12)]', 'border-emerald-300 bg-emerald-100 shadow-[0_0_0_1px_rgba(16,185,129,0.12)]']
+                    const tone = cardStyles[index % cardStyles.length]
+                    const activeTone = selectedStyles[index % selectedStyles.length]
                     return (
                       <motion.button
                         key={submodule}
@@ -540,18 +898,129 @@ export default function AddTransaction() {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         transition={{ duration: 0.22, ease: 'easeOut', delay: index * 0.04 }}
                         whileHover={{ y: -2 }}
-                        className={`rounded-[1.25rem] border px-4 py-4 text-left transition-shadow hover:shadow-md ${isSelected ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-white/6 bg-[var(--card)] text-[var(--text)]'}`}
+                        className={`flex min-h-[88px] items-center justify-between rounded-[1.25rem] border px-5 py-4 text-left transition-shadow hover:shadow-md ${isSelected ? activeTone : tone}`}
                       >
-                        <div className="flex items-center justify-between gap-3">
-                          <div>
-                            <p className={`font-light ${isSelected ? 'text-primary-700' : 'text-[var(--text)]'}`}>{submodule}</p>
-                            <p className="text-sm text-slate-500">Click to continue</p>
-                          </div>
-                          <TagIcon className="h-5 w-5 text-primary-600" />
+                        <div>
+                          <p className="text-lg font-light capitalize">{submodule}</p>
+                          <p className="mt-1 text-sm opacity-80">Click to continue</p>
                         </div>
+                        <Squares2X2Icon className="h-7 w-7 opacity-90" />
                       </motion.button>
                     )
                   })}
+
+                  {/* Custom submodule creator */}
+                  <div>
+                    {creatingCustomSubmodule ? (
+                      <div className="flex min-h-[88px] items-center rounded-[1.25rem] border border-primary-400 bg-white px-5 py-4 text-primary-700 shadow-[0_0_0_1px_rgba(59,130,246,0.10)]">
+                        <input
+                          type="text"
+                          value={customSubmoduleDraft}
+                          onChange={(e) => setCustomSubmoduleDraft(e.target.value)}
+                          autoFocus
+                          onClick={(event) => event.stopPropagation()}
+                          onKeyDown={async (e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault()
+                              if (!customSubmoduleDraft.trim()) return
+                              const name = customSubmoduleDraft.trim()
+                              // update org modules
+                              const nextOrgs = organizations.map((org) => {
+                                if (org.id === activeOrganization.id) {
+                                  const nextModules = (org.modules || []).map((m) => {
+                                    if (m.name === selectedModule) {
+                                      const nextSubs = Array.isArray(m.submodules) ? [...m.submodules] : []
+                                      if (!nextSubs.includes(name)) nextSubs.push(name)
+                                      return { ...m, submodules: nextSubs }
+                                    }
+                                    return m
+                                  })
+                                  return { ...org, modules: nextModules }
+                                }
+                                return org
+                              })
+                              setOrganizations(nextOrgs)
+                              try { localStorage.setItem('organizations', JSON.stringify(nextOrgs)) } catch {}
+                              setSelectedSubmodule(name)
+                              setCreatingCustomSubmodule(false)
+                              setCustomSubmoduleDraft('')
+                              setStep(4)
+
+                              // Persist to backend
+                              try {
+                                const activeId = activeOrganization.id
+                                const active = nextOrgs.find((o) => o.id === activeId)
+                                if (active) {
+                                  const modulesForBackend = (active.modules || []).map((m) => ({ name: m.name, submodules: Array.isArray(m.submodules) ? m.submodules : [] }))
+                                  const submodulesMap = {}
+                                  modulesForBackend.forEach((m) => { submodulesMap[m.name] = Array.isArray(m.submodules) ? m.submodules : [] })
+                                  await apiRequest(`/organizations/${encodeURIComponent(activeId)}`, { method: 'PATCH', body: JSON.stringify({ modules: modulesForBackend, submodules: submodulesMap }) })
+                                  const refreshed = await loadOrganizationsFromBackend()
+                                  if (Array.isArray(refreshed) && refreshed.length > 0) setOrganizations(refreshed)
+                                }
+                              } catch {
+                                // ignore backend failures
+                              }
+                            }
+                          }}
+                          className="h-full w-full rounded-xl border-transparent bg-transparent px-4 py-3 text-lg font-light text-black outline-none placeholder:text-slate-400 focus:border-transparent focus:outline-none"
+                          placeholder="New submodule name"
+                        />
+                        <button
+                          type="button"
+                          onClick={async (e) => {
+                            e.stopPropagation()
+                            if (!customSubmoduleDraft.trim()) return
+                            const name = customSubmoduleDraft.trim()
+                            const nextOrgs = organizations.map((org) => {
+                              if (org.id === activeOrganization.id) {
+                                const nextModules = (org.modules || []).map((m) => {
+                                  if (m.name === selectedModule) {
+                                    const nextSubs = Array.isArray(m.submodules) ? [...m.submodules] : []
+                                    if (!nextSubs.includes(name)) nextSubs.push(name)
+                                    return { ...m, submodules: nextSubs }
+                                  }
+                                  return m
+                                })
+                                return { ...org, modules: nextModules }
+                              }
+                              return org
+                            })
+                            setOrganizations(nextOrgs)
+                            try { localStorage.setItem('organizations', JSON.stringify(nextOrgs)) } catch {}
+                            setSelectedSubmodule(name)
+                            setCreatingCustomSubmodule(false)
+                            setCustomSubmoduleDraft('')
+                            setStep(4)
+
+                            // Persist to backend
+                            try {
+                              const activeId = activeOrganization.id
+                              const active = nextOrgs.find((o) => o.id === activeId)
+                              if (active) {
+                                const modulesForBackend = (active.modules || []).map((m) => ({ name: m.name, submodules: Array.isArray(m.submodules) ? m.submodules : [] }))
+                                const submodulesMap = {}
+                                modulesForBackend.forEach((m) => { submodulesMap[m.name] = Array.isArray(m.submodules) ? m.submodules : [] })
+                                await apiRequest(`/organizations/${encodeURIComponent(activeId)}`, { method: 'PATCH', body: JSON.stringify({ modules: modulesForBackend, submodules: submodulesMap }) })
+                                const refreshed = await loadOrganizationsFromBackend()
+                                if (Array.isArray(refreshed) && refreshed.length > 0) setOrganizations(refreshed)
+                              }
+                            } catch {
+                              // ignore
+                            }
+                          }}
+                          className="inline-flex items-center gap-2 rounded-xl border border-primary-200 bg-primary-50 px-3 py-2 text-primary-700"
+                        >
+                          <PlusIcon className="h-4 w-4" />
+                        </button>
+                      </div>
+                      ) : (
+                      <button type="button" onClick={() => setCreatingCustomSubmodule(true)} className="flex min-h-[88px] w-full items-center justify-between rounded-[1.25rem] border border-primary-400 bg-white px-5 py-4 text-left text-slate-500 shadow-[0_0_0_1px_rgba(59,130,246,0.10)] hover:border-primary-500 hover:bg-primary-50">
+                        <span className="text-lg font-light">+ Create custom submodule</span>
+                        <TagIcon className="h-6 w-6 opacity-70" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </>
             )}
@@ -565,12 +1034,12 @@ export default function AddTransaction() {
     <div className="theme-light-violet min-h-screen bg-[var(--card)] px-4 py-6 text-[var(--text)] sm:px-6 lg:px-8">
       <div className="mx-auto max-w-5xl">
         <div className="mb-6 flex items-center justify-between gap-3">
-          <Link to="/dashboard" className="inline-flex items-center gap-2 rounded-full border border-white/6 bg-[var(--card)] px-4 py-2.5 text-sm font-light text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+          <Link to={isEditMode ? '/transactions' : '/dashboard'} className="inline-flex items-center gap-2 rounded-full border border-white/6 bg-[var(--card)] px-4 py-2.5 text-sm font-light text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
             <ArrowLeftIcon className="h-4 w-4" />
-            Back to dashboard
+            {isEditMode ? 'Back to transactions' : 'Back to dashboard'}
           </Link>
           <div className="rounded-full bg-primary-50 px-4 py-2 text-sm font-light text-primary-700">
-            {activeOrganization.organizationName}
+            {isEditMode ? 'Edit transaction' : activeOrganization.organizationName}
           </div>
         </div>
 
@@ -581,9 +1050,11 @@ export default function AddTransaction() {
                 <div className="flex items-center justify-between gap-4">
                   <div>
                     <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">Transaction form</p>
-                    <h2 className="mt-2 text-2xl font-light tracking-tight text-[var(--text)]">{selectedModuleData?.name} · {selectedSubmodule}</h2>
+                    <h2 className="mt-2 text-2xl font-light tracking-tight text-[var(--text)]">{isEditMode ? 'Edit transaction' : 'Transaction form'}{selectedModuleData?.name ? ` · ${selectedModuleData?.name}` : ''}{selectedSubmodule ? ` · ${selectedSubmodule}` : ''}</h2>
                   </div>
-                  <button type="button" onClick={() => setStep(3)} className="rounded-full border border-white/6 bg-[var(--card)] px-4 py-2 text-sm font-light text-[var(--muted)]">Back</button>
+                  {!isEditMode ? (
+                    <button type="button" onClick={() => setStep(2)} className="rounded-full border border-white/6 bg-[var(--card)] px-4 py-2 text-sm font-light text-[var(--muted)]">Back</button>
+                  ) : null}
                 </div>
 
                 <div className="mt-5 space-y-4">
@@ -658,13 +1129,15 @@ export default function AddTransaction() {
 
                   <div className="flex flex-col gap-3 sm:flex-row">
                     <button type="button" disabled={!canSave} onClick={() => saveTransaction(false)} className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-900 px-5 py-3 text-sm font-light text-white transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50">
-                      Save
+                      {saveButtonLabel}
                       <CheckCircleIcon className="h-4 w-4" />
                     </button>
-                    <button type="button" disabled={!canSave} onClick={() => saveTransaction(true)} className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-primary-500 to-primary-600 px-5 py-3 text-sm font-light text-white shadow-lg shadow-primary-500/25 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50">
-                      Save and Add Another
-                      <PlusIcon className="h-4 w-4" />
-                    </button>
+                    {!isEditMode ? (
+                      <button type="button" disabled={!canSave} onClick={() => saveTransaction(true)} className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-primary-500 to-primary-600 px-5 py-3 text-sm font-light text-white shadow-lg shadow-primary-500/25 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50">
+                        {secondaryButtonLabel}
+                        <PlusIcon className="h-4 w-4" />
+                      </button>
+                    ) : null}
                   </div>
                 </div>
               </div>
