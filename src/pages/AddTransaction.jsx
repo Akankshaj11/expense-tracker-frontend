@@ -13,6 +13,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { apiRequest } from '../utils/api'
 import { loadOrganizationsFromBackend, readCachedOrganizations } from '../utils/organizationSync'
+import translations, { translateText, getLocale } from '../i18n/translations'
 
 const transactionTypeModules = {
   revenue: ['Salary', 'Business', 'Bonus', 'Commission', 'Incentives', 'Rental Income', 'Investment Returns'],
@@ -92,9 +93,9 @@ function getModuleSubmodules(module, organization) {
   return []
 }
 
-function formatMoney(value, currency) {
+function formatMoney(value, currency, locale = 'en-US') {
   try {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat(locale, {
       style: 'currency',
       currency: currency?.code || 'USD',
       maximumFractionDigits: 2,
@@ -110,6 +111,10 @@ function capitalize(value) {
 
 function getTodayDate() {
   return new Date().toISOString().slice(0, 10)
+}
+
+function isMongoObjectId(value) {
+  return /^[a-f\d]{24}$/i.test(String(value || ''))
 }
 
 function sanitizeAmountInput(value) {
@@ -343,8 +348,34 @@ export default function AddTransaction() {
   const [date, setDate] = useState(getTodayDate())
   const [error, setError] = useState('')
   const [savedMessage, setSavedMessage] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
   const [isHydrated, setIsHydrated] = useState(!isEditMode)
   const [loadedTransaction, setLoadedTransaction] = useState(null)
+  const [forceSubmoduleSelection, setForceSubmoduleSelection] = useState(false)
+
+  const [language, setLanguage] = useState(() => localStorage.getItem('selectedLanguage') || 'en')
+  const text = translations[language] || translations.en
+  const locale = getLocale(language)
+
+  useEffect(() => {
+    const handleLanguageChanged = (e) => {
+      const newLang = (e && e.detail && e.detail.language) || localStorage.getItem('selectedLanguage') || 'en'
+      setLanguage(newLang)
+    }
+
+    const handleStorage = (e) => {
+      if (e.key === 'selectedLanguage') {
+        setLanguage(e.newValue || 'en')
+      }
+    }
+
+    window.addEventListener('language:changed', handleLanguageChanged)
+    window.addEventListener('storage', handleStorage)
+    return () => {
+      window.removeEventListener('language:changed', handleLanguageChanged)
+      window.removeEventListener('storage', handleStorage)
+    }
+  }, [])
 
   useEffect(() => {
     if (!isEditMode) {
@@ -359,7 +390,7 @@ export default function AddTransaction() {
     setLoadedTransaction(existingTransaction)
 
     if (!existingTransaction) {
-      setError('Transaction not found')
+      setError(text.transactionNotFound)
       setIsHydrated(true)
       return
     }
@@ -394,23 +425,44 @@ export default function AddTransaction() {
   const amountDisplayValue = getAmountInputDisplay(amountExpression)
   const canSave = totalAmount !== null && selectedModule && selectedSubmodule && transactionDirection
   const selectionModalOpen = step < 4
-  const saveButtonLabel = isEditMode ? 'Update Transaction' : 'Save'
-  const secondaryButtonLabel = isEditMode ? '' : 'Save and Add Another'
+  const saveButtonLabel = isEditMode ? text.updateTransaction : text.save
+  const secondaryButtonLabel = isEditMode ? '' : text.saveAndAddAnother
 
   const closeSelectionModal = () => {
     if (isEditMode) {
-      navigate('/transactions')
+      // In edit mode, closing the selection modal should return to the form instead of navigating away
+      setForceSubmoduleSelection(false)
+      setStep(4)
       return
     }
 
     navigate(-1)
   }
 
-  const saveTransaction = async (stayOnPage) => {
-    if (!canSave) {
-      setError('Enter a valid amount, choose a module, submodule, and in or out')
+  const handleModuleSelection = (moduleName, submodules = [], forceSubmodule = false) => {
+    setSelectedModule(moduleName)
+    setSelectedSubmodule(submodules[0] || '')
+    setError('')
+
+    if (forceSubmodule) {
+      setStep(3)
       return
     }
+
+    if (!submodules || submodules.length <= 1) {
+      setStep(4)
+    } else {
+      setStep(3)
+    }
+  }
+
+  const saveTransaction = async (stayOnPage) => {
+    if (!canSave) {
+      setError(text.enterValidAmountChoose)
+      return
+    }
+    setIsSaving(true)
+    setError('')
 
     const transactions = readJSON('transactions', [])
     const existingTransactionId = String(loadedTransaction?.id || loadedTransaction?._id || transactionId || '')
@@ -421,7 +473,7 @@ export default function AddTransaction() {
       try {
         attachmentDataUrl = await readFileAsDataUrl(attachment)
       } catch {
-        setError('Unable to read the attachment file')
+        setError(text.unableToSaveTransaction)
         return
       }
     }
@@ -446,29 +498,9 @@ export default function AddTransaction() {
 
     let savedTransaction = null
     let offlineFallback = false
+    const canSyncTransaction = isEditMode && isMongoObjectId(existingTransactionId)
 
-    if (!isEditMode) {
-      try {
-        const response = await apiRequest('/transactions', {
-          method: 'POST',
-          body: JSON.stringify(transactionPayload),
-        })
-
-        savedTransaction = response?.data?.transaction || null
-      } catch (requestError) {
-        const msg = (requestError && requestError.message) ? String(requestError.message) : ''
-        const lower = msg.toLowerCase()
-        // If auth or network related, fallback to local save; otherwise show error
-        if (lower.includes('auth') || lower.includes('unauthorized') || lower.includes('request failed') || lower.includes('network')) {
-          offlineFallback = true
-          savedTransaction = null
-        } else {
-          setError(msg || 'Unable to save transaction')
-          return
-        }
-      }
-    }
-
+    // Build the transaction object we will persist locally immediately (optimistic update)
     const nextTransaction = isEditMode
       ? {
           ...loadedTransaction,
@@ -477,32 +509,149 @@ export default function AddTransaction() {
           createdAt: loadedTransaction?.createdAt || new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         }
-      : savedTransaction
-        ? {
-            ...savedTransaction,
-            ...transactionPayload,
-          }
-        : {
-            id: Date.now().toString(),
-            ...transactionPayload,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          }
+      : {
+          id: Date.now().toString(),
+          ...transactionPayload,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }
 
-    if (isEditMode) {
-      const nextTransactions = [...transactions]
-      const transactionIndex = nextTransactions.findIndex((transaction) => String(transaction?.id || transaction?._id || '') === existingTransactionId)
+    // Persist to localStorage immediately so the UI feels fast (optimistic)
+    try {
+      if (isEditMode) {
+        const nextTransactions = [...transactions]
+        const transactionIndex = nextTransactions.findIndex((transaction) => String(transaction?.id || transaction?._id || '') === existingTransactionId)
 
-      if (transactionIndex >= 0) {
-        nextTransactions[transactionIndex] = nextTransaction
+        if (transactionIndex >= 0) {
+          nextTransactions[transactionIndex] = nextTransaction
+        } else {
+          nextTransactions.unshift(nextTransaction)
+        }
+
+        localStorage.setItem('transactions', JSON.stringify(nextTransactions))
       } else {
-        nextTransactions.unshift(nextTransaction)
+        localStorage.setItem('transactions', JSON.stringify([nextTransaction, ...transactions]))
       }
 
-      localStorage.setItem('transactions', JSON.stringify(nextTransactions))
-    } else {
-      localStorage.setItem('transactions', JSON.stringify([nextTransaction, ...transactions]))
+      // Attachments stored immediately as well
+      if (attachmentDataUrl) {
+        const attachments = readJSON('attachments', [])
+        const nextAttachment = {
+          transactionId: nextTransaction.id,
+          name: nextTransaction.attachmentName,
+          type: nextTransaction.attachmentType,
+          dataUrl: attachmentDataUrl,
+        }
+
+        localStorage.setItem('attachments', JSON.stringify([nextAttachment, ...attachments.filter((item) => item.transactionId !== nextTransaction.id)]))
+      }
+
+      setSavedMessage(isEditMode ? text.transactionUpdated : text.transactionSaved)
+    } catch (err) {
+      // localStorage failed, show error
+      setIsSaving(false)
+      setError(text.unableToSaveTransaction)
+      return
     }
+
+    // Update organization modules locally immediately
+    try {
+      const orgs = Array.isArray(organizations) ? [...organizations] : []
+      const activeId = activeOrgId || orgs[0]?.id
+      const updatedOrgs = orgs.map((org) => {
+        if (org.id !== activeId) return org
+        const modules = Array.isArray(org.modules) ? [...org.modules] : []
+        const existing = modules.find((m) => String(m.name) === String(selectedModule))
+        if (!existing) {
+          const newModule = { name: selectedModule, submodules: Array.isArray(org.submodules?.[selectedModule]) ? org.submodules[selectedModule] : [] }
+          if (selectedSubmodule && !newModule.submodules.includes(selectedSubmodule)) {
+            newModule.submodules = [...newModule.submodules, selectedSubmodule]
+          }
+          modules.push(newModule)
+        } else if (selectedSubmodule) {
+          const submods = Array.isArray(existing.submodules) ? [...existing.submodules] : []
+          if (!submods.includes(selectedSubmodule)) {
+            existing.submodules = [...submods, selectedSubmodule]
+          }
+        }
+
+        return { ...org, modules }
+      })
+
+      setOrganizations(updatedOrgs)
+      localStorage.setItem('organizations', JSON.stringify(updatedOrgs))
+    } catch (err) {
+      // ignore org local update failures
+    }
+
+    // Fire background syncs (network) without blocking the UI
+    ;(async () => {
+      try {
+        if (canSyncTransaction) {
+          try {
+            const response = await apiRequest(`/transactions/${encodeURIComponent(existingTransactionId)}`, {
+              method: 'PATCH',
+              body: JSON.stringify(transactionPayload),
+            })
+            savedTransaction = response?.data?.transaction || null
+          } catch (e) {
+            offlineFallback = true
+          }
+        } else if (!isEditMode) {
+          try {
+            const response = await apiRequest('/transactions', {
+              method: 'POST',
+              body: JSON.stringify(transactionPayload),
+            })
+            savedTransaction = response?.data?.transaction || null
+
+            // If server returned canonical transaction id, replace local temporary id
+            if (savedTransaction && savedTransaction.id) {
+              const current = readJSON('transactions', [])
+              const replaced = current.map((t) => (t.id === nextTransaction.id ? { ...savedTransaction, ...transactionPayload } : t))
+              try { localStorage.setItem('transactions', JSON.stringify(replaced)) } catch {}
+            }
+          } catch (e) {
+            offlineFallback = true
+          }
+        }
+      } catch (err) {
+        // unexpected
+      }
+
+      // Organization sync in background
+      try {
+        const activeId = activeOrgId || (Array.isArray(organizations) && organizations[0]?.id)
+        if (!offlineFallback && activeId) {
+          const active = (readJSON('organizations', []) || []).find((o) => o.id === activeId) || null
+          if (active) {
+            const modulesForBackend = (active.modules || []).map((m) => ({ name: m.name, submodules: Array.isArray(m.submodules) ? m.submodules : [] }))
+            const submodulesMap = {}
+            modulesForBackend.forEach((m) => { submodulesMap[m.name] = Array.isArray(m.submodules) ? m.submodules : [] })
+            try {
+              await apiRequest(`/organizations/${encodeURIComponent(activeId)}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ modules: modulesForBackend, submodules: submodulesMap }),
+              })
+              const refreshed = await loadOrganizationsFromBackend()
+              if (Array.isArray(refreshed) && refreshed.length > 0) {
+                setOrganizations(refreshed)
+                try { localStorage.setItem('organizations', JSON.stringify(refreshed)) } catch {}
+              }
+            } catch {
+              // ignore org sync failures
+            }
+          }
+        }
+      } catch {
+        // ignore
+      }
+
+      // If background found we are offline, update saved message
+      if (offlineFallback) {
+        setSavedMessage(text.transactionSavedOffline)
+      }
+    })()
 
     // Ensure the module exists in the active organization's modules list
     try {
@@ -580,9 +729,9 @@ export default function AddTransaction() {
     setError('')
     setSavedMessage(
       isEditMode
-        ? 'Transaction updated successfully'
+        ? (canSyncTransaction ? text.transactionUpdated : text.transactionSavedOffline)
         : offlineFallback
-          ? 'Transaction saved locally (offline)' : 'Transaction saved successfully',
+          ? text.transactionSavedOffline : text.transactionSaved,
     )
 
     if (isEditMode) {
@@ -609,11 +758,11 @@ export default function AddTransaction() {
     return (
       <div className="theme-light-violet flex min-h-screen items-center justify-center bg-[var(--card)] px-4">
         <div className="w-full max-w-xl rounded-[2rem] border border-white/6 bg-[var(--card)] p-8 text-center shadow-sm">
-          <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">No organization found</p>
-          <h1 className="mt-3 text-3xl font-light tracking-tight text-[var(--text)]">Create an organization first</h1>
-          <p className="mt-3 text-base leading-7 text-[var(--muted)]">You need at least one organization before adding transactions.</p>
+          <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">{text.noOrganizationFound}</p>
+          <h1 className="mt-3 text-3xl font-light tracking-tight text-[var(--text)]">{text.createOrganizationFirst}</h1>
+          <p className="mt-3 text-base leading-7 text-[var(--muted)]">{text.needOrganizationBeforeAdding}</p>
           <Link to="/create-organization" className="mt-6 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary-500 to-primary-600 px-5 py-3 text-sm font-light text-white shadow-lg shadow-primary-500/25">
-            Create Organization
+            {text.createOrganization}
             <PlusIcon className="h-4 w-4" />
           </Link>
         </div>
@@ -625,8 +774,8 @@ export default function AddTransaction() {
     return (
       <div className="theme-light-violet flex min-h-screen items-center justify-center bg-[var(--card)] px-4">
         <div className="w-full max-w-xl rounded-[2rem] border border-white/6 bg-[var(--card)] p-8 text-center shadow-sm">
-          <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">Loading transaction</p>
-          <h1 className="mt-3 text-3xl font-light tracking-tight text-[var(--text)]">Preparing editor</h1>
+          <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">{text.loadingTransaction}</p>
+          <h1 className="mt-3 text-3xl font-light tracking-tight text-[var(--text)]">{text.preparingEditor}</h1>
         </div>
       </div>
     )
@@ -636,10 +785,10 @@ export default function AddTransaction() {
     return (
       <div className="theme-light-violet flex min-h-screen items-center justify-center bg-[var(--card)] px-4">
         <div className="w-full max-w-xl rounded-[2rem] border border-white/6 bg-[var(--card)] p-8 text-center shadow-sm">
-          <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">Transaction not found</p>
-          <h1 className="mt-3 text-3xl font-light tracking-tight text-[var(--text)]">Unable to edit this transaction</h1>
+          <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">{text.transactionNotFound}</p>
+          <h1 className="mt-3 text-3xl font-light tracking-tight text-[var(--text)]">{text.unableToEditTransaction}</h1>
           <button type="button" onClick={() => navigate('/transactions')} className="mt-6 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary-500 to-primary-600 px-5 py-3 text-sm font-light text-white shadow-lg shadow-primary-500/25">
-            Back to transactions
+            {text.backToTransactions}
           </button>
         </div>
       </div>
@@ -653,23 +802,23 @@ export default function AddTransaction() {
           <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 sm:px-6">
             <div>
               <h2 className="text-2xl font-light tracking-tight text-slate-800">
-                {step === 1 ? 'Select Transaction Type' : step === 2 ? 'Select Module' : 'Select Submodule'}
+                {step === 1 ? text.selectTransactionType : step === 2 ? text.selectModule : text.selectSubmodule}
               </h2>
               <p className="mt-1 text-sm text-slate-500">
                 {step === 1
-                  ? 'Choose revenue, expenses, or investments.'
+                  ? text.chooseTypeHint
                   : step === 2
-                    ? 'Choose a module to continue.'
-                    : `Choose a submodule for ${selectedModuleData?.name}.`}
+                    ? text.chooseModuleHint
+                    : translateText(language, 'chooseSubmoduleHint', { module: selectedModuleData?.name || '' })}
               </p>
             </div>
-            <button type="button" onClick={closeSelectionModal} className="rounded-full border border-slate-200 bg-white p-2 text-slate-700 transition hover:border-slate-300 hover:text-slate-900" aria-label="Close">
+            <button type="button" onClick={closeSelectionModal} className="rounded-full border border-slate-200 bg-white p-2 text-slate-700 transition hover:border-slate-300 hover:text-slate-900" aria-label={translateText(language, 'close')}>
               <XMarkIcon className="h-5 w-5" />
             </button>
           </div>
 
           <div className="px-5 py-5 sm:px-6">
-            <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">{step === 1 ? 'Choose type' : step === 2 ? 'All Modules' : 'All Submodules'}</p>
+            <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">{step === 1 ? text.chooseTypeLabel : step === 2 ? text.allModulesLabel : text.allSubmodulesLabel}</p>
 
             {step === 1 ? (
               <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
@@ -688,8 +837,8 @@ export default function AddTransaction() {
                   whileHover={{ y: -2 }}
                   className="rounded-[1.25rem] border border-emerald-600 bg-emerald-600 px-5 py-5 text-left text-white shadow-[0_10px_24px_rgba(16,185,129,0.22)] transition-shadow hover:border-emerald-700 hover:bg-emerald-700 hover:shadow-md"
                 >
-                  <p className="text-lg font-light">Revenue</p>
-                  <p className="mt-1 text-sm text-white/80">Money coming in</p>
+                  <p className="text-lg font-light">{text.revenue}</p>
+                  <p className="mt-1 text-sm text-white/80">{text.chooseTypeHint}</p>
                 </motion.button>
 
                 <motion.button
@@ -707,8 +856,8 @@ export default function AddTransaction() {
                   whileHover={{ y: -2 }}
                   className="rounded-[1.25rem] border border-rose-600 bg-rose-600 px-5 py-5 text-left text-white shadow-[0_10px_24px_rgba(244,63,94,0.22)] transition-shadow hover:border-rose-700 hover:bg-rose-700 hover:shadow-md"
                 >
-                  <p className="text-lg font-light">Expenses</p>
-                  <p className="mt-1 text-sm text-white/80">Money going out</p>
+                  <p className="text-lg font-light">{text.expenses}</p>
+                  <p className="mt-1 text-sm text-white/80">{text.chooseTypeHint}</p>
                 </motion.button>
 
                 <motion.button
@@ -726,8 +875,8 @@ export default function AddTransaction() {
                   whileHover={{ y: -2 }}
                   className="rounded-[1.25rem] border border-violet-600 bg-violet-600 px-5 py-5 text-left text-white shadow-[0_10px_24px_rgba(124,58,237,0.22)] transition-shadow hover:border-violet-700 hover:bg-violet-700 hover:shadow-md"
                 >
-                  <p className="text-lg font-light">Investments</p>
-                  <p className="mt-1 text-sm text-white/80">Money being invested</p>
+                  <p className="text-lg font-light">{text.investments}</p>
+                  <p className="mt-1 text-sm text-white/80">{text.chooseTypeHint}</p>
                 </motion.button>
               </div>
             ) : step === 2 ? (
@@ -743,10 +892,8 @@ export default function AddTransaction() {
                       key={module.name}
                       type="button"
                       onClick={() => {
-                        setSelectedModule(module.name)
-                        setSelectedSubmodule(getModuleSubmodules(module, activeOrganization)[0] || '')
-                        setError('')
-                        setStep(3)
+                        const subs = getModuleSubmodules(module, activeOrganization)
+                        handleModuleSelection(module.name, subs, forceSubmoduleSelection)
                       }}
                       initial={{ opacity: 0, y: 10, scale: 0.98 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -756,7 +903,7 @@ export default function AddTransaction() {
                     >
                       <div>
                         <p className="text-lg font-light capitalize">{module.name}</p>
-                        <p className="mt-1 text-sm opacity-80">{getModuleSubmodules(module, activeOrganization).length} submodules</p>
+                        <p className="mt-1 text-sm opacity-80">{getModuleSubmodules(module, activeOrganization).length} {text.submodules}</p>
                       </div>
                       <Squares2X2Icon className="h-7 w-7 opacity-90" />
                     </motion.button>
@@ -764,7 +911,7 @@ export default function AddTransaction() {
                 })}
                 {categoryModules.length === 0 ? (
                   <div className="rounded-[1.25rem] border border-dashed border-slate-300 bg-slate-50 px-5 py-6 text-sm text-slate-500 md:col-span-2">
-                    No modules are assigned to this category yet. Add a custom module below or edit the organization.
+                    {text.noModulesAssigned}
                   </div>
                 ) : null}
                 {/* Custom module creator */}
@@ -800,11 +947,10 @@ export default function AddTransaction() {
                             })
                             setOrganizations(nextOrgs)
                             try { localStorage.setItem('organizations', JSON.stringify(nextOrgs)) } catch {}
-                            setSelectedModule(name)
-                            setSelectedSubmodule('')
                             setCreatingCustomModule(false)
                             setCustomModuleDraft('')
-                            setStep(3)
+
+                            handleModuleSelection(name, [], forceSubmoduleSelection)
 
                             try {
                               const activeId = activeOrganization.id
@@ -824,7 +970,7 @@ export default function AddTransaction() {
                         }
                       }}
                       className="h-full w-full rounded-xl border-transparent bg-transparent px-4 py-3 text-lg font-light text-black outline-none placeholder:text-slate-400 focus:border-transparent focus:outline-none"
-                      placeholder="New module name"
+                      placeholder={text.newModulePlaceholder}
                     />
                     <button
                       type="button"
@@ -844,11 +990,9 @@ export default function AddTransaction() {
                         })
                         setOrganizations(nextOrgs)
                         try { localStorage.setItem('organizations', JSON.stringify(nextOrgs)) } catch {}
-                        setSelectedModule(name)
-                        setSelectedSubmodule('')
                         setCreatingCustomModule(false)
                         setCustomModuleDraft('')
-                        setStep(3)
+                        handleModuleSelection(name, [], forceSubmoduleSelection)
 
                         try {
                           const activeId = activeOrganization.id
@@ -866,7 +1010,7 @@ export default function AddTransaction() {
                         }
                       }}
                       className="inline-flex items-center gap-2 rounded-xl border border-primary-200 bg-primary-50 px-3 py-2 text-primary-700 ml-3"
-                      aria-label="Add module"
+                      aria-label={translateText(language, 'addModule')}
                     >
                       <PlusIcon className="h-4 w-4" />
                     </button>
@@ -876,7 +1020,7 @@ export default function AddTransaction() {
             ) : (
               <>
                 <div className="mt-4 flex items-center gap-3">
-                  <div className="rounded-full bg-slate-100 px-4 py-2 text-sm font-light text-slate-700">{selectedModuleData?.name}</div>
+                  <div className="rounded-full bg-slate-100 px-4 py-2 text-sm font-light text-slate-700">{selectedModuleData?.name || text.selectModule}</div>
                 </div>
 
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -892,6 +1036,7 @@ export default function AddTransaction() {
                         type="button"
                         onClick={() => {
                           setSelectedSubmodule(submodule)
+                          setForceSubmoduleSelection(false)
                           setStep(4)
                         }}
                         initial={{ opacity: 0, y: 10, scale: 0.98 }}
@@ -902,7 +1047,7 @@ export default function AddTransaction() {
                       >
                         <div>
                           <p className="text-lg font-light capitalize">{submodule}</p>
-                          <p className="mt-1 text-sm opacity-80">Click to continue</p>
+                          <p className="mt-1 text-sm opacity-80">{text.clickToContinue}</p>
                         </div>
                         <Squares2X2Icon className="h-7 w-7 opacity-90" />
                       </motion.button>
@@ -944,6 +1089,7 @@ export default function AddTransaction() {
                               setSelectedSubmodule(name)
                               setCreatingCustomSubmodule(false)
                               setCustomSubmoduleDraft('')
+                              setForceSubmoduleSelection(false)
                               setStep(4)
 
                               // Persist to backend
@@ -964,7 +1110,7 @@ export default function AddTransaction() {
                             }
                           }}
                           className="h-full w-full rounded-xl border-transparent bg-transparent px-4 py-3 text-lg font-light text-black outline-none placeholder:text-slate-400 focus:border-transparent focus:outline-none"
-                          placeholder="New submodule name"
+                          placeholder={text.newSubmodulePlaceholder}
                         />
                         <button
                           type="button"
@@ -991,6 +1137,7 @@ export default function AddTransaction() {
                             setSelectedSubmodule(name)
                             setCreatingCustomSubmodule(false)
                             setCustomSubmoduleDraft('')
+                            setForceSubmoduleSelection(false)
                             setStep(4)
 
                             // Persist to backend
@@ -1016,7 +1163,7 @@ export default function AddTransaction() {
                       </div>
                       ) : (
                       <button type="button" onClick={() => setCreatingCustomSubmodule(true)} className="flex min-h-[88px] w-full items-center justify-between rounded-[1.25rem] border border-primary-400 bg-white px-5 py-4 text-left text-slate-500 shadow-[0_0_0_1px_rgba(59,130,246,0.10)] hover:border-primary-500 hover:bg-primary-50">
-                        <span className="text-lg font-light">+ Create custom submodule</span>
+                        <span className="text-lg font-light">+ {text.createCustomSubmodule}</span>
                         <TagIcon className="h-6 w-6 opacity-70" />
                       </button>
                     )}
@@ -1036,10 +1183,10 @@ export default function AddTransaction() {
         <div className="mb-6 flex items-center justify-between gap-3">
           <Link to={isEditMode ? '/transactions' : '/dashboard'} className="inline-flex items-center gap-2 rounded-full border border-white/6 bg-[var(--card)] px-4 py-2.5 text-sm font-light text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
             <ArrowLeftIcon className="h-4 w-4" />
-            {isEditMode ? 'Back to transactions' : 'Back to dashboard'}
+            {isEditMode ? text.backToTransactions : text.backToDashboard}
           </Link>
           <div className="rounded-full bg-primary-50 px-4 py-2 text-sm font-light text-primary-700">
-            {isEditMode ? 'Edit transaction' : activeOrganization.organizationName}
+            {isEditMode ? text.editTransaction : activeOrganization.organizationName}
           </div>
         </div>
 
@@ -1049,21 +1196,27 @@ export default function AddTransaction() {
               <div className="rounded-[1.75rem] border border-white/6 bg-[var(--card)] p-4 sm:p-5">
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">Transaction form</p>
-                    <h2 className="mt-2 text-2xl font-light tracking-tight text-[var(--text)]">{isEditMode ? 'Edit transaction' : 'Transaction form'}{selectedModuleData?.name ? ` · ${selectedModuleData?.name}` : ''}{selectedSubmodule ? ` · ${selectedSubmodule}` : ''}</h2>
+                    <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">{text.transactionForm}</p>
+                    <h2 className="mt-2 text-2xl font-light tracking-tight text-[var(--text)]">{isEditMode ? text.editTransaction : text.transactionForm}{selectedModuleData?.name ? ` · ${selectedModuleData?.name}` : ''}{selectedSubmodule ? ` · ${selectedSubmodule}` : ''}</h2>
                   </div>
-                  {!isEditMode ? (
-                    <button type="button" onClick={() => setStep(2)} className="rounded-full border border-white/6 bg-[var(--card)] px-4 py-2 text-sm font-light text-[var(--muted)]">Back</button>
-                  ) : null}
+                  <div className="flex items-center gap-2">
+                    {isEditMode ? (
+                      <button type="button" onClick={() => { setForceSubmoduleSelection(true); setStep(2); setError('') }} className="inline-flex items-center rounded-full border border-primary-200 bg-primary-50 px-4 py-2 text-sm font-medium text-primary-700 shadow-sm transition hover:border-primary-300 hover:bg-primary-100">
+                        {text.changeModule}
+                      </button>
+                    ) : (
+                      <button type="button" onClick={() => setStep(2)} className="rounded-full border border-white/6 bg-[var(--card)] px-4 py-2 text-sm font-light text-[var(--muted)]">{text.back}</button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="mt-5 space-y-4">
                   <div>
-                    <label className="mb-1.5 block text-sm font-light text-slate-700">Enter Amount</label>
+                    <label className="mb-1.5 block text-sm font-light text-slate-700">{text.enterAmount}</label>
                     <div className="relative rounded-xl border border-primary-500 bg-[var(--card)] px-3 py-2.5 shadow-[0_0_0_1px_rgba(59,130,246,0.08)] focus-within:ring-2 focus-within:ring-primary-500/20">
                       <div className="absolute left-3 top-1/2 -translate-y-1/2 text-base font-light text-[var(--text)]">{selectedCurrency?.symbol || '$'}</div>
                       <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-light text-slate-500">
-                        {previewAmount !== null ? formatMoney(previewAmount, selectedCurrency) : ''}
+                        {previewAmount !== null ? formatMoney(previewAmount, selectedCurrency, locale) : ''}
                       </div>
                       <input
                         type="text"
@@ -1084,7 +1237,7 @@ export default function AddTransaction() {
                         /\d/.test(token) ? (
                           <span key={`${token}-${index}`} className="inline-flex items-center gap-1.5 rounded-full border border-primary-200 bg-primary-50 px-2.5 py-1 text-primary-700 shadow-sm">
                             {selectedCurrency?.symbol || '$'}{token}
-                            <button type="button" onClick={() => setAmountExpression(removeTokenFromExpression(amountExpression, index))} className="rounded-full p-0.5 text-primary-600 transition hover:bg-primary-100" aria-label={`Remove ${token}`}>
+                            <button type="button" onClick={() => setAmountExpression(removeTokenFromExpression(amountExpression, index))} className="rounded-full p-0.5 text-primary-600 transition hover:bg-primary-100" aria-label={translateText(language, 'removeAmountToken', { token })}>
                               <XMarkIcon className="h-3.5 w-3.5" />
                             </button>
                           </span>
@@ -1097,28 +1250,28 @@ export default function AddTransaction() {
 
                   <div className="grid gap-4">
                     <div>
-                      <label className="mb-1.5 block text-sm font-light text-slate-700">Notes (Optional)</label>
+                      <label className="mb-1.5 block text-sm font-light text-slate-700">{text.notesLabel}</label>
                       <input
                         type="text"
                         value={note}
                         onChange={(event) => setNote(event.target.value)}
-                        placeholder="Add a short note"
+                        placeholder={text.notesPlaceholder}
                         className="w-full rounded-xl border border-white/6 bg-[var(--card)] px-3 py-2.5 text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
                       />
                     </div>
                     <div className="grid gap-4 md:grid-cols-2">
                       <div>
-                        <label className="mb-1.5 block text-sm font-light text-slate-700">Attachment (Optional)</label>
+                        <label className="mb-1.5 block text-sm font-light text-slate-700">{text.attachmentLabel}</label>
                         <label className="flex cursor-pointer items-center justify-between rounded-xl border border-dashed border-slate-300 bg-[var(--card)] px-3 py-2.5 text-sm text-[var(--muted)] transition hover:border-primary-400 hover:bg-primary-50">
                           <span className="inline-flex items-center gap-2">
                             <PaperClipIcon className="h-4 w-4 text-primary-600" />
-                            {attachment?.name || 'Upload a file'}
+                            {attachment?.name || text.uploadFile}
                           </span>
                           <input type="file" className="hidden" onChange={(event) => setAttachment(event.target.files?.[0] || null)} />
                         </label>
                       </div>
                       <div>
-                        <label className="mb-1.5 block text-sm font-light text-slate-700">Date</label>
+                        <label className="mb-1.5 block text-sm font-light text-slate-700">{text.dateLabel}</label>
                         <input type="date" value={date} onChange={(event) => setDate(event.target.value)} className="w-full rounded-xl border border-white/6 bg-[var(--card)] px-3 py-2.5 text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20" />
                       </div>
                     </div>
@@ -1128,14 +1281,32 @@ export default function AddTransaction() {
                   {savedMessage ? <p className="text-sm font-light text-emerald-600">{savedMessage}</p> : null}
 
                   <div className="flex flex-col gap-3 sm:flex-row">
-                    <button type="button" disabled={!canSave} onClick={() => saveTransaction(false)} className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-900 px-5 py-3 text-sm font-light text-white transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50">
-                      {saveButtonLabel}
-                      <CheckCircleIcon className="h-4 w-4" />
+                    <button type="button" disabled={!canSave || isSaving} onClick={() => saveTransaction(false)} className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-900 px-5 py-3 text-sm font-light text-white transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50">
+                      {isSaving ? (
+                        <>
+                          <ClockIcon className="h-4 w-4 animate-spin" />
+                          <span>{text.saving || saveButtonLabel}</span>
+                        </>
+                      ) : (
+                        <>
+                          {saveButtonLabel}
+                          <CheckCircleIcon className="h-4 w-4" />
+                        </>
+                      )}
                     </button>
                     {!isEditMode ? (
-                      <button type="button" disabled={!canSave} onClick={() => saveTransaction(true)} className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-primary-500 to-primary-600 px-5 py-3 text-sm font-light text-white shadow-lg shadow-primary-500/25 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50">
-                        {secondaryButtonLabel}
-                        <PlusIcon className="h-4 w-4" />
+                      <button type="button" disabled={!canSave || isSaving} onClick={() => saveTransaction(true)} className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-primary-500 to-primary-600 px-5 py-3 text-sm font-light text-white shadow-lg shadow-primary-500/25 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50">
+                        {isSaving ? (
+                          <>
+                            <ClockIcon className="h-4 w-4 animate-spin" />
+                            <span>{text.saving || secondaryButtonLabel}</span>
+                          </>
+                        ) : (
+                          <>
+                            {secondaryButtonLabel}
+                            <PlusIcon className="h-4 w-4" />
+                          </>
+                        )}
                       </button>
                     ) : null}
                   </div>

@@ -10,6 +10,12 @@ import Dashboard from './pages/Dashboard'
 import AddTransaction from './pages/AddTransaction'
 import ModuleTransactions from './pages/ModuleTransactions'
 import Transactions from './pages/Transactions'
+import Footer from './components/Footer'
+
+function syncDocumentLanguage() {
+  const language = localStorage.getItem('selectedLanguage') || 'en'
+  document.documentElement.lang = language
+}
 
 function SessionExpiryListener() {
   const navigate = useNavigate()
@@ -30,6 +36,19 @@ function SessionExpiryListener() {
 }
 
 export default function App(){
+  useEffect(() => {
+    syncDocumentLanguage()
+
+    const handleStorageChange = () => syncDocumentLanguage()
+    const handleLanguageChanged = () => syncDocumentLanguage()
+    window.addEventListener('storage', handleStorageChange)
+    window.addEventListener('language:changed', handleLanguageChanged)
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('language:changed', handleLanguageChanged)
+    }
+  }, [])
+
   return (
     <BrowserRouter>
       <SessionExpiryListener />
@@ -46,6 +65,7 @@ export default function App(){
         <Route path="/module/:moduleName" element={<ModuleTransactions />} />
         <Route path="/dashboard" element={<Dashboard />} />
       </Routes>
+      <Footer />
     </BrowserRouter>
   )
 }

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@700;800&family=Inter:wght@300;400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@700;800&family=Inter:wght@300;400;600&family=Noto+Sans+Devanagari:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -40,6 +40,10 @@
 
 html,body,#root{height:100%;}
 html{scroll-behavior:smooth;}
+html[lang='en'],
+html[lang='mr']{
+  font-size: 112.5%;
+}
 body{
   @apply bg-[var(--bg)] text-[var(--text)] antialiased;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Poppins;
@@ -47,6 +51,22 @@ body{
 
 /* Headings use Poppins for a premium feel */
 h1,h2,h3,h4,h5,h6{ font-family: Poppins, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto; }
+
+html[lang='mr'] body{
+  font-family: 'Noto Sans Devanagari', Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-weight: 400;
+  line-height: 1.7;
+}
+
+html[lang='mr'] h1,
+html[lang='mr'] h2,
+html[lang='mr'] h3,
+html[lang='mr'] h4,
+html[lang='mr'] h5,
+html[lang='mr'] h6{
+  font-family: 'Noto Sans Devanagari', Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-weight: 400;
+}
 
 .glass {
   background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));

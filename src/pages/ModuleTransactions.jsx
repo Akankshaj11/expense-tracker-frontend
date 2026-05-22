@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { ArrowLeftIcon, PaperClipIcon, TagIcon, XMarkIcon, ArrowDownTrayIcon, PlusIcon } from '@heroicons/react/24/outline'
 import { authenticatedFetch } from '../utils/api'
 import { loadOrganizationsFromBackend, readCachedOrganizations } from '../utils/organizationSync'
+import translations, { translateText, getLocale, translateModuleLabel } from '../i18n/translations'
 
 function readJSON(key, fallback) {
   try {
@@ -18,9 +19,9 @@ function getTodayDate() {
   return new Date().toISOString().slice(0, 10)
 }
 
-function formatMoney(value, currency) {
+function formatMoney(value, currency, locale = 'en-US') {
   try {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat(locale, {
       style: 'currency',
       currency: currency?.code || 'USD',
       maximumFractionDigits: 2,
@@ -30,7 +31,7 @@ function formatMoney(value, currency) {
   }
 }
 
-function formatTime(value) {
+function formatTime(value, locale = 'en-US') {
   if (!value) {
     return '--:--'
   }
@@ -40,13 +41,13 @@ function formatTime(value) {
     return '--:--'
   }
 
-  return new Intl.DateTimeFormat('en-US', {
+  return new Intl.DateTimeFormat(locale, {
     hour: 'numeric',
     minute: '2-digit',
   }).format(date)
 }
 
-function formatDateLabel(value) {
+function formatDateLabel(value, locale = 'en-US') {
   if (!value) {
     return ''
   }
@@ -56,7 +57,7 @@ function formatDateLabel(value) {
     return value
   }
 
-  return new Intl.DateTimeFormat('en-US', {
+  return new Intl.DateTimeFormat(locale, {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -116,6 +117,7 @@ export default function ModuleTransactions() {
   const { moduleName: encodedModuleName } = useParams()
   const moduleName = decodeURIComponent(encodedModuleName || '')
   const [organizations, setOrganizations] = useState(() => readCachedOrganizations())
+  const [language, setLanguage] = useState(() => localStorage.getItem('selectedLanguage') || 'en')
   
   // Reload organizations from localStorage on component mount to ensure fresh data
   useEffect(() => {
@@ -131,16 +133,39 @@ export default function ModuleTransactions() {
       cancelled = true
     }
   }, [])
+
+  useEffect(() => {
+    const handleLanguageChanged = (event) => {
+      const newLanguage = (event && event.detail && event.detail.language) || localStorage.getItem('selectedLanguage') || 'en'
+      setLanguage(newLanguage)
+    }
+
+    const handleStorage = (event) => {
+      if (event.key === 'selectedLanguage') {
+        setLanguage(event.newValue || 'en')
+      }
+    }
+
+    window.addEventListener('language:changed', handleLanguageChanged)
+    window.addEventListener('storage', handleStorage)
+    return () => {
+      window.removeEventListener('language:changed', handleLanguageChanged)
+      window.removeEventListener('storage', handleStorage)
+    }
+  }, [])
   
   const activeOrgId = localStorage.getItem('activeOrgId') || organizations[0]?.id || ''
   const activeOrganization = organizations.find((item) => item.id === activeOrgId) || organizations[0] || null
   const selectedCurrency = activeOrganization?.currency || readJSON('selectedCurrency', { code: 'USD', symbol: '$' })
+  const text = translations[language] || translations.en
+  const locale = getLocale(language)
   const transactions = useMemo(() => readJSON('transactions', []), [])
   const attachmentCache = useMemo(() => readJSON('attachments', []), [])
   const [selectedDate, setSelectedDate] = useState(getTodayDate())
   const [previewAttachment, setPreviewAttachment] = useState(null)
 
   const moduleData = activeOrganization?.modules?.find((module) => module.name === moduleName) || null
+  const displayModuleName = translateModuleLabel(language, moduleName)
 
   const moduleTransactions = useMemo(() => {
     if (!activeOrganization || !moduleName) {
@@ -209,10 +234,10 @@ export default function ModuleTransactions() {
     return (
       <div className="theme-light-violet flex min-h-screen items-center justify-center bg-[var(--card)] px-4">
         <div className="w-full max-w-xl rounded-[2rem] border border-white/6 bg-[var(--card)] p-8 text-center shadow-sm">
-          <h1 className="text-3xl font-light tracking-tight text-[var(--text)]">No organization found</h1>
-          <p className="mt-3 text-base leading-7 text-[var(--muted)]">Create an organization first to view module transactions.</p>
+          <h1 className="text-3xl font-light tracking-tight text-[var(--text)]">{text.noOrganizationFound}</h1>
+          <p className="mt-3 text-base leading-7 text-[var(--muted)]">{text.createOrganizationFirst}</p>
           <Link to="/create-organization" className="mt-6 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary-500 to-primary-600 px-5 py-3 text-sm font-light text-white shadow-lg shadow-primary-500/25">
-            Create Organization
+            {text.createOrganization}
           </Link>
         </div>
       </div>
@@ -229,20 +254,20 @@ export default function ModuleTransactions() {
             className="inline-flex items-center gap-2 rounded-full border border-white/6 bg-[var(--card)] px-4 py-2.5 text-sm font-light text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
           >
             <ArrowLeftIcon className="h-4 w-4" />
-            Back to dashboard
+            {text.backToDashboard}
           </button>
 
           <div className="rounded-full bg-primary-50 px-4 py-2 text-sm font-light text-primary-700">
-            {moduleName}
+            {displayModuleName}
           </div>
         </div>
 
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="rounded-[2rem] border border-white bg-[var(--card)] p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-8">
           <div className="flex flex-col gap-4 border-b border-white/4 pb-6 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-sm font-light uppercase tracking-[0.22em] text-primary-600">Module transactions</p>
-              <h1 className="mt-2 text-3xl font-light tracking-tight text-[var(--text)]">{moduleName}</h1>
-              <p className="mt-2 text-sm text-slate-500">See every transaction done under this module on the chosen date.</p>
+              <p className="text-sm font-light uppercase tracking-[0.22em] text-primary-600">{text.moduleTransactionsTitle}</p>
+              <h1 className="mt-2 text-3xl font-light tracking-tight text-[var(--text)]">{displayModuleName}</h1>
+              <p className="mt-2 text-sm text-slate-500">{text.moduleTransactionsDescription}</p>
             </div>
 
             <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-end sm:justify-end sm:gap-4">
@@ -250,7 +275,7 @@ export default function ModuleTransactions() {
                 <button
                   type="button"
                   onClick={() => navigate('/add-transaction')}
-                  aria-label="Add transaction"
+                  aria-label={text.addTransaction}
                   className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg shadow-primary-500/25 transition hover:-translate-y-0.5"
                 >
                   <PlusIcon className="h-4 w-4" />
@@ -267,7 +292,7 @@ export default function ModuleTransactions() {
                   className="inline-flex items-center gap-2 rounded-full border border-white/6 bg-[var(--card)] px-4 py-2.5 text-sm font-light text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                 >
                   <ArrowDownTrayIcon className="h-4 w-4" />
-                  Download PDF
+                  {text.downloadPdf}
                 </button>
               </div>
             </div>
@@ -277,9 +302,9 @@ export default function ModuleTransactions() {
             <div className="mb-4 flex items-center justify-between gap-4">
               <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-sm font-light text-slate-700">
                 <TagIcon className="h-4 w-4 text-primary-600" />
-                {moduleData?.submodules?.length || 0} submodules
+                {moduleData?.submodules?.length || 0} {text.submodules}
               </div>
-              <div className="text-sm text-slate-500">{formatDateLabel(selectedDate)}</div>
+              <div className="text-sm text-slate-500">{formatDateLabel(selectedDate, locale)}</div>
             </div>
 
             <div className="space-y-3">
@@ -294,8 +319,8 @@ export default function ModuleTransactions() {
                   >
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                       <div className="min-w-0 flex-1">
-                        <p className="text-lg font-light text-[var(--text)]">{transaction.submodule || 'Unnamed submodule'}</p>
-                        <p className="mt-1 text-sm text-slate-500">Module: {transaction.module}</p>
+                        <p className="text-lg font-light text-[var(--text)]">{transaction.submodule ? translateModuleLabel(language, transaction.submodule) : text.unnamedSubmodule}</p>
+                        <p className="mt-1 text-sm text-slate-500">{text.moduleLabelPrefix} {translateModuleLabel(language, transaction.module)}</p>
                       </div>
 
                       <div className="text-left sm:text-right">
@@ -308,11 +333,11 @@ export default function ModuleTransactions() {
                           return (
                             <p className={`inline-flex items-center gap-1 text-lg font-light tracking-tight ${amountColor}`}>
                               <span>{amountSign}</span>
-                              <span>{formatMoney(Math.abs(signedAmount), selectedCurrency)}</span>
+                              <span>{formatMoney(Math.abs(signedAmount), selectedCurrency, locale)}</span>
                             </p>
                           )
                         })()}
-                        <p className="text-sm text-slate-500">{formatTime(transaction.createdAt)}</p>
+                        <p className="text-sm text-slate-500">{formatTime(transaction.createdAt, locale)}</p>
                       </div>
                     </div>
 
@@ -333,7 +358,7 @@ export default function ModuleTransactions() {
                 ))
               ) : (
                 <div className="rounded-[1.5rem] border border-dashed border-white/6 bg-[var(--card)] px-5 py-10 text-center text-sm text-slate-500">
-                  No transactions found for {moduleName} on {formatDateLabel(selectedDate)}.
+                  {translateText(language, 'noTransactionsForModule', { module: displayModuleName, date: formatDateLabel(selectedDate) })}
                 </div>
               )}
             </div>
@@ -345,14 +370,14 @@ export default function ModuleTransactions() {
             <div className="w-full max-w-4xl overflow-hidden rounded-[2rem] bg-white shadow-2xl">
               <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
                 <div>
-                  <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">Attachment preview</p>
+                  <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">{text.attachmentPreview}</p>
                   <h2 className="mt-1 text-lg font-light text-[var(--text)]">{previewAttachment.attachmentName}</h2>
                 </div>
                 <button
                   type="button"
                   onClick={() => setPreviewAttachment(null)}
                   className="rounded-full border border-slate-200 bg-white p-2 text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
-                  aria-label="Close attachment preview"
+                  aria-label={text.closeAttachmentPreview}
                 >
                   <XMarkIcon className="h-5 w-5" />
                 </button>
@@ -368,20 +393,20 @@ export default function ModuleTransactions() {
                     />
                   ) : (
                     <div className="space-y-4 rounded-2xl border border-white/6 bg-[var(--card)] p-6 text-center">
-                      <p className="text-sm font-light text-[var(--muted)]">This attachment is ready to open in a new tab.</p>
+                      <p className="text-sm font-light text-[var(--muted)]">{text.attachmentReadyMessage}</p>
                       <a
                         href={previewAttachment.dataUrl || previewAttachment.attachmentDataUrl}
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex items-center justify-center rounded-full bg-primary-600 px-5 py-3 text-sm font-light text-white transition hover:bg-primary-700"
                       >
-                        Open Attachment
+                        {text.openAttachment}
                       </a>
                     </div>
                   )
                 ) : (
                   <div className="rounded-2xl border border-dashed border-white/6 bg-[var(--card)] px-5 py-10 text-center text-sm text-slate-500">
-                    No preview data is available for this attachment yet.
+                    {text.noAttachmentPreview}
                   </div>
                 )}
               </div>

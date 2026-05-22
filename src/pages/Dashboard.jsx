@@ -13,6 +13,7 @@ import {
   ChevronDownIcon,
   CircleStackIcon,
   EllipsisVerticalIcon,
+  GlobeAltIcon,
   PlusIcon,
   Squares2X2Icon,
   UserCircleIcon,
@@ -30,6 +31,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { authenticatedFetch } from '../utils/api'
 import { loadOrganizationsFromBackend, readCachedOrganizations } from '../utils/organizationSync'
+import translations, { translateText, getLocale, translateModuleLabel } from '../i18n/translations'
 
 function readJSON(key, fallback) {
   try {
@@ -49,9 +51,9 @@ function deriveFirstName(user) {
   return raw.split(/[._-]/)[0].replace(/^[a-z]/, (letter) => letter.toUpperCase())
 }
 
-function formatMoney(value, currency) {
+function formatMoney(value, currency, locale = 'en-US') {
   try {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat(locale, {
       style: 'currency',
       currency: currency?.code || 'USD',
       maximumFractionDigits: 0,
@@ -145,7 +147,7 @@ function getModuleSubmodules(module, organization) {
   return []
 }
 
-function buildModuleCards(activeOrganization, currency, transactions) {
+function buildModuleCards(activeOrganization, currency, transactions, language = 'en', locale = 'en-US') {
   if (!activeOrganization?.modules?.length) {
     return []
   }
@@ -172,17 +174,17 @@ function buildModuleCards(activeOrganization, currency, transactions) {
 
     return {
       id: `${item.label}-${index}`,
-      label: item.label,
-      submodules: item.submodules,
+      label: translateModuleLabel(language, item.label),
+      submodules: item.submodules.map((submodule) => translateModuleLabel(language, submodule)),
       amountValue: item.amount,
-      amount: formatMoney(Math.abs(item.amount), currency),
+      amount: formatMoney(Math.abs(item.amount), currency, locale),
       theme: item.theme,
       fill,
     }
   })
 }
 
-function buildRecentActivity(transactions, currency) {
+function buildRecentActivity(transactions, currency, locale = 'en-US', text = {}) {
   return [...(transactions || [])]
     .filter((transaction) => Number.isFinite(Number(transaction?.amount)))
     .sort((left, right) => new Date(right.createdAt || right.date || 0) - new Date(left.createdAt || left.date || 0))
@@ -191,15 +193,15 @@ function buildRecentActivity(transactions, currency) {
       const amount = getSignedTransactionAmount(transaction)
       const activityTime = transaction.createdAt || transaction.date || ''
       const metaDate = activityTime
-        ? new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(activityTime))
-        : 'No date'
+        ? new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(activityTime))
+        : text.noDate || 'No date'
 
       return {
         id: transaction.id || `${transaction.module || 'txn'}-${idx}`,
         transaction,
-        title: transaction.note?.trim() || `${capitalize(transaction.module || 'Transaction')} update`,
-        meta: `${capitalize(transaction.module || 'Dashboard')} · ${metaDate}`,
-        amount: amount >= 0 ? formatMoney(amount, currency) : `-${formatMoney(Math.abs(amount), currency)}`,
+        title: transaction.note?.trim() || `${capitalize(transaction.module || (text.transaction || 'Transaction'))} ${text.update || 'update'}`,
+        meta: `${capitalize(transaction.module || (text.dashboard || 'Dashboard'))} · ${metaDate}`,
+        amount: amount >= 0 ? formatMoney(amount, currency, locale) : `-${formatMoney(Math.abs(amount), currency, locale)}`,
         tone: amount >= 0 ? 'text-emerald-600' : 'text-rose-600',
       }
     })
@@ -217,14 +219,20 @@ function formatDateLabel(value) {
   return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(date)
 }
 
+// translations are now provided by src/i18n/translations.js
+
 export default function Dashboard() {
   const navigate = useNavigate()
   const [organizations, setOrganizations] = useState(() => readCachedOrganizations())
   const [activeOrgId, setActiveOrgId] = useState(() => localStorage.getItem('activeOrgId') || readCachedOrganizations()[0]?.id || '')
+  const [language, setLanguage] = useState(() => localStorage.getItem('selectedLanguage') || 'en')
   const [orgMenuOpen, setOrgMenuOpen] = useState(false)
+  const [languageMenuOpen, setLanguageMenuOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const currentUser = readJSON('currentUser', null)
   const selectedCurrency = readJSON('selectedCurrency', { code: 'USD', symbol: '$' })
+  const text = translations[language] || translations.en
+  const locale = getLocale(language)
 
   useEffect(() => {
     let cancelled = false
@@ -253,6 +261,16 @@ export default function Dashboard() {
     }
   }, [activeOrgId])
 
+  useEffect(() => {
+    localStorage.setItem('selectedLanguage', language)
+    document.documentElement.lang = language
+    try {
+      window.dispatchEvent(new CustomEvent('language:changed', { detail: { language } }))
+    } catch (e) {
+      // ignore
+    }
+  }, [language])
+
   const activeOrganization = useMemo(() => {
     return organizations.find((item) => item.id === activeOrgId) || organizations[0] || null
   }, [organizations, activeOrgId])
@@ -273,8 +291,8 @@ export default function Dashboard() {
     })
   }, [transactions, activeOrganization])
   const firstName = deriveFirstName(currentUser)
-  const moduleCards = buildModuleCards(activeOrganization, activeCurrency, activeOrganizationTransactions)
-  const recentActivity = buildRecentActivity(activeOrganizationTransactions, activeCurrency)
+  const moduleCards = buildModuleCards(activeOrganization, activeCurrency, activeOrganizationTransactions, language, locale)
+  const recentActivity = buildRecentActivity(activeOrganizationTransactions, activeCurrency, locale, text)
 
   const revenueAmountValue = activeOrganizationTransactions.reduce((sum, transaction) => {
     return getTransactionCategory(transaction) === 'revenue' ? sum + Math.abs(Number(transaction?.amount || 0)) : sum
@@ -287,10 +305,10 @@ export default function Dashboard() {
   }, 0)
   const totalBalanceValue = revenueAmountValue - expensesAmountValue
 
-  const totalBalance = formatMoney(totalBalanceValue, activeCurrency)
-  const revenueAmount = formatMoney(revenueAmountValue, activeCurrency)
-  const expensesAmount = formatMoney(expensesAmountValue, activeCurrency)
-  const investmentsAmount = formatMoney(Math.abs(investmentsAmountValue), activeCurrency)
+  const totalBalance = formatMoney(totalBalanceValue, activeCurrency, locale)
+  const revenueAmount = formatMoney(revenueAmountValue, activeCurrency, locale)
+  const expensesAmount = formatMoney(expensesAmountValue, activeCurrency, locale)
+  const investmentsAmount = formatMoney(Math.abs(investmentsAmountValue), activeCurrency, locale)
 
   const handleSwitchOrg = (organizationId) => {
     setActiveOrgId(organizationId)
@@ -300,7 +318,7 @@ export default function Dashboard() {
 
   const handleCreateNewOrg = () => {
     setOrgMenuOpen(false)
-    navigate('/create-organization')
+    navigate('/create-organization', { state: { from: '/dashboard' } })
   }
 
   const handleManageOrg = () => {
@@ -360,7 +378,7 @@ export default function Dashboard() {
     } catch (err) {
       console.error(err)
       if (err?.message !== 'Your session has expired. Please login again.') {
-        alert('Failed to download Workspace report')
+        alert(text.downloadReportFailed)
       }
     }
   }
@@ -385,14 +403,59 @@ export default function Dashboard() {
                 <button
                   type="button"
                   onClick={() => {
+                    setLanguageMenuOpen((current) => !current)
+                    setOrgMenuOpen(false)
+                    setProfileOpen(false)
+                  }}
+                  className="inline-flex items-center gap-3 rounded-full border border-white/6 bg-[var(--card)] px-4 py-2.5 text-sm font-light text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                  aria-label={text.languageLabel}
+                >
+                  <GlobeAltIcon className="h-4 w-4 text-primary-600" />
+                  <span className="max-w-[110px] truncate sm:max-w-[140px]">{language === 'mr' ? text.marathi : text.english}</span>
+                  <ChevronDownIcon className="h-4 w-4 text-slate-400" />
+                </button>
+
+                {languageMenuOpen ? (
+                  <div className="absolute right-0 mt-3 w-44 overflow-hidden rounded-2xl border border-white/6 bg-[var(--card)] shadow-2xl shadow-slate-200/80">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLanguage('en')
+                        setLanguageMenuOpen(false)
+                      }}
+                      className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm font-light transition hover:bg-primary-50 ${language === 'en' ? 'bg-primary-50 text-primary-700' : 'text-[var(--text)]'}`}
+                    >
+                      {text.english}
+                      {language === 'en' ? <span className="text-xs text-primary-700">✓</span> : null}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLanguage('mr')
+                        setLanguageMenuOpen(false)
+                      }}
+                      className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm font-light transition hover:bg-primary-50 ${language === 'mr' ? 'bg-primary-50 text-primary-700' : 'text-[var(--text)]'}`}
+                    >
+                      {text.marathi}
+                      {language === 'mr' ? <span className="text-xs text-primary-700">✓</span> : null}
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => {
                     setOrgMenuOpen((current) => !current)
                     setProfileOpen(false)
+                    setLanguageMenuOpen(false)
                   }}
                   className="inline-flex items-center gap-3 rounded-full border border-white/6 bg-[var(--card)] px-4 py-2.5 text-sm font-light text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                 >
                   <BuildingOffice2Icon className="h-4 w-4 text-primary-600" />
                   <span className="max-w-[130px] truncate sm:max-w-[180px]">
-                    {activeOrganization?.organizationName || 'No organization'}
+                    {activeOrganization?.organizationName || text.noOrganizationYet}
                   </span>
                   <ChevronDownIcon className="h-4 w-4 text-slate-400" />
                 </button>
@@ -400,8 +463,8 @@ export default function Dashboard() {
                 {orgMenuOpen ? (
                   <div className="absolute right-0 mt-3 w-72 overflow-hidden rounded-2xl border border-white/6 bg-[var(--card)] shadow-2xl shadow-slate-200/80">
                     <div className="border-b border-white/4 px-4 py-3">
-                      <p className="text-sm font-light text-[var(--text)]">Organizations</p>
-                      <p className="text-xs text-slate-500">Switch between workspace organizations</p>
+                      <p className="text-sm font-light text-[var(--text)]">{text.organizationMenuTitle}</p>
+                      <p className="text-xs text-slate-500">{text.organizationMenuSubtitle}</p>
                     </div>
                     <div className="max-h-64 overflow-auto p-2">
                       {organizations.length > 0 ? (
@@ -416,13 +479,13 @@ export default function Dashboard() {
                           >
                             <div>
                               <p className="text-sm font-light text-[var(--text)]">{organization.organizationName}</p>
-                              <p className="text-xs text-slate-500">{organization.description || 'No description'}</p>
+                              <p className="text-xs text-slate-500">{organization.description || text.noDescription}</p>
                             </div>
-                            {activeOrgId === organization.id ? <span className="rounded-full bg-primary-600 px-2 py-1 text-[10px] font-light text-white">Active</span> : null}
+                            {activeOrgId === organization.id ? <span className="rounded-full bg-primary-600 px-2 py-1 text-[10px] font-light text-white">{text.active}</span> : null}
                           </button>
                         ))
                       ) : (
-                        <div className="rounded-xl bg-[var(--card)] px-3 py-4 text-sm text-slate-500">No organizations found</div>
+                        <div className="rounded-xl bg-[var(--card)] px-3 py-4 text-sm text-slate-500">{text.noOrganizationsFound}</div>
                       )}
                     </div>
                     <div className="border-t border-white/4 p-2">
@@ -431,7 +494,7 @@ export default function Dashboard() {
                         onClick={handleCreateNewOrg}
                         className="flex w-full items-center justify-between rounded-xl px-3 py-3 text-sm font-light text-primary-700 transition hover:bg-primary-50"
                       >
-                        Create new organization
+                        {text.createNewOrganization}
                         <PlusIcon className="h-4 w-4" />
                       </button>
                     </div>
@@ -445,6 +508,7 @@ export default function Dashboard() {
                   onClick={() => {
                     setProfileOpen((current) => !current)
                     setOrgMenuOpen(false)
+                    setLanguageMenuOpen(false)
                   }}
                   className="flex h-11 w-11 items-center justify-center rounded-full border border-white/6 bg-[var(--card)] text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                   aria-label="Open profile details"
@@ -460,30 +524,30 @@ export default function Dashboard() {
                       </div>
                       <div>
                         <p className="text-sm font-light text-[var(--text)]">{firstName}</p>
-                        <p className="text-xs text-slate-500">{currentUser?.email || 'No email found'}</p>
+                        <p className="text-xs text-slate-500">{currentUser?.email || text.noEmailFound}</p>
                       </div>
                     </div>
 
                     <div className="mt-4 space-y-3 rounded-2xl bg-[var(--card)] p-3 text-sm text-[var(--muted)]">
                       <div className="flex items-center justify-between">
-                        <span>Organization</span>
-                        <span className="font-light text-[var(--text)]">{activeOrganization?.organizationName || 'None'}</span>
+                        <span>{text.organization}</span>
+                        <span className="font-light text-[var(--text)]">{activeOrganization?.organizationName || text.noOrganizationYet}</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span>Currency</span>
+                        <span>{text.currency}</span>
                         <span className="font-light text-[var(--text)]">{activeCurrency?.code || 'USD'}</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span>Workspace status</span>
+                        <span>{text.workspaceStatus}</span>
                         <span className="inline-flex items-center gap-1 font-light text-emerald-600">
                           <ShieldCheckIcon className="h-4 w-4" />
-                          Active
+                          {text.active}
                         </span>
                       </div>
                     </div>
                     <div className="mt-3 border-t border-white/4 pt-3">
                       <button type="button" onClick={handleLogout} className="w-full rounded-xl px-3 py-3 text-left text-sm font-light text-rose-600 transition hover:bg-rose-50">
-                        Logout
+                        {text.logout}
                       </button>
                     </div>
                   </div>
@@ -498,12 +562,15 @@ export default function Dashboard() {
         <section className="rounded-[2rem] border border-white bg-[var(--card)] p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-8">
           <div className="flex flex-col gap-6">
             <div>
-              <p className="text-sm font-light uppercase tracking-[0.26em] text-primary-600">Dashboard</p>
+              <p className="text-sm font-light uppercase tracking-[0.26em] text-primary-600">{text.dashboard}</p>
               <h1 className="mt-3 text-3xl font-light tracking-tight text-[var(--text)] sm:text-4xl">
-                Good afternoon, {firstName}
+                {translateText(language, 'greeting', { name: firstName })}
               </h1>
               <p className="mt-3 max-w-2xl text-base leading-7 text-[var(--muted)]">
-                You are viewing {activeOrganization?.organizationName || 'your workspace'}{activeOrganization?.description ? ` · ${activeOrganization.description}` : ''}.
+                {translateText(language, 'viewingWorkspace', {
+                  org: activeOrganization?.organizationName || 'your workspace',
+                  desc: activeOrganization?.description ? ` · ${activeOrganization.description}` : '',
+                })}
               </p>
             </div>
 
@@ -513,7 +580,7 @@ export default function Dashboard() {
                 onClick={() => navigate('/add-transaction')}
                 className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary-500 to-primary-600 px-5 py-3 text-sm font-light text-white shadow-lg shadow-primary-500/25 transition hover:-translate-y-0.5"
               >
-                Add Transaction
+                {text.addTransaction}
                 <PlusIcon className="h-4 w-4" />
               </button>
               <button
@@ -521,7 +588,7 @@ export default function Dashboard() {
                 onClick={() => navigate('/manage-organization')}
                 className="inline-flex items-center gap-2 rounded-full border border-white/6 bg-[var(--card)] px-5 py-3 text-sm font-light text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
               >
-                Manage Organization
+                {text.manageOrganization}
                 <BuildingOffice2Icon className="h-4 w-4" />
               </button>
             </div>
@@ -531,16 +598,16 @@ export default function Dashboard() {
         {activeOrganization ? (
           <>
             <section className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              {[
-                { label: 'Total balance', value: totalBalance, accent: 'text-[var(--text)]' },
-                { label: 'Revenue', value: revenueAmount, accent: 'text-emerald-600' },
-                { label: 'Expenses', value: expensesAmount, accent: 'text-rose-600' },
-                { label: 'Investments', value: investmentsAmount, accent: 'text-violet-600' },
+                {[
+                { label: text.totalBalance, value: totalBalance, accent: 'text-[var(--text)]' },
+                { label: text.revenue, value: revenueAmount, accent: 'text-emerald-600' },
+                { label: text.expenses, value: expensesAmount, accent: 'text-rose-600' },
+                { label: text.investments, value: investmentsAmount, accent: 'text-violet-600' },
               ].map((card, index) => {
-                const isBalanceCard = card.label === 'Total balance'
-                const isRevenueCard = card.label === 'Revenue'
-                const isExpensesCard = card.label === 'Expenses'
-                const isInvestmentsCard = card.label === 'Investments'
+                const isBalanceCard = card.label === text.totalBalance
+                const isRevenueCard = card.label === text.revenue
+                const isExpensesCard = card.label === text.expenses
+                const isInvestmentsCard = card.label === text.investments
                 const isNegativeBalance = isBalanceCard && totalBalanceValue < 0
                 const isPositiveBalance = isBalanceCard && totalBalanceValue > 0
                 const isZeroBalance = isBalanceCard && totalBalanceValue === 0
@@ -548,7 +615,7 @@ export default function Dashboard() {
                 const isZeroExpenses = isExpensesCard && expensesAmountValue === 0
                 const isNegativeInvestments = isInvestmentsCard && investmentsAmountValue < 0
                 const isPositiveInvestments = isInvestmentsCard && investmentsAmountValue > 0
-                const DisplayArrow = card.label === 'Expenses' || isNegativeBalance || isNegativeInvestments ? ArrowTrendingDownIcon : ArrowTrendingUpIcon
+                const DisplayArrow = card.label === text.expenses || isNegativeBalance || isNegativeInvestments ? ArrowTrendingDownIcon : ArrowTrendingUpIcon
                 const displayAccent = isBalanceCard
                   ? isPositiveBalance
                     ? 'text-emerald-600'
@@ -580,9 +647,9 @@ export default function Dashboard() {
                       ? '-'
                       : ''
                 const displayValue = isBalanceCard
-                  ? formatMoney(Math.abs(totalBalanceValue), activeCurrency)
+                  ? formatMoney(Math.abs(totalBalanceValue), activeCurrency, locale)
                   : isInvestmentsCard
-                    ? formatMoney(Math.abs(investmentsAmountValue), activeCurrency)
+                    ? formatMoney(Math.abs(investmentsAmountValue), activeCurrency, locale)
                     : card.value
                 const iconColorClass = isZeroBalance || isZeroRevenue || isZeroExpenses
                   ? displayAccent
@@ -615,12 +682,12 @@ export default function Dashboard() {
             <section className="mt-8 rounded-[2rem] border border-white/6 bg-[var(--card)] p-6 shadow-sm sm:p-8">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">Modules</p>
-                  <h2 className="mt-2 text-2xl font-light tracking-tight text-[var(--text)]">Modules you added</h2>
+                  <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">{text.modules}</p>
+                  <h2 className="mt-2 text-2xl font-light tracking-tight text-[var(--text)]">{text.modulesYouAdded}</h2>
                 </div>
                 <div className="inline-flex items-center gap-2 rounded-full bg-primary-50 px-4 py-2 text-sm font-light text-primary-700">
                   <Squares2X2Icon className="h-4 w-4" />
-                  {moduleCards.length} modules
+                  {moduleCards.length} {text.modules.toLowerCase()}
                 </div>
               </div>
 
@@ -650,7 +717,7 @@ export default function Dashboard() {
                         </div>
                         <div>
                           <p className="text-base font-light capitalize text-[var(--text)]">{module.label}</p>
-                          <p className="text-sm text-slate-500">{module.submodules.length} submodules</p>
+                          <p className="text-sm text-slate-500">{module.submodules.length} {text.submodules.toLowerCase()}</p>
                         </div>
                       </div>
                       <button type="button" className="rounded-full p-2 text-slate-400 transition hover:bg-[var(--card)] hover:text-[var(--muted)]">
@@ -660,13 +727,13 @@ export default function Dashboard() {
 
                     <div className="mt-5 flex items-end justify-between gap-4">
                       <div>
-                        <p className="text-xs font-light uppercase tracking-[0.2em] text-slate-500">Amount</p>
+                        <p className="text-xs font-light uppercase tracking-[0.2em] text-slate-500">{text.amount}</p>
                         <p className={`mt-2 inline-flex items-center gap-1 text-2xl font-light tracking-tight ${module.amountValue < 0 ? 'text-rose-600' : 'text-blue-600'}`}>
                           <span>{module.amountValue < 0 ? '-' : module.amountValue > 0 ? '+' : ''}</span>
                           <span>{module.amount}</span>
                         </p>
                       </div>
-                      <div className="text-right text-xs font-light text-slate-500">Allocated</div>
+                      <div className="text-right text-xs font-light text-slate-500">{text.allocated}</div>
                     </div>
 
                     <div className="mt-4 h-2 rounded-full bg-[var(--card)]">
@@ -689,15 +756,15 @@ export default function Dashboard() {
               <div className="rounded-[2rem] border border-white/6 bg-[var(--card)] p-6 shadow-sm sm:p-8">
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">Recent activity</p>
-                    <h2 className="mt-2 text-2xl font-light tracking-tight text-[var(--text)]">Latest updates</h2>
+                    <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">{text.recentActivity}</p>
+                    <h2 className="mt-2 text-2xl font-light tracking-tight text-[var(--text)]">{text.latestUpdates}</h2>
                   </div>
                   <div className="flex items-center gap-3">
                     <Link
                       to="/transactions"
                       className="rounded-full border border-white/6 bg-[var(--card)] px-4 py-2 text-sm font-light text-primary-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                     >
-                      See all
+                      {text.seeAll}
                     </Link>
                     <div className="rounded-full bg-primary-50 p-3 text-primary-600">
                       <CalendarDaysIcon className="h-5 w-5" />
@@ -735,7 +802,7 @@ export default function Dashboard() {
                   </div>
                 ) : (
                   <div className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-[var(--card)] px-4 py-6 text-sm text-slate-500">
-                    No transactions yet. Add your first transaction to see activity here.
+                    {text.noTransactionsYet}
                   </div>
                 )}
               </div>
@@ -743,8 +810,8 @@ export default function Dashboard() {
               <div className="rounded-[2rem] border border-white/6 bg-[var(--card)] p-6 shadow-sm sm:p-8">
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">Workspace</p>
-                    <h2 className="mt-2 text-2xl font-light tracking-tight text-[var(--text)]">Current summary</h2>
+                    <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">{text.workspace}</p>
+                    <h2 className="mt-2 text-2xl font-light tracking-tight text-[var(--text)]">{text.currentSummary}</h2>
                   </div>
                   <div className="rounded-full bg-violet-50 p-3 text-violet-600">
                     <BuildingOffice2Icon className="h-5 w-5" />
@@ -753,15 +820,15 @@ export default function Dashboard() {
 
                 <div className="mt-6 space-y-4 rounded-[1.5rem] bg-[var(--card)] p-5">
                   <div className="flex items-center justify-between gap-4">
-                    <span className="text-sm text-slate-500">Organization</span>
+                    <span className="text-sm text-slate-500">{text.organization}</span>
                     <span className="font-light text-[var(--text)]">{activeOrganization.organizationName}</span>
                   </div>
                   <div className="flex items-center justify-between gap-4">
-                    <span className="text-sm text-slate-500">Currency</span>
+                    <span className="text-sm text-slate-500">{text.currency}</span>
                     <span className="font-light text-[var(--text)]">{activeCurrency?.code || 'USD'}</span>
                   </div>
                   <div className="flex items-center justify-between gap-4">
-                    <span className="text-sm text-slate-500">Modules</span>
+                    <span className="text-sm text-slate-500">{text.modules}</span>
                     <span className="font-light text-[var(--text)]">{moduleCards.length}</span>
                   </div>
                 </div>
@@ -769,8 +836,8 @@ export default function Dashboard() {
                 <div className="mt-5 rounded-[1.5rem] bg-[var(--card)] p-5">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-xs font-light uppercase tracking-[0.22em] text-slate-500">Tip</p>
-                      <p className="mt-2 text-lg font-light text-[var(--text)]">Add a transaction first to start tracking</p>
+                      <p className="text-xs font-light uppercase tracking-[0.22em] text-slate-500">{text.tip}</p>
+                      <p className="mt-2 text-lg font-light text-[var(--text)]">{text.tipMessage}</p>
                     </div>
                     <PlusIcon className="h-6 w-6 text-primary-600" />
                   </div>
@@ -778,7 +845,7 @@ export default function Dashboard() {
                 <div className="mt-4">
                   <button type="button" onClick={handleDownloadWorkspacePDF} className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-rose-600 px-4 py-2.5 text-sm font-light text-white shadow-sm transition hover:bg-rose-700 hover:-translate-y-0.5">
                     <ArrowDownTrayIcon className="h-4 w-4" />
-                    Download report
+                    {text.downloadReport}
                   </button>
                 </div>
               </div>
@@ -786,17 +853,17 @@ export default function Dashboard() {
           </>
         ) : (
           <section className="mt-8 rounded-[2rem] border border-white/6 bg-[var(--card)] p-8 text-center shadow-sm">
-            <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">No organization yet</p>
-            <h2 className="mt-3 text-2xl font-light text-[var(--text)]">Create your first organization to get started</h2>
+            <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">{text.noOrganizationYet}</p>
+            <h2 className="mt-3 text-2xl font-light text-[var(--text)]">{text.createFirstOrganizationTitle}</h2>
             <p className="mx-auto mt-3 max-w-2xl text-base leading-7 text-[var(--muted)]">
-              Once you create an organization and add modules, your dashboard will automatically show balances, modules, and recent activity here.
+              {text.createFirstOrganizationDescription}
             </p>
             <button
               type="button"
-              onClick={() => navigate('/create-organization')}
+              onClick={() => navigate('/create-organization', { state: { from: '/dashboard' } })}
               className="mt-6 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary-500 to-primary-600 px-5 py-3 text-sm font-light text-white shadow-lg shadow-primary-500/25 transition hover:-translate-y-0.5"
             >
-              Create Organization
+              {text.createOrganization}
               <PlusIcon className="h-4 w-4" />
             </button>
           </section>
