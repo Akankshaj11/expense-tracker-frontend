@@ -5,6 +5,7 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import CurrencySelect from './pages/CurrencySelect'
 import CreateOrganization from './pages/CreateOrganization'
+import LanguageSelect from './pages/LanguageSelect'
 import ManageOrganization from './pages/ManageOrganization'
 import Dashboard from './pages/Dashboard'
 import AddTransaction from './pages/AddTransaction'
@@ -57,6 +58,7 @@ export default function App(){
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/select-currency" element={<CurrencySelect />} />
+        <Route path="/select-language" element={<LanguageSelect />} />
         <Route path="/create-organization" element={<CreateOrganization />} />
         <Route path="/manage-organization" element={<ManageOrganization />} />
         <Route path="/add-transaction" element={<AddTransaction />} />

@@ -3,6 +3,7 @@ const DEFAULT_API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localh
 // set `VITE_NO_BACKEND=1` in your env (not recommended for permanent use).
 const NO_BACKEND = false
 const PUBLIC_AUTH_PATHS = ['/auth/login', '/auth/register']
+const ACCESS_TOKEN_COOKIE = 'accessToken'
 
 let sessionExpiredNotified = false
 
@@ -18,6 +19,72 @@ function readJSON(key, fallback) {
     return value ? JSON.parse(value) : fallback
   } catch {
     return fallback
+  }
+}
+
+function getCookie(name) {
+  if (typeof document === 'undefined') {
+    return ''
+  }
+
+  const encodedName = `${encodeURIComponent(name)}=`
+  const cookies = document.cookie ? document.cookie.split('; ') : []
+
+  for (const cookie of cookies) {
+    if (cookie.startsWith(encodedName)) {
+      return decodeURIComponent(cookie.slice(encodedName.length))
+    }
+  }
+
+  return ''
+}
+
+function setCookie(name, value, maxAgeSeconds) {
+  if (typeof document === 'undefined') {
+    return
+  }
+
+  const parts = [
+    `${encodeURIComponent(name)}=${encodeURIComponent(value)}`,
+    'path=/',
+    'SameSite=Lax',
+  ]
+
+  if (typeof maxAgeSeconds === 'number') {
+    parts.push(`Max-Age=${Math.max(0, Math.floor(maxAgeSeconds))}`)
+  }
+
+  if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
+    parts.push('Secure')
+  }
+
+  document.cookie = parts.join('; ')
+}
+
+function clearCookie(name) {
+  setCookie(name, '', 0)
+}
+
+function getJwtExpirySeconds(token) {
+  const parts = String(token || '').split('.')
+  if (parts.length !== 3) {
+    return null
+  }
+
+  try {
+    const payload = JSON.parse(base64UrlDecode(parts[1]))
+    if (!payload?.exp) {
+      return null
+    }
+
+    const expiresAt = Number(payload.exp) * 1000
+    if (!Number.isFinite(expiresAt)) {
+      return null
+    }
+
+    return Math.max(0, Math.floor((expiresAt - Date.now()) / 1000))
+  } catch {
+    return null
   }
 }
 
@@ -45,7 +112,8 @@ function isJwtExpired(token) {
   }
 }
 
-function clearStoredAuth() {
+export function clearStoredAuth() {
+  clearCookie(ACCESS_TOKEN_COOKIE)
   localStorage.removeItem('accessToken')
   localStorage.removeItem('authToken')
   localStorage.removeItem('currentUser')
@@ -72,39 +140,30 @@ export function getApiBaseUrl() {
   return DEFAULT_API_BASE_URL.replace(/\/$/, '')
 }
 
+// With server-managed HttpOnly cookies we don't expose tokens to JS.
+// Keep compatibility functions but make them no-ops.
 export function getStoredAccessToken() {
-  const currentUser = readJSON('currentUser', null)
-  const accessToken = localStorage.getItem('accessToken') || localStorage.getItem('authToken') || currentUser?.access_token || ''
+  return ''
+}
 
-  if (accessToken && isJwtExpired(accessToken)) {
-    clearStoredAuth()
-    notifySessionExpired()
-    return ''
-  }
-
-  return accessToken
+export function setStoredAccessToken() {
+  // no-op: tokens are set by the backend in HttpOnly cookies
 }
 
 export async function authenticatedFetch(path, options = {}) {
-  const accessToken = getStoredAccessToken()
   const cleanPath = path.startsWith('/') ? path : `/${path}`
-
-  if (!accessToken && !isPublicAuthPath(cleanPath) && sessionExpiredNotified) {
-    sessionExpiredNotified = false
-    throw new Error('Your session has expired. Please login again.')
-  }
 
   const response = await fetch(`${getApiBaseUrl()}${cleanPath}`, {
     ...options,
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       ...(options.headers || {}),
     },
   })
 
   if (response.status === 401 && !isPublicAuthPath(cleanPath)) {
-    clearStoredAuth()
+    // Clear only client-side copies; server will clear HttpOnly cookie on logout endpoint
     notifySessionExpired()
     sessionExpiredNotified = false
   }

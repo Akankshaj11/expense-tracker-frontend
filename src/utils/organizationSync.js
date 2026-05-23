@@ -1,4 +1,4 @@
-import { apiRequest, getStoredAccessToken } from './api'
+import { apiRequest } from './api'
 
 function readJSON(key, fallback) {
   try {
@@ -26,9 +26,7 @@ export function getStoredCurrentUser() {
 export async function loadOrganizationsFromBackend() {
   const currentUser = getStoredCurrentUser()
   const ownerId = currentUser?.id || currentUser?._id || currentUser?.email || ''
-  const accessToken = getStoredAccessToken()
-
-  if (!ownerId || !accessToken) {
+  if (!ownerId) {
     return readCachedOrganizations()
   }
 

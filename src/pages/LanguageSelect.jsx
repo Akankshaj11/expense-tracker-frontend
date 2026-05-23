@@ -1,34 +1,35 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowRightIcon } from '@heroicons/react/24/outline'
+import { ArrowRightIcon, ArrowLeftIcon } from '@heroicons/react/24/outline'
 import { useNavigate } from 'react-router-dom'
 
-const currencies = [
-  { code: 'USD', name: 'US Dollar', symbol: '$' },
-  { code: 'EUR', name: 'Euro', symbol: '€' },
-  { code: 'GBP', name: 'British Pound', symbol: '£' },
-  { code: 'INR', name: 'Indian Rupee', symbol: '₹' },
-  { code: 'AED', name: 'UAE Dirham', symbol: 'د.إ' },
-  { code: 'JPY', name: 'Japanese Yen', symbol: '¥' },
+const languages = [
+  { code: 'en', label: 'English' },
+  { code: 'hi', label: 'Hindi' },
+  { code: 'mr', label: 'Marathi' },
 ]
 
-export default function CurrencySelect() {
+export default function LanguageSelect() {
   const navigate = useNavigate()
-  const [currency, setCurrency] = useState('USD')
+  const [language, setLanguage] = useState('en')
   const [error, setError] = useState('')
-
-  const selectedCurrency = useMemo(() => currencies.find((item) => item.code === currency), [currency])
 
   const handleContinue = (e) => {
     e.preventDefault()
-
-    if (!selectedCurrency) {
-      setError('Please select a currency')
+    if (!language) {
+      setError('Please select a language')
       return
     }
 
-        localStorage.setItem('selectedCurrency', JSON.stringify(selectedCurrency))
-        navigate('/select-language')
+    try {
+      localStorage.setItem('selectedLanguage', language)
+      document.documentElement.lang = language
+      window.dispatchEvent(new CustomEvent('language:changed', { detail: { language } }))
+    } catch (err) {
+      // ignore
+    }
+
+    navigate('/create-organization', { state: { from: '/select-language' } })
   }
 
   return (
@@ -47,41 +48,39 @@ export default function CurrencySelect() {
           <div className="mb-6 flex justify-start">
             <button
               type="button"
-              onClick={() => navigate('/login')}
+              onClick={() => navigate('/select-currency')}
               className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white px-4 py-2 text-sm font-light text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
             >
-              ← Back
+              <ArrowLeftIcon className="h-4 w-4" />
+              Back
             </button>
           </div>
           <div className="mx-auto max-w-2xl text-center">
-            <p className="text-xs font-light uppercase tracking-[0.3em] text-primary-600">Setup Step 1 of 3</p>
-            <h1 className="mt-3 text-3xl font-light tracking-tight text-slate-900 sm:text-4xl">Select Your Currency</h1>
-            <p className="mt-3 text-base leading-7 text-slate-600">Choose the default currency you want to use for your workspace.</p>
+            <p className="text-xs font-light uppercase tracking-[0.3em] text-primary-600">Setup Step 2 of 3</p>
+            <h1 className="mt-3 text-3xl font-light tracking-tight text-slate-900 sm:text-4xl">Select Your Language</h1>
+            <p className="mt-3 text-base leading-7 text-slate-600">Choose the UI language for your workspace.</p>
           </div>
 
           <form onSubmit={handleContinue} className="mt-8 space-y-6">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {currencies.map((item) => (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              {languages.map((item) => (
                 <button
                   key={item.code}
                   type="button"
-                  onClick={() => setCurrency(item.code)}
-                  className={`rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-lg ${
-                    currency === item.code
-                      ? 'border-primary-500 bg-primary-50 shadow-lg shadow-primary-500/10'
-                      : 'border-slate-200 bg-white'
+                  onClick={() => setLanguage(item.code)}
+                  className={`rounded-2xl border p-4 text-center transition hover:-translate-y-0.5 hover:shadow-lg ${
+                    language === item.code ? 'border-primary-500 bg-primary-50 shadow-lg shadow-primary-500/10' : 'border-slate-200 bg-white'
                   }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-lg font-light text-slate-900">{item.code}</p>
-                      <p className="text-sm text-slate-600">{item.name}</p>
-                    </div>
-                    <div className="text-2xl font-light text-primary-600">{item.symbol}</div>
+                  <div>
+                    <p className="text-lg font-light text-slate-900">{item.label}</p>
+                    <p className="text-sm text-slate-600">{item.code.toUpperCase()}</p>
                   </div>
                 </button>
               ))}
             </div>
+
+            {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
             {error ? <p className="text-sm text-red-600">{error}</p> : null}
 

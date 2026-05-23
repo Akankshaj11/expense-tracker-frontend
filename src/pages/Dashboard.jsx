@@ -1,12 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
 import {
-  ArrowsRightLeftIcon,
   ArrowTrendingDownIcon,
   ArrowTrendingUpIcon,
   ArrowDownTrayIcon,
-  BanknotesIcon,
   BuildingOffice2Icon,
   CalendarDaysIcon,
   ChartBarIcon,
@@ -29,9 +26,17 @@ import {
   TicketIcon,
   TruckIcon,
 } from '@heroicons/react/24/outline'
-import { authenticatedFetch } from '../utils/api'
+import { apiRequest, clearStoredAuth } from '../utils/api'
 import { loadOrganizationsFromBackend, readCachedOrganizations } from '../utils/organizationSync'
-import translations, { translateText, getLocale, translateModuleLabel } from '../i18n/translations'
+import { translateText, getLocale, translateModuleLabel } from '../i18n/translations'
+import useLanguage from '../hooks/useLanguage'
+import DashboardHeader from '../components/dashboard/DashboardHeader'
+import DashboardHero from '../components/dashboard/DashboardHero'
+import DashboardMetricCards from '../components/dashboard/DashboardMetricCards'
+import DashboardModulesSection from '../components/dashboard/DashboardModulesSection'
+import DashboardRecentActivity from '../components/dashboard/DashboardRecentActivity'
+import DashboardWorkspaceSummary from '../components/dashboard/DashboardWorkspaceSummary'
+import DashboardEmptyState from '../components/dashboard/DashboardEmptyState'
 
 function readJSON(key, fallback) {
   try {
@@ -199,6 +204,7 @@ function buildRecentActivity(transactions, currency, locale = 'en-US', text = {}
       return {
         id: transaction.id || `${transaction.module || 'txn'}-${idx}`,
         transaction,
+        editPath: getTransactionEditPath(transaction),
         title: transaction.note?.trim() || `${capitalize(transaction.module || (text.transaction || 'Transaction'))} ${text.update || 'update'}`,
         meta: `${capitalize(transaction.module || (text.dashboard || 'Dashboard'))} · ${metaDate}`,
         amount: amount >= 0 ? formatMoney(amount, currency, locale) : `-${formatMoney(Math.abs(amount), currency, locale)}`,
@@ -225,13 +231,11 @@ export default function Dashboard() {
   const navigate = useNavigate()
   const [organizations, setOrganizations] = useState(() => readCachedOrganizations())
   const [activeOrgId, setActiveOrgId] = useState(() => localStorage.getItem('activeOrgId') || readCachedOrganizations()[0]?.id || '')
-  const [language, setLanguage] = useState(() => localStorage.getItem('selectedLanguage') || 'en')
   const [orgMenuOpen, setOrgMenuOpen] = useState(false)
-  const [languageMenuOpen, setLanguageMenuOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
+  const { language, setLanguage, text } = useLanguage()
   const currentUser = readJSON('currentUser', null)
   const selectedCurrency = readJSON('selectedCurrency', { code: 'USD', symbol: '$' })
-  const text = translations[language] || translations.en
   const locale = getLocale(language)
 
   useEffect(() => {
@@ -260,16 +264,6 @@ export default function Dashboard() {
       localStorage.setItem('activeOrgId', activeOrgId)
     }
   }, [activeOrgId])
-
-  useEffect(() => {
-    localStorage.setItem('selectedLanguage', language)
-    document.documentElement.lang = language
-    try {
-      window.dispatchEvent(new CustomEvent('language:changed', { detail: { language } }))
-    } catch (e) {
-      // ignore
-    }
-  }, [language])
 
   const activeOrganization = useMemo(() => {
     return organizations.find((item) => item.id === activeOrgId) || organizations[0] || null
@@ -303,12 +297,20 @@ export default function Dashboard() {
   const investmentsAmountValue = activeOrganizationTransactions.reduce((sum, transaction) => {
     return getTransactionCategory(transaction) === 'investments' ? sum + Math.abs(Number(transaction?.amount || 0)) : sum
   }, 0)
+  const lendAmountValue = activeOrganizationTransactions.reduce((sum, transaction) => {
+    return (String(transaction?.module || '').toLowerCase() === 'lend') ? sum + Math.abs(Number(transaction?.amount || 0)) : sum
+  }, 0)
+  const borrowAmountValue = activeOrganizationTransactions.reduce((sum, transaction) => {
+    return (String(transaction?.module || '').toLowerCase() === 'borrow') ? sum + Math.abs(Number(transaction?.amount || 0)) : sum
+  }, 0)
   const totalBalanceValue = revenueAmountValue - expensesAmountValue
 
   const totalBalance = formatMoney(totalBalanceValue, activeCurrency, locale)
   const revenueAmount = formatMoney(revenueAmountValue, activeCurrency, locale)
   const expensesAmount = formatMoney(expensesAmountValue, activeCurrency, locale)
-  const investmentsAmount = formatMoney(Math.abs(investmentsAmountValue), activeCurrency, locale)
+  const investmentsAmount = formatMoney(investmentsAmountValue, activeCurrency, locale)
+  const lendAmount = formatMoney(lendAmountValue, activeCurrency, locale)
+  const borrowAmount = formatMoney(borrowAmountValue, activeCurrency, locale)
 
   const handleSwitchOrg = (organizationId) => {
     setActiveOrgId(organizationId)
@@ -327,14 +329,21 @@ export default function Dashboard() {
   }
 
   const handleLogout = () => {
-    try {
-      localStorage.removeItem('currentUser')
-      localStorage.removeItem('accessToken')
-      localStorage.removeItem('authToken')
-      localStorage.removeItem('activeOrgId')
-    } catch {}
-    setProfileOpen(false)
-    navigate('/login')
+    (async () => {
+      try {
+        await apiRequest('/auth/logout', { method: 'POST' })
+      } catch (e) {
+        // ignore errors from logout request
+      }
+
+      try {
+        clearStoredAuth()
+        localStorage.removeItem('activeOrgId')
+      } catch {}
+
+      setProfileOpen(false)
+      navigate('/login')
+    })()
   }
 
   const handleDownloadWorkspacePDF = async () => {
@@ -383,490 +392,91 @@ export default function Dashboard() {
     }
   }
 
+  const summaryCards = [
+    { kind: 'balance', label: text.totalBalance, value: totalBalance, accent: 'text-[var(--text)]' },
+    { kind: 'revenue', label: text.revenue, value: revenueAmount, accent: 'text-emerald-600' },
+    { kind: 'expenses', label: text.expenses, value: expensesAmount, accent: 'text-rose-600' },
+  ]
+
   return (
     <div className="theme-light-violet min-h-screen bg-[var(--card)] text-[var(--text)]">
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-white/6/80 bg-[var(--card)]/90 backdrop-blur-xl">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6">
-          <div className="flex h-20 items-center justify-between gap-4">
-            <Link to="/" className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 font-light text-white shadow-lg shadow-primary-500/20">
-                FT
-              </div>
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.28em] text-slate-500">FinTrack</p>
-                <p className="text-lg font-light text-[var(--text)]">Wallet App</p>
-              </div>
-            </Link>
+      <DashboardHeader
+        activeOrganization={activeOrganization}
+        activeOrgId={activeOrgId}
+        activeCurrency={activeCurrency}
+        currentUser={currentUser}
+        firstName={firstName}
+        language={language}
+        setLanguage={setLanguage}
+        text={text}
+        organizations={organizations}
+        orgMenuOpen={orgMenuOpen}
+        profileOpen={profileOpen}
+        setOrgMenuOpen={setOrgMenuOpen}
+        setProfileOpen={setProfileOpen}
+        handleSwitchOrg={handleSwitchOrg}
+        handleCreateNewOrg={handleCreateNewOrg}
+        handleLogout={handleLogout}
+      />
 
-            <div className="flex items-center gap-3 sm:gap-4">
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setLanguageMenuOpen((current) => !current)
-                    setOrgMenuOpen(false)
-                    setProfileOpen(false)
-                  }}
-                  className="inline-flex items-center gap-3 rounded-full border border-white/6 bg-[var(--card)] px-4 py-2.5 text-sm font-light text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-                  aria-label={text.languageLabel}
-                >
-                  <GlobeAltIcon className="h-4 w-4 text-primary-600" />
-                  <span className="max-w-[110px] truncate sm:max-w-[140px]">{language === 'mr' ? text.marathi : text.english}</span>
-                  <ChevronDownIcon className="h-4 w-4 text-slate-400" />
-                </button>
-
-                {languageMenuOpen ? (
-                  <div className="absolute right-0 mt-3 w-44 overflow-hidden rounded-2xl border border-white/6 bg-[var(--card)] shadow-2xl shadow-slate-200/80">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setLanguage('en')
-                        setLanguageMenuOpen(false)
-                      }}
-                      className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm font-light transition hover:bg-primary-50 ${language === 'en' ? 'bg-primary-50 text-primary-700' : 'text-[var(--text)]'}`}
-                    >
-                      {text.english}
-                      {language === 'en' ? <span className="text-xs text-primary-700">✓</span> : null}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setLanguage('mr')
-                        setLanguageMenuOpen(false)
-                      }}
-                      className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm font-light transition hover:bg-primary-50 ${language === 'mr' ? 'bg-primary-50 text-primary-700' : 'text-[var(--text)]'}`}
-                    >
-                      {text.marathi}
-                      {language === 'mr' ? <span className="text-xs text-primary-700">✓</span> : null}
-                    </button>
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOrgMenuOpen((current) => !current)
-                    setProfileOpen(false)
-                    setLanguageMenuOpen(false)
-                  }}
-                  className="inline-flex items-center gap-3 rounded-full border border-white/6 bg-[var(--card)] px-4 py-2.5 text-sm font-light text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-                >
-                  <BuildingOffice2Icon className="h-4 w-4 text-primary-600" />
-                  <span className="max-w-[130px] truncate sm:max-w-[180px]">
-                    {activeOrganization?.organizationName || text.noOrganizationYet}
-                  </span>
-                  <ChevronDownIcon className="h-4 w-4 text-slate-400" />
-                </button>
-
-                {orgMenuOpen ? (
-                  <div className="absolute right-0 mt-3 w-72 overflow-hidden rounded-2xl border border-white/6 bg-[var(--card)] shadow-2xl shadow-slate-200/80">
-                    <div className="border-b border-white/4 px-4 py-3">
-                      <p className="text-sm font-light text-[var(--text)]">{text.organizationMenuTitle}</p>
-                      <p className="text-xs text-slate-500">{text.organizationMenuSubtitle}</p>
-                    </div>
-                    <div className="max-h-64 overflow-auto p-2">
-                      {organizations.length > 0 ? (
-                        organizations.map((organization) => (
-                          <button
-                            key={organization.id}
-                            type="button"
-                            onClick={() => handleSwitchOrg(organization.id)}
-                            className={`flex w-full items-center justify-between rounded-xl px-3 py-3 text-left transition hover:bg-primary-50 ${
-                              activeOrgId === organization.id ? 'bg-primary-50' : 'bg-transparent'
-                            }`}
-                          >
-                            <div>
-                              <p className="text-sm font-light text-[var(--text)]">{organization.organizationName}</p>
-                              <p className="text-xs text-slate-500">{organization.description || text.noDescription}</p>
-                            </div>
-                            {activeOrgId === organization.id ? <span className="rounded-full bg-primary-600 px-2 py-1 text-[10px] font-light text-white">{text.active}</span> : null}
-                          </button>
-                        ))
-                      ) : (
-                        <div className="rounded-xl bg-[var(--card)] px-3 py-4 text-sm text-slate-500">{text.noOrganizationsFound}</div>
-                      )}
-                    </div>
-                    <div className="border-t border-white/4 p-2">
-                      <button
-                        type="button"
-                        onClick={handleCreateNewOrg}
-                        className="flex w-full items-center justify-between rounded-xl px-3 py-3 text-sm font-light text-primary-700 transition hover:bg-primary-50"
-                      >
-                        {text.createNewOrganization}
-                        <PlusIcon className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setProfileOpen((current) => !current)
-                    setOrgMenuOpen(false)
-                    setLanguageMenuOpen(false)
-                  }}
-                  className="flex h-11 w-11 items-center justify-center rounded-full border border-white/6 bg-[var(--card)] text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-                  aria-label="Open profile details"
-                >
-                  <UserCircleIcon className="h-6 w-6 text-[var(--muted)]" />
-                </button>
-
-                {profileOpen ? (
-                  <div className="absolute right-0 mt-3 w-72 rounded-2xl border border-white/6 bg-[var(--card)] p-4 shadow-2xl shadow-slate-200/80">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 text-lg font-light text-white">
-                        {firstName.charAt(0)}
-                      </div>
-                      <div>
-                        <p className="text-sm font-light text-[var(--text)]">{firstName}</p>
-                        <p className="text-xs text-slate-500">{currentUser?.email || text.noEmailFound}</p>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 space-y-3 rounded-2xl bg-[var(--card)] p-3 text-sm text-[var(--muted)]">
-                      <div className="flex items-center justify-between">
-                        <span>{text.organization}</span>
-                        <span className="font-light text-[var(--text)]">{activeOrganization?.organizationName || text.noOrganizationYet}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span>{text.currency}</span>
-                        <span className="font-light text-[var(--text)]">{activeCurrency?.code || 'USD'}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span>{text.workspaceStatus}</span>
-                        <span className="inline-flex items-center gap-1 font-light text-emerald-600">
-                          <ShieldCheckIcon className="h-4 w-4" />
-                          {text.active}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="mt-3 border-t border-white/4 pt-3">
-                      <button type="button" onClick={handleLogout} className="w-full rounded-xl px-3 py-3 text-left text-sm font-light text-rose-600 transition hover:bg-rose-50">
-                        {text.logout}
-                      </button>
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-7xl px-4 pb-12 pt-28 sm:px-6">
-        <section className="rounded-[2rem] border border-white bg-[var(--card)] p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-8">
-          <div className="flex flex-col gap-6">
-            <div>
-              <p className="text-sm font-light uppercase tracking-[0.26em] text-primary-600">{text.dashboard}</p>
-              <h1 className="mt-3 text-3xl font-light tracking-tight text-[var(--text)] sm:text-4xl">
-                {translateText(language, 'greeting', { name: firstName })}
-              </h1>
-              <p className="mt-3 max-w-2xl text-base leading-7 text-[var(--muted)]">
-                {translateText(language, 'viewingWorkspace', {
-                  org: activeOrganization?.organizationName || 'your workspace',
-                  desc: activeOrganization?.description ? ` · ${activeOrganization.description}` : '',
-                })}
-              </p>
-            </div>
-
-            <div className="flex flex-row gap-3">
-              <button
-                type="button"
-                onClick={() => navigate('/add-transaction')}
-                className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary-500 to-primary-600 px-5 py-3 text-sm font-light text-white shadow-lg shadow-primary-500/25 transition hover:-translate-y-0.5"
-              >
-                {text.addTransaction}
-                <PlusIcon className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate('/manage-organization')}
-                className="inline-flex items-center gap-2 rounded-full border border-white/6 bg-[var(--card)] px-5 py-3 text-sm font-light text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-              >
-                {text.manageOrganization}
-                <BuildingOffice2Icon className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        </section>
+      <main className="mx-auto max-w-7xl px-10 pb-12 pt-28 sm:px-12 lg:px-16">
+        <DashboardHero
+          text={text}
+          firstName={firstName}
+          activeOrganization={activeOrganization}
+          language={language}
+          onAddTransaction={() => navigate('/add-transaction')}
+          onManageOrganization={() => navigate('/manage-organization')}
+        />
 
         {activeOrganization ? (
           <>
-            <section className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                {[
-                { label: text.totalBalance, value: totalBalance, accent: 'text-[var(--text)]' },
-                { label: text.revenue, value: revenueAmount, accent: 'text-emerald-600' },
-                { label: text.expenses, value: expensesAmount, accent: 'text-rose-600' },
-                { label: text.investments, value: investmentsAmount, accent: 'text-violet-600' },
-              ].map((card, index) => {
-                const isBalanceCard = card.label === text.totalBalance
-                const isRevenueCard = card.label === text.revenue
-                const isExpensesCard = card.label === text.expenses
-                const isInvestmentsCard = card.label === text.investments
-                const isNegativeBalance = isBalanceCard && totalBalanceValue < 0
-                const isPositiveBalance = isBalanceCard && totalBalanceValue > 0
-                const isZeroBalance = isBalanceCard && totalBalanceValue === 0
-                const isZeroRevenue = isRevenueCard && revenueAmountValue === 0
-                const isZeroExpenses = isExpensesCard && expensesAmountValue === 0
-                const isNegativeInvestments = isInvestmentsCard && investmentsAmountValue < 0
-                const isPositiveInvestments = isInvestmentsCard && investmentsAmountValue > 0
-                const DisplayArrow = card.label === text.expenses || isNegativeBalance || isNegativeInvestments ? ArrowTrendingDownIcon : ArrowTrendingUpIcon
-                const displayAccent = isBalanceCard
-                  ? isPositiveBalance
-                    ? 'text-emerald-600'
-                    : isNegativeBalance
-                      ? 'text-rose-600'
-                      : 'text-blue-600'
-                  : isInvestmentsCard
-                    ? isPositiveInvestments
-                      ? 'text-emerald-600'
-                      : isNegativeInvestments
-                        ? 'text-rose-600'
-                        : 'text-violet-600'
-                  : card.accent
-                const displaySign = isBalanceCard
-                  ? isPositiveBalance
-                    ? '+'
-                    : isNegativeBalance
-                      ? '-'
-                      : ''
-                  : isInvestmentsCard
-                    ? isPositiveInvestments
-                      ? '+'
-                      : isNegativeInvestments
-                        ? '-'
-                        : ''
-                  : isRevenueCard && !isZeroRevenue
-                    ? '+'
-                    : isExpensesCard && !isZeroExpenses
-                      ? '-'
-                      : ''
-                const displayValue = isBalanceCard
-                  ? formatMoney(Math.abs(totalBalanceValue), activeCurrency, locale)
-                  : isInvestmentsCard
-                    ? formatMoney(Math.abs(investmentsAmountValue), activeCurrency, locale)
-                    : card.value
-                const iconColorClass = isZeroBalance || isZeroRevenue || isZeroExpenses
-                  ? displayAccent
-                  : isNegativeBalance || isNegativeInvestments || isExpensesCard
-                    ? 'text-rose-600'
-                    : 'text-emerald-600'
+            <DashboardMetricCards
+              className="-mb-4"
+              cards={summaryCards}
+              totalBalanceValue={totalBalanceValue}
+              revenueAmountValue={revenueAmountValue}
+              expensesAmountValue={expensesAmountValue}
+              activeCurrency={activeCurrency}
+              locale={locale}
+            />
 
-                return (
-                  <motion.article
-                    key={card.label}
-                    initial={{ opacity: 0, y: 14 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true, amount: 0.35 }}
-                    transition={{ delay: index * 0.06, duration: 0.45 }}
-                    className="rounded-[1.75rem] border border-white/6 bg-[var(--card)] p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
-                  >
-                    <div className="flex flex-col items-start gap-1">
-                      <p className="text-sm font-light text-slate-500">{card.label}</p>
-                      <p className={`mt-1 inline-flex items-center gap-1 text-3xl font-light tracking-tight ${displayAccent}`}>
-                        <span>{displaySign}</span>
-                        {displayValue}
-                        <DisplayArrow className={`h-5 w-5 ${iconColorClass}`} />
-                      </p>
-                    </div>
-                  </motion.article>
-                )
-              })}
-            </section>
+            <DashboardMetricCards
+              className="mt-4"
+              cards={[
+                { kind: 'investments', label: translateText(language, 'investments'), value: investmentsAmount, accent: 'text-violet-600' },
+                { kind: 'lend', label: translateModuleLabel(language, 'Lend'), value: lendAmount, accent: 'text-indigo-600' },
+                { kind: 'borrow', label: translateModuleLabel(language, 'Borrow'), value: borrowAmount, accent: 'text-orange-600' },
+              ]}
+              totalBalanceValue={totalBalanceValue}
+              revenueAmountValue={revenueAmountValue}
+              expensesAmountValue={expensesAmountValue}
+              activeCurrency={activeCurrency}
+              locale={locale}
+            />
 
-            <section className="mt-8 rounded-[2rem] border border-white/6 bg-[var(--card)] p-6 shadow-sm sm:p-8">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">{text.modules}</p>
-                  <h2 className="mt-2 text-2xl font-light tracking-tight text-[var(--text)]">{text.modulesYouAdded}</h2>
-                </div>
-                <div className="inline-flex items-center gap-2 rounded-full bg-primary-50 px-4 py-2 text-sm font-light text-primary-700">
-                  <Squares2X2Icon className="h-4 w-4" />
-                  {moduleCards.length} {text.modules.toLowerCase()}
-                </div>
-              </div>
-
-              <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {moduleCards.map((module, index) => (
-                  <motion.article
-                    key={module.id}
-                    initial={{ opacity: 0, y: 14 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true, amount: 0.25 }}
-                    transition={{ delay: index * 0.05, duration: 0.45 }}
-                    onClick={() => navigate(`/module/${encodeURIComponent(module.label)}`)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault()
-                        navigate(`/module/${encodeURIComponent(module.label)}`)
-                      }
-                    }}
-                    className="cursor-pointer rounded-[1.5rem] border border-white/6 bg-[var(--card)] p-5 transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary-500/20"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-center gap-3">
-                        <div className="rounded-2xl p-3" style={{ backgroundColor: module.theme.iconBg, color: module.theme.fg }}>
-                          <module.theme.icon className="h-5 w-5" />
-                        </div>
-                        <div>
-                          <p className="text-base font-light capitalize text-[var(--text)]">{module.label}</p>
-                          <p className="text-sm text-slate-500">{module.submodules.length} {text.submodules.toLowerCase()}</p>
-                        </div>
-                      </div>
-                      <button type="button" className="rounded-full p-2 text-slate-400 transition hover:bg-[var(--card)] hover:text-[var(--muted)]">
-                        <EllipsisVerticalIcon className="h-5 w-5" />
-                      </button>
-                    </div>
-
-                    <div className="mt-5 flex items-end justify-between gap-4">
-                      <div>
-                        <p className="text-xs font-light uppercase tracking-[0.2em] text-slate-500">{text.amount}</p>
-                        <p className={`mt-2 inline-flex items-center gap-1 text-2xl font-light tracking-tight ${module.amountValue < 0 ? 'text-rose-600' : 'text-blue-600'}`}>
-                          <span>{module.amountValue < 0 ? '-' : module.amountValue > 0 ? '+' : ''}</span>
-                          <span>{module.amount}</span>
-                        </p>
-                      </div>
-                      <div className="text-right text-xs font-light text-slate-500">{text.allocated}</div>
-                    </div>
-
-                    <div className="mt-4 h-2 rounded-full bg-[var(--card)]">
-                      <div className="h-full rounded-full" style={{ width: `${module.fill}%`, backgroundColor: module.theme.fg }} />
-                    </div>
-
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {module.submodules.map((submodule) => (
-                        <span key={submodule} className="rounded-full bg-[var(--card)] px-3 py-1.5 text-xs font-light text-[var(--muted)] shadow-sm ring-1 ring-slate-200">
-                          {submodule}
-                        </span>
-                      ))}
-                    </div>
-                  </motion.article>
-                ))}
-              </div>
-            </section>
+            <DashboardModulesSection
+              text={text}
+              moduleCards={moduleCards}
+              onModuleClick={(moduleLabel) => navigate(`/module/${encodeURIComponent(moduleLabel)}`)}
+            />
 
             <section className="mt-8 grid gap-6 lg:grid-cols-[1.5fr_1fr]">
-              <div className="rounded-[2rem] border border-white/6 bg-[var(--card)] p-6 shadow-sm sm:p-8">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">{text.recentActivity}</p>
-                    <h2 className="mt-2 text-2xl font-light tracking-tight text-[var(--text)]">{text.latestUpdates}</h2>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Link
-                      to="/transactions"
-                      className="rounded-full border border-white/6 bg-[var(--card)] px-4 py-2 text-sm font-light text-primary-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-                    >
-                      {text.seeAll}
-                    </Link>
-                    <div className="rounded-full bg-primary-50 p-3 text-primary-600">
-                      <CalendarDaysIcon className="h-5 w-5" />
-                    </div>
-                  </div>
-                </div>
-
-                {recentActivity.length > 0 ? (
-                  <div className="mt-6 space-y-3">
-                    {recentActivity.map((item, index) => {
-                      const editPath = getTransactionEditPath(item.transaction)
-
-                      return (
-                      <Link
-                        key={item.id}
-                        to={editPath}
-                        className="block rounded-2xl border border-white/6 bg-[var(--card)] transition hover:-translate-y-0.5 hover:shadow-md"
-                      >
-                        <motion.div
-                          initial={{ opacity: 0, y: 10 }}
-                          whileInView={{ opacity: 1, y: 0 }}
-                          viewport={{ once: true, amount: 0.2 }}
-                          transition={{ delay: index * 0.05, duration: 0.4 }}
-                          className="flex items-center justify-between rounded-2xl px-4 py-4"
-                        >
-                          <div>
-                            <p className="font-light text-[var(--text)]">{item.title}</p>
-                            <p className="text-sm text-slate-500">{item.meta}</p>
-                          </div>
-                          <p className={`text-sm font-light ${item.tone}`}>{item.amount}</p>
-                        </motion.div>
-                      </Link>
-                      )
-                    })}
-                  </div>
-                ) : (
-                  <div className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-[var(--card)] px-4 py-6 text-sm text-slate-500">
-                    {text.noTransactionsYet}
-                  </div>
-                )}
-              </div>
-
-              <div className="rounded-[2rem] border border-white/6 bg-[var(--card)] p-6 shadow-sm sm:p-8">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">{text.workspace}</p>
-                    <h2 className="mt-2 text-2xl font-light tracking-tight text-[var(--text)]">{text.currentSummary}</h2>
-                  </div>
-                  <div className="rounded-full bg-violet-50 p-3 text-violet-600">
-                    <BuildingOffice2Icon className="h-5 w-5" />
-                  </div>
-                </div>
-
-                <div className="mt-6 space-y-4 rounded-[1.5rem] bg-[var(--card)] p-5">
-                  <div className="flex items-center justify-between gap-4">
-                    <span className="text-sm text-slate-500">{text.organization}</span>
-                    <span className="font-light text-[var(--text)]">{activeOrganization.organizationName}</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-4">
-                    <span className="text-sm text-slate-500">{text.currency}</span>
-                    <span className="font-light text-[var(--text)]">{activeCurrency?.code || 'USD'}</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-4">
-                    <span className="text-sm text-slate-500">{text.modules}</span>
-                    <span className="font-light text-[var(--text)]">{moduleCards.length}</span>
-                  </div>
-                </div>
-
-                <div className="mt-5 rounded-[1.5rem] bg-[var(--card)] p-5">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-light uppercase tracking-[0.22em] text-slate-500">{text.tip}</p>
-                      <p className="mt-2 text-lg font-light text-[var(--text)]">{text.tipMessage}</p>
-                    </div>
-                    <PlusIcon className="h-6 w-6 text-primary-600" />
-                  </div>
-                </div>
-                <div className="mt-4">
-                  <button type="button" onClick={handleDownloadWorkspacePDF} className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-rose-600 px-4 py-2.5 text-sm font-light text-white shadow-sm transition hover:bg-rose-700 hover:-translate-y-0.5">
-                    <ArrowDownTrayIcon className="h-4 w-4" />
-                    {text.downloadReport}
-                  </button>
-                </div>
-              </div>
+              <DashboardRecentActivity text={text} recentActivity={recentActivity} />
+              <DashboardWorkspaceSummary
+                text={text}
+                activeOrganization={activeOrganization}
+                activeCurrency={activeCurrency}
+                moduleCards={moduleCards}
+                onDownloadReport={handleDownloadWorkspacePDF}
+              />
             </section>
           </>
         ) : (
-          <section className="mt-8 rounded-[2rem] border border-white/6 bg-[var(--card)] p-8 text-center shadow-sm">
-            <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">{text.noOrganizationYet}</p>
-            <h2 className="mt-3 text-2xl font-light text-[var(--text)]">{text.createFirstOrganizationTitle}</h2>
-            <p className="mx-auto mt-3 max-w-2xl text-base leading-7 text-[var(--muted)]">
-              {text.createFirstOrganizationDescription}
-            </p>
-            <button
-              type="button"
-              onClick={() => navigate('/create-organization', { state: { from: '/dashboard' } })}
-              className="mt-6 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary-500 to-primary-600 px-5 py-3 text-sm font-light text-white shadow-lg shadow-primary-500/25 transition hover:-translate-y-0.5"
-            >
-              {text.createOrganization}
-              <PlusIcon className="h-4 w-4" />
-            </button>
-          </section>
+          <DashboardEmptyState
+            text={text}
+            onCreateOrganization={() => navigate('/create-organization', { state: { from: '/dashboard' } })}
+          />
         )}
       </main>
     </div>

@@ -1,0 +1,109 @@
+export const transactionTypeModules = {
+  revenue: ['Salary', 'Business', 'Bonus', 'Commission', 'Incentives', 'Rental Income', 'Investment Returns'],
+  expenses: ['Food', 'Travel', 'Shopping', 'Bills', 'Health', 'Entertainment', 'Education', 'Rent', 'Subscriptions', 'Loans', 'Taxes'],
+  investments: ['Stocks', 'Mutual Funds', 'Fixed Deposit', 'Gold', 'Real Estate', 'PPF'],
+}
+
+export function getTransactionCategory(transaction) {
+  const transactionType = String(transaction?.transactionType || transaction?.direction || transaction?.transactionDirection || '').toLowerCase()
+
+  if (['revenue', 'income', 'in', 'credit', 'incoming', 'plus', '+'].includes(transactionType)) {
+    return 'revenue'
+  }
+
+  if (['expense', 'expenses', 'out', 'debit', 'outgoing', 'minus', '-'].includes(transactionType)) {
+    return 'expenses'
+  }
+
+  if (['investment', 'investments'].includes(transactionType)) {
+    return 'investments'
+  }
+
+  return null
+}
+
+export function getModuleCategory(module) {
+  const transactionType = String(module?.transactionType || module?.type || '').toLowerCase()
+  if (transactionType === 'revenue') {
+    return 'revenue'
+  }
+  if (transactionType === 'expenses' || transactionType === 'expense') {
+    return 'expenses'
+  }
+  if (transactionType === 'investments' || transactionType === 'investment') {
+    return 'investments'
+  }
+
+  if (transactionType === 'custom') {
+    return 'custom'
+  }
+
+  const moduleName = String(module?.name || '').toLowerCase()
+  if (moduleName === 'revenue') {
+    return 'revenue'
+  }
+
+  if (moduleName === 'expenses') {
+    return 'expenses'
+  }
+
+  if (moduleName === 'investments') {
+    return 'investments'
+  }
+
+  if (moduleName === 'lend') {
+    return 'expenses'
+  }
+
+  if (moduleName === 'borrow') {
+    return 'revenue'
+  }
+
+  for (const [category, names] of Object.entries(transactionTypeModules)) {
+    if (names.some((name) => name.toLowerCase() === moduleName)) {
+      return category
+    }
+  }
+
+  return null
+}
+
+export function getPersistedModuleTransactionType(module) {
+  return module?.transactionType || getModuleCategory(module) || 'revenue'
+}
+
+export function getModulesForCategory(category, modules) {
+  const normalizedCategory = String(category || '').toLowerCase()
+  return (modules || []).filter((module) => {
+    const moduleCategory = getModuleCategory(module)
+    return moduleCategory === normalizedCategory
+  })
+}
+
+export function getModuleSubmodules(module, organization) {
+  if (Array.isArray(module?.submodules)) {
+    return module.submodules
+  }
+
+  if (module?.name && Array.isArray(organization?.submodules?.[module.name])) {
+    return organization.submodules[module.name]
+  }
+
+  return []
+}
+
+export function buildModuleOptions(organizationModules) {
+  if (!organizationModules.length) {
+    return [
+      { name: 'Revenue', category: 'revenue' },
+      { name: 'Expenses', category: 'expenses' },
+      { name: 'Investments', category: 'investments' },
+      { name: 'Custom', category: 'custom' },
+    ]
+  }
+
+  return organizationModules.map((module) => ({
+    ...module,
+    category: getModuleCategory(module) || 'revenue',
+  }))
+}

@@ -47,11 +47,7 @@ export default function Login() {
       })
 
       const user = payload?.data?.user
-      const accessToken = payload?.data?.access_token
-
-      if (accessToken) {
-        localStorage.setItem('accessToken', accessToken)
-      }
+      // Backend sets HttpOnly cookie; no client-side token handling needed
 
       if (user) {
         localStorage.setItem('currentUser', JSON.stringify(user))
