@@ -1,7 +1,16 @@
 import { motion } from 'framer-motion'
-import { ArrowTrendingDownIcon, ArrowTrendingUpIcon } from '@heroicons/react/24/outline'
+import { BanknotesIcon, BuildingLibraryIcon, ChartBarIcon, CircleStackIcon, CurrencyDollarIcon, CreditCardIcon } from '@heroicons/react/24/outline'
 
 export default function DashboardMetricCards({ cards, totalBalanceValue, revenueAmountValue, expensesAmountValue, activeCurrency, locale, className }) {
+  const cardIconMap = {
+    balance: CircleStackIcon,
+    revenue: CurrencyDollarIcon,
+    expenses: CreditCardIcon,
+    investments: ChartBarIcon,
+    lend: BanknotesIcon,
+    borrow: BuildingLibraryIcon,
+  }
+
   return (
     <section className={`mt-8 grid items-stretch gap-4 sm:grid-cols-2 xl:grid-cols-3 ${className || ''}`}>
       {cards.map((card, index) => {
@@ -10,10 +19,9 @@ export default function DashboardMetricCards({ cards, totalBalanceValue, revenue
         const isExpensesCard = card.kind === 'expenses'
         const isNegativeBalance = isBalanceCard && totalBalanceValue < 0
         const isPositiveBalance = isBalanceCard && totalBalanceValue > 0
-        const isZeroBalance = isBalanceCard && totalBalanceValue === 0
         const isZeroRevenue = isRevenueCard && revenueAmountValue === 0
         const isZeroExpenses = isExpensesCard && expensesAmountValue === 0
-        const DisplayArrow = isExpensesCard || isNegativeBalance ? ArrowTrendingDownIcon : ArrowTrendingUpIcon
+        const CardIcon = cardIconMap[card.kind] || CircleStackIcon
         const displayAccent = isBalanceCard
           ? isPositiveBalance
             ? 'text-emerald-600'
@@ -33,11 +41,7 @@ export default function DashboardMetricCards({ cards, totalBalanceValue, revenue
               ? '-'
               : ''
         const displayValue = isBalanceCard ? new Intl.NumberFormat(locale, { style: 'currency', currency: activeCurrency?.code || 'USD', maximumFractionDigits: 0 }).format(Math.abs(totalBalanceValue)) : card.value
-        const iconColorClass = isZeroBalance || isZeroRevenue || isZeroExpenses
-          ? displayAccent
-          : isNegativeBalance || isExpensesCard
-            ? 'text-rose-600'
-            : 'text-emerald-600'
+        const iconAccentClass = 'text-blue-600 bg-blue-50'
 
         return (
           <motion.article
@@ -48,13 +52,17 @@ export default function DashboardMetricCards({ cards, totalBalanceValue, revenue
             transition={{ delay: index * 0.06, duration: 0.45 }}
             className="flex h-full rounded-[1.75rem] border border-white/6 bg-[var(--card)] p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
           >
-            <div className="flex h-full flex-col items-start gap-1">
-              <p className="text-sm font-light text-slate-500">{card.label}</p>
-              <p className={`mt-1 inline-flex items-center gap-1 text-3xl font-light tracking-tight ${displayAccent}`}>
-                <span>{displaySign}</span>
-                {displayValue}
-                <DisplayArrow className={`h-5 w-5 ${iconColorClass}`} />
-              </p>
+            <div className="flex h-full w-full items-start justify-between gap-3">
+              <div className="flex flex-col items-start gap-1">
+                <p className="text-sm font-light text-slate-500">{card.label}</p>
+                <p className={`mt-1 inline-flex items-center gap-1 text-3xl font-light tracking-tight ${displayAccent}`}>
+                  <span>{displaySign}</span>
+                  {displayValue}
+                </p>
+              </div>
+              <div className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${iconAccentClass}`}>
+                <CardIcon className="h-5 w-5" />
+              </div>
             </div>
           </motion.article>
         )

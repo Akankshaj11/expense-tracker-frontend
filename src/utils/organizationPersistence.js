@@ -19,6 +19,7 @@ export async function persistOrganizationModules(activeOrganizationId, nextOrgs,
     const modulesForBackend = (active.modules || []).map((module) => ({
       name: module.name,
       transactionType: getPersistedModuleTransactionType(module),
+      isCustom: module?.isCustom === true,
       submodules: Array.isArray(module.submodules) ? module.submodules : [],
     }))
     const submodulesMap = {}
@@ -53,7 +54,7 @@ export function appendCustomModule(organizations, activeOrganizationId, moduleNa
 
     const nextModules = Array.isArray(org.modules) ? [...org.modules] : []
     if (!nextModules.find((module) => module.name === name)) {
-      nextModules.push({ name, submodules: [], transactionType })
+      nextModules.push({ name, submodules: [], transactionType, isCustom: true })
     }
 
     return { ...org, modules: nextModules }

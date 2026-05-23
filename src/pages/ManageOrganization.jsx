@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { ArrowLeftIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { apiRequest } from '../utils/api'
 import { loadOrganizationsFromBackend, readCachedOrganizations } from '../utils/organizationSync'
+import { getPersistedModuleTransactionType } from '../utils/moduleUtils'
 
 function readJSON(key, fallback) {
   try {
@@ -15,9 +16,14 @@ function readJSON(key, fallback) {
 }
 
 function createModuleItem(module, index, organizationSubmodules = {}) {
+  const normalizedName = String(module?.name || '').toLowerCase()
+  const isDefaultSystemModule = ['revenue', 'expenses', 'investments', 'lend', 'borrow'].includes(normalizedName)
+
   return {
     id: `${module.name}-${index}-${Date.now()}`,
     name: module.name || '',
+    transactionType: getPersistedModuleTransactionType(module),
+    isCustom: module?.isCustom === true || (!isDefaultSystemModule && Boolean(module?.transactionType)),
     submodules: Array.isArray(module.submodules)
       ? module.submodules
       : Array.isArray(organizationSubmodules?.[module.name])
@@ -30,11 +36,13 @@ function buildModuleItems(organization) {
   return (organization?.modules || []).map((module, index) => createModuleItem(module, index, organization?.submodules || {}))
 }
 
-function createEmptyModule() {
+function createEmptyModuleDraft() {
   return {
     id: `module-${Date.now()}-${Math.random().toString(16).slice(2)}`,
     name: '',
-    submodules: [''],
+    transactionType: 'revenue',
+    submodules: [],
+    submoduleDraft: '',
   }
 }
 
@@ -47,6 +55,7 @@ export default function ManageOrganization() {
   const [organizationName, setOrganizationName] = useState(activeOrganization?.organizationName || '')
   const [description, setDescription] = useState(activeOrganization?.description || '')
   const [modules, setModules] = useState(() => buildModuleItems(activeOrganization))
+  const [moduleDraft, setModuleDraft] = useState(null)
   const [error, setError] = useState('')
   const [savedMessage, setSavedMessage] = useState('')
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
@@ -75,6 +84,7 @@ export default function ManageOrganization() {
     setOrganizationName(activeOrganization.organizationName || '')
     setDescription(activeOrganization.description || '')
     setModules(buildModuleItems(activeOrganization))
+    setModuleDraft(null)
   }, [activeOrganization])
 
   if (!activeOrganization) {
@@ -112,7 +122,95 @@ export default function ManageOrganization() {
   }
 
   const addModule = () => {
-    setModules((current) => [...current, createEmptyModule()])
+    setError('')
+    setSavedMessage('')
+    setModuleDraft((currentDraft) => currentDraft || createEmptyModuleDraft())
+  }
+
+  const cancelModuleDraft = () => {
+    setModuleDraft(null)
+  }
+
+  const updateModuleDraft = (key, value) => {
+    setModuleDraft((currentDraft) => {
+      if (!currentDraft) {
+        return currentDraft
+      }
+
+      return { ...currentDraft, [key]: value }
+    })
+  }
+
+  const saveModuleDraft = () => {
+    if (!moduleDraft) {
+      return
+    }
+
+    const name = moduleDraft.name.trim()
+    const submodules = (moduleDraft.submodules || []).map((submodule) => submodule.trim()).filter(Boolean)
+
+    if (!name) {
+      setError('Module name is required')
+      return
+    }
+
+    if (submodules.length === 0) {
+      setError('Add at least one submodule')
+      return
+    }
+
+    if (modules.some((module) => module.name.toLowerCase() === name.toLowerCase())) {
+      setError('A module with this name already exists')
+      return
+    }
+
+    const nextModule = {
+      id: `module-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      name,
+      transactionType: moduleDraft.transactionType || 'revenue',
+      isCustom: true,
+      submodules,
+    }
+
+    setModules((current) => [...current, nextModule])
+    setModuleDraft(null)
+    setError('')
+  }
+
+  const addModuleDraftSubmodule = () => {
+    setModuleDraft((currentDraft) => {
+      if (!currentDraft) {
+        return currentDraft
+      }
+
+      const nextSubmodule = currentDraft.submoduleDraft.trim()
+      if (!nextSubmodule) {
+        return currentDraft
+      }
+
+      if (currentDraft.submodules.some((submodule) => submodule.toLowerCase() === nextSubmodule.toLowerCase())) {
+        return { ...currentDraft, submoduleDraft: '' }
+      }
+
+      return {
+        ...currentDraft,
+        submodules: [...currentDraft.submodules, nextSubmodule],
+        submoduleDraft: '',
+      }
+    })
+  }
+
+  const removeModuleDraftSubmodule = (submoduleValue) => {
+    setModuleDraft((currentDraft) => {
+      if (!currentDraft) {
+        return currentDraft
+      }
+
+      return {
+        ...currentDraft,
+        submodules: currentDraft.submodules.filter((submodule) => submodule !== submoduleValue),
+      }
+    })
   }
 
   const removeModule = (moduleId) => {
@@ -122,7 +220,7 @@ export default function ManageOrganization() {
   const addSubmodule = (moduleId) => {
     setModules((current) =>
       current.map((module) =>
-        module.id === moduleId ? { ...module, submodules: [...module.submodules, ''] } : module,
+        module.id === moduleId ? { ...module, submodules: ['', ...module.submodules] } : module,
       ),
     )
   }
@@ -145,6 +243,8 @@ export default function ManageOrganization() {
     const normalizedModules = modules
       .map((module) => ({
         name: module.name.trim(),
+        transactionType: module.transactionType || 'revenue',
+        isCustom: module?.isCustom === true,
         submodules: module.submodules.map((submodule) => submodule.trim()).filter(Boolean),
       }))
       .filter((module) => module.name)
@@ -165,7 +265,12 @@ export default function ManageOrganization() {
     }
 
     // Transform modules structure: separate module names from submodules dict
-    const modulesForBackend = normalizedModules.map((module) => ({ name: module.name }))
+    const modulesForBackend = normalizedModules.map((module) => ({
+      name: module.name,
+      transactionType: module.transactionType,
+      moduleType: module.transactionType,
+      isCustom: module.isCustom,
+    }))
     const submodulesForBackend = {}
     normalizedModules.forEach((module) => {
       submodulesForBackend[module.name] = module.submodules
@@ -326,9 +431,140 @@ export default function ManageOrganization() {
               </button>
             </div>
 
-            <ul className="space-y-4">
+            {moduleDraft ? (
+              <div
+                className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-3 py-4 backdrop-blur-sm"
+                onClick={cancelModuleDraft}
+              >
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.96, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  transition={{ duration: 0.18, ease: 'easeOut' }}
+                  className="w-full max-w-md rounded-[1.5rem] border border-white/80 bg-[var(--card)] p-3 shadow-glass sm:p-4"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <div className="mb-3 flex items-start justify-between gap-3 border-b border-white/60 pb-3">
+                    <div>
+                      <p className="text-[10px] font-light uppercase tracking-[0.28em] text-primary-600">Add Module</p>
+                      <h3 className="mt-1.5 text-xl font-light tracking-tight text-[var(--text)]">Create a new module</h3>
+                      {/* <p className="mt-1.5 text-xs leading-5 text-[var(--muted)]">Enter the module details, choose the type, and add submodules before saving.</p> */}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={cancelModuleDraft}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/70 bg-white text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                      aria-label="Close module form"
+                    >
+                      <span className="text-lg leading-none">×</span>
+                    </button>
+                  </div>
+
+                  <div className="flex flex-col gap-3">
+                    <div className="space-y-3">
+                      <div>
+                        <label className="mb-2 block text-sm font-light text-slate-700">Module Name *</label>
+                        <input
+                          type="text"
+                          value={moduleDraft.name}
+                          onChange={(event) => updateModuleDraft('name', event.target.value)}
+                          className="w-full rounded-xl border border-dashed border-primary-300 bg-primary-50/70 px-3 py-2.5 text-sm font-light text-[var(--text)] outline-none transition focus:border-primary-500 focus:bg-[var(--card)] focus:ring-2 focus:ring-primary-500/20"
+                          placeholder="Enter module name"
+                        />
+                      </div>
+
+                      <div>
+                        <p className="text-xs font-light uppercase tracking-[0.16em] text-slate-500">Module Type *</p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {[
+                            { value: 'revenue', label: 'Revenue', activeClass: 'border-emerald-500 bg-emerald-500 text-white shadow-sm' },
+                            { value: 'expense', label: 'Expense', activeClass: 'border-red-500 bg-red-500 text-white shadow-sm' },
+                          ].map((item) => {
+                            const isActive = moduleDraft.transactionType === item.value
+
+                            return (
+                              <button
+                                key={item.value}
+                                type="button"
+                                onClick={() => updateModuleDraft('transactionType', item.value)}
+                                className={`inline-flex items-center justify-center rounded-full border px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.14em] transition ${isActive ? item.activeClass : 'border-white/70 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'}`}
+                              >
+                                {item.label}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="mb-2 block text-sm font-light text-slate-700">Submodule Name *</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={moduleDraft.submoduleDraft}
+                            onChange={(event) => updateModuleDraft('submoduleDraft', event.target.value)}
+                            onKeyDown={(event) => {
+                              if (event.key === 'Enter') {
+                                event.preventDefault()
+                                addModuleDraftSubmodule()
+                              }
+                            }}
+                            className="w-full rounded-xl border border-dashed border-primary-300 bg-primary-50/70 px-3 py-2.5 text-sm font-light text-[var(--text)] outline-none transition focus:border-primary-500 focus:bg-[var(--card)] focus:ring-2 focus:ring-primary-500/20"
+                            placeholder="Enter submodule name"
+                          />
+                          <button
+                            type="button"
+                            onClick={addModuleDraftSubmodule}
+                            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary-200 bg-primary-50 text-primary-600 transition hover:bg-primary-100"
+                            aria-label="Add submodule"
+                          >
+                            <PlusIcon className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {moduleDraft.submodules.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {moduleDraft.submodules.map((submodule) => (
+                          <span key={submodule} className="inline-flex items-center gap-2 rounded-full bg-white px-2.5 py-1 text-[11px] font-light text-slate-700 shadow-sm ring-1 ring-slate-200">
+                            {submodule}
+                            <button
+                              type="button"
+                              onClick={() => removeModuleDraftSubmodule(submodule)}
+                              className="text-slate-400 transition hover:text-rose-600"
+                              aria-label={`Remove ${submodule}`}
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+
+                    <div className="flex flex-wrap items-center justify-end gap-3 border-t border-white/60 pt-4">
+                      <button
+                        type="button"
+                        onClick={cancelModuleDraft}
+                        className="inline-flex items-center justify-center rounded-full border border-white/70 bg-white px-4 py-2 text-sm font-light text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={saveModuleDraft}
+                        className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-primary-500 to-primary-600 px-4 py-2 text-sm font-light text-white shadow-lg shadow-primary-500/25 transition hover:-translate-y-0.5"
+                      >
+                        Save Module
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
+            ) : null}
+
+            <ul className="grid gap-4 sm:grid-cols-2">
               {modules.map((module, moduleIndex) => (
-                <li key={module.id} className="rounded-[1.5rem] border border-white/6 bg-[var(--card)] p-5">
+                <li key={module.id} className="rounded-[1.5rem] border border-white/6 bg-[var(--card)] p-4">
                   <div className="flex items-center justify-between gap-3 border-b border-white/6 pb-4">
                     <div className="flex-1">
                       <label className="mb-2 block text-xs font-light uppercase tracking-[0.18em] text-slate-500">Module {moduleIndex + 1}</label>
@@ -343,7 +579,7 @@ export default function ManageOrganization() {
                     <button
                       type="button"
                       onClick={() => removeModule(module.id)}
-                      className="mt-7 inline-flex h-11 w-11 items-center justify-center rounded-full border border-rose-200 bg-rose-50 text-rose-600 transition hover:bg-rose-100"
+                      className="mt-6 inline-flex h-11 w-11 items-center justify-center rounded-full border border-rose-200 bg-rose-50 text-rose-600 transition hover:bg-rose-100"
                       aria-label={`Delete module ${module.name || moduleIndex + 1}`}
                     >
                       <TrashIcon className="h-4 w-4" />

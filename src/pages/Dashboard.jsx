@@ -70,6 +70,15 @@ function formatMoney(value, currency, locale = 'en-US') {
 
 function getTransactionCategory(transaction) {
   const transactionType = String(transaction?.transactionType || '').toLowerCase()
+  const moduleName = String(transaction?.module || transaction?.moduleName || '').toLowerCase()
+
+  if (['lend', 'loan_out', 'loanout'].includes(transactionType) || moduleName === 'lend') {
+    return 'lend'
+  }
+
+  if (['borrow', 'loan_in', 'loanin'].includes(transactionType) || moduleName === 'borrow') {
+    return 'borrow'
+  }
 
   if (['revenue', 'income', 'in', 'credit', 'incoming', 'plus', '+'].includes(transactionType)) {
     return 'revenue'
@@ -103,9 +112,30 @@ function getTransactionCategory(transaction) {
   return amount < 0 ? 'expenses' : 'revenue'
 }
 
+function normalizeModuleTransactionType(value) {
+  const normalized = String(value || '').toLowerCase()
+
+  if (['revenue', 'income', 'in', 'credit', 'incoming', 'plus', '+'].includes(normalized)) {
+    return 'revenue'
+  }
+
+  if (['expense', 'expenses', 'out', 'debit', 'outgoing', 'minus', '-'].includes(normalized)) {
+    return 'expenses'
+  }
+
+  if (['investment', 'investments'].includes(normalized)) {
+    return 'investments'
+  }
+
+  return null
+}
+
 function getTransactionDirection(transaction) {
   const category = getTransactionCategory(transaction)
-  return category === 'expenses' ? 'out' : 'in'
+  if (category === 'expenses' || category === 'lend') {
+    return 'out'
+  }
+  return 'in'
 }
 
 function getSignedTransactionAmount(transaction) {
@@ -115,7 +145,7 @@ function getSignedTransactionAmount(transaction) {
   }
 
   const category = getTransactionCategory(transaction)
-  if (category === 'expenses') {
+  if (category === 'expenses' || category === 'lend') {
     return -Math.abs(amount)
   }
 
@@ -157,18 +187,46 @@ function buildModuleCards(activeOrganization, currency, transactions, language =
     return []
   }
 
+  const systemDefaultModuleNames = new Set(['revenue', 'expenses', 'investments', 'lend', 'borrow'])
+
   const moduleAmounts = activeOrganization.modules.map((module) => {
+    const moduleTransactions = (transactions || []).filter((transaction) => transaction.module === module.name)
     const normalizedName = module.name.toLowerCase()
-    const theme = moduleThemes[normalizedName] || moduleThemes.custom
-    const amount = (transactions || [])
-      .filter((transaction) => transaction.module === module.name)
-      .reduce((sum, transaction) => sum + getSignedTransactionAmount(transaction), 0)
+    const knownTheme = moduleThemes[normalizedName]
+    const theme = knownTheme || moduleThemes.custom
+    const transactionType = String(module?.transactionType || module?.moduleType || module?.type || '').toLowerCase()
+    const normalizedTransactionType = ['revenue', 'income', 'in', 'credit', 'incoming', 'plus', '+'].includes(transactionType)
+      ? 'revenue'
+      : ['expense', 'expenses', 'out', 'debit', 'outgoing', 'minus', '-'].includes(transactionType)
+        ? 'expenses'
+        : ['investment', 'investments'].includes(transactionType)
+          ? 'investments'
+          : null
+    const moduleCategory = normalizedTransactionType || (['investment', 'investments'].includes(normalizedName) ? 'investments' : null)
+    const amount = moduleTransactions.reduce((sum, transaction) => sum + getSignedTransactionAmount(transaction), 0)
+    const recentTransaction = [...moduleTransactions]
+      .sort((left, right) => new Date(right.createdAt || right.date || 0) - new Date(left.createdAt || left.date || 0))[0] || null
+
+    const recentAmountValue = recentTransaction ? getSignedTransactionAmount(recentTransaction) : 0
+    const isDefaultSystemModule = systemDefaultModuleNames.has(normalizedName)
+    const isExplicitCustomModule = module?.isCustom === true
+    const isLegacyCustomModule = !isDefaultSystemModule
 
     return {
       label: module.name,
       submodules: getModuleSubmodules(module, activeOrganization),
       amount,
       theme,
+      isCustom: isExplicitCustomModule || isLegacyCustomModule,
+      category: moduleCategory,
+      transactionType: normalizedTransactionType,
+      recentTransaction: recentTransaction
+        ? {
+            submodule: recentTransaction.submodule || 'No submodule',
+            amountValue: recentAmountValue,
+            amount: recentAmountValue >= 0 ? formatMoney(recentAmountValue, currency, locale) : `-${formatMoney(Math.abs(recentAmountValue), currency, locale)}`,
+          }
+        : null,
     }
   })
 
@@ -176,13 +234,24 @@ function buildModuleCards(activeOrganization, currency, transactions, language =
 
   return moduleAmounts.map((item, index) => {
     const fill = maxAmount > 0 ? Math.min(92, Math.max(0, Math.round((Math.abs(item.amount) / maxAmount) * 92))) : 0
+    const displayAmountValue = item.category === 'investments' ? -Math.abs(item.amount) : item.amount
 
     return {
       id: `${item.label}-${index}`,
       label: translateModuleLabel(language, item.label),
       submodules: item.submodules.map((submodule) => translateModuleLabel(language, submodule)),
-      amountValue: item.amount,
-      amount: formatMoney(Math.abs(item.amount), currency, locale),
+      amountValue: displayAmountValue,
+      amount: formatMoney(Math.abs(displayAmountValue), currency, locale),
+      isCustom: item.isCustom,
+      category: item.category,
+      transactionType: item.transactionType,
+      recentTransaction: item.recentTransaction
+        ? {
+            submodule: translateModuleLabel(language, item.recentTransaction.submodule),
+            amountValue: item.recentTransaction.amountValue,
+            amount: item.recentTransaction.amount,
+          }
+        : null,
       theme: item.theme,
       fill,
     }
@@ -284,18 +353,44 @@ export default function Dashboard() {
       return true
     })
   }, [transactions, activeOrganization])
+  const moduleTypeByName = useMemo(() => {
+    const map = new Map()
+    ;(activeOrganization?.modules || []).forEach((module) => {
+      const key = String(module?.name || '').toLowerCase()
+      if (!key) {
+        return
+      }
+
+      const normalizedType = normalizeModuleTransactionType(module?.transactionType || module?.moduleType || module?.type)
+      if (normalizedType) {
+        map.set(key, normalizedType)
+      }
+    })
+    return map
+  }, [activeOrganization])
+
+  const getDashboardCategory = (transaction) => {
+    const moduleName = String(transaction?.module || transaction?.moduleName || '').toLowerCase()
+    const moduleBasedType = moduleTypeByName.get(moduleName)
+
+    if (moduleBasedType) {
+      return moduleBasedType
+    }
+
+    return getTransactionCategory(transaction)
+  }
   const firstName = deriveFirstName(currentUser)
   const moduleCards = buildModuleCards(activeOrganization, activeCurrency, activeOrganizationTransactions, language, locale)
   const recentActivity = buildRecentActivity(activeOrganizationTransactions, activeCurrency, locale, text)
 
   const revenueAmountValue = activeOrganizationTransactions.reduce((sum, transaction) => {
-    return getTransactionCategory(transaction) === 'revenue' ? sum + Math.abs(Number(transaction?.amount || 0)) : sum
+    return getDashboardCategory(transaction) === 'revenue' ? sum + Math.abs(Number(transaction?.amount || 0)) : sum
   }, 0)
   const expensesAmountValue = activeOrganizationTransactions.reduce((sum, transaction) => {
-    return getTransactionCategory(transaction) === 'expenses' ? sum + Math.abs(Number(transaction?.amount || 0)) : sum
+    return getDashboardCategory(transaction) === 'expenses' ? sum + Math.abs(Number(transaction?.amount || 0)) : sum
   }, 0)
   const investmentsAmountValue = activeOrganizationTransactions.reduce((sum, transaction) => {
-    return getTransactionCategory(transaction) === 'investments' ? sum + Math.abs(Number(transaction?.amount || 0)) : sum
+    return getDashboardCategory(transaction) === 'investments' ? sum + Math.abs(Number(transaction?.amount || 0)) : sum
   }, 0)
   const lendAmountValue = activeOrganizationTransactions.reduce((sum, transaction) => {
     return (String(transaction?.module || '').toLowerCase() === 'lend') ? sum + Math.abs(Number(transaction?.amount || 0)) : sum
@@ -303,7 +398,7 @@ export default function Dashboard() {
   const borrowAmountValue = activeOrganizationTransactions.reduce((sum, transaction) => {
     return (String(transaction?.module || '').toLowerCase() === 'borrow') ? sum + Math.abs(Number(transaction?.amount || 0)) : sum
   }, 0)
-  const totalBalanceValue = revenueAmountValue - expensesAmountValue
+  const totalBalanceValue = revenueAmountValue - expensesAmountValue - investmentsAmountValue - lendAmountValue + borrowAmountValue
 
   const totalBalance = formatMoney(totalBalanceValue, activeCurrency, locale)
   const revenueAmount = formatMoney(revenueAmountValue, activeCurrency, locale)

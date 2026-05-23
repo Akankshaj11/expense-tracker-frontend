@@ -116,6 +116,7 @@ export default function CreateOrganization() {
           name: customModuleName.trim() || 'Custom',
           transactionType: customModuleType,
           moduleType: customModuleType,
+          isCustom: true,
           submodules: submodules.custom || [],
         }
       }
