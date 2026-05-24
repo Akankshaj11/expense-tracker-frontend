@@ -18,7 +18,18 @@ import {
   readJSON,
   tokenizeExpression,
 } from '../utils/transactionHelpers'
-import translations, { translateText, getLocale } from '../i18n/translations'
+
+import translations, {
+  translateText,
+  getLocale,
+  translateModuleLabel,
+  translateSubmoduleLabel,
+} from '../i18n/translations'
+
+function getCurrentTimeValue() {
+  const now = new Date()
+  return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+}
 
 export default function AddTransaction() {
   const navigate = useNavigate()
@@ -56,6 +67,7 @@ export default function AddTransaction() {
   const [note, setNote] = useState('')
   const [attachment, setAttachment] = useState(null)
   const [date, setDate] = useState(getTodayDate())
+  const [time, setTime] = useState(getCurrentTimeValue())
   const [error, setError] = useState('')
   const [savedMessage, setSavedMessage] = useState('')
   const [isSaving, setIsSaving] = useState(false)
@@ -110,14 +122,15 @@ export default function AddTransaction() {
     setSelectedSubmodule(existingTransaction.submodule || '')
     setTransactionDirection(
       existingTransaction.transactionType ||
-        existingTransaction.direction ||
-        existingTransaction.transactionDirection ||
-        '',
+      existingTransaction.direction ||
+      existingTransaction.transactionDirection ||
+      '',
     )
     setAmountExpression(existingTransaction.amountExpression || String(Math.abs(Number(existingTransaction.amount || 0))))
     setNote(existingTransaction.note || '')
     setAttachment(null)
     setDate(existingTransaction.date || getTodayDate())
+    setTime(existingTransaction.time || getCurrentTimeValue())
     setError('')
     setSavedMessage('')
     setStep(4)
@@ -189,9 +202,8 @@ export default function AddTransaction() {
     setStep(3)
   }
 
-  const goToCustomSubmoduleStep = (moduleName) => {
-    setTransactionDirection('custom')
-    handleModuleSelection(moduleName, [], true)
+  const getSavedTransactionFromResponse = (responsePayload) => {
+    return responsePayload?.data?.transaction || responsePayload?.data || null
   }
 
   const saveTransaction = async (stayOnPage) => {
@@ -231,27 +243,27 @@ export default function AddTransaction() {
       attachmentType: attachment?.type || '',
       attachmentDataUrl,
       date,
+      time,
       currency: selectedCurrency?.code || 'USD',
       ownerId: currentUser?.id || currentUser?._id || currentUser?.email || '',
     }
 
-    let offlineFallback = false
     const canSyncTransaction = isEditMode && isMongoObjectId(existingTransactionId)
 
     const nextTransaction = isEditMode
       ? {
-          ...loadedTransaction,
-          ...transactionPayload,
-          id: loadedTransaction?.id || loadedTransaction?._id || transactionId || Date.now().toString(),
-          createdAt: loadedTransaction?.createdAt || new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        }
+        ...loadedTransaction,
+        ...transactionPayload,
+        id: loadedTransaction?.id || loadedTransaction?._id || transactionId || Date.now().toString(),
+        createdAt: loadedTransaction?.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }
       : {
-          id: Date.now().toString(),
-          ...transactionPayload,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        }
+        id: Date.now().toString(),
+        ...transactionPayload,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }
 
     try {
       if (isEditMode) {
@@ -267,8 +279,10 @@ export default function AddTransaction() {
         }
 
         localStorage.setItem('transactions', JSON.stringify(nextTransactions))
+        try { window.dispatchEvent(new Event('transactions:updated')); setTimeout(() => { try { window.dispatchEvent(new Event('transactions:updated')) } catch (e) {} }, 80) } catch (e) { /* ignore */ }
       } else {
         localStorage.setItem('transactions', JSON.stringify([nextTransaction, ...transactions]))
+        try { window.dispatchEvent(new Event('transactions:updated')); setTimeout(() => { try { window.dispatchEvent(new Event('transactions:updated')) } catch (e) {} }, 80) } catch (e) { /* ignore */ }
       }
 
       if (attachmentDataUrl) {
@@ -284,6 +298,7 @@ export default function AddTransaction() {
           'attachments',
           JSON.stringify([nextAttachment, ...attachments.filter((item) => item.transactionId !== nextTransaction.id)]),
         )
+        try { window.dispatchEvent(new Event('transactions:updated')); setTimeout(() => { try { window.dispatchEvent(new Event('transactions:updated')) } catch (e) {} }, 80) } catch (e) { /* ignore */ }
       }
 
       setSavedMessage(isEditMode ? text.transactionUpdated : text.transactionSaved)
@@ -325,71 +340,72 @@ export default function AddTransaction() {
       // ignore org local update failures
     }
 
-    ;(async () => {
-      try {
-        if (canSyncTransaction) {
+    let syncError = null
+
+    try {
+      if (canSyncTransaction) {
+        const response = await apiRequest(`/transactions/${encodeURIComponent(existingTransactionId)}`, {
+          method: 'PATCH',
+          body: JSON.stringify(transactionPayload),
+        })
+        const savedTransaction = getSavedTransactionFromResponse(response)
+        if (savedTransaction?.id) {
+          const current = readJSON('transactions', [])
+          const replaced = current.map((transaction) =>
+            String(transaction?.id || transaction?._id || '') === existingTransactionId
+              ? { ...savedTransaction, ...transactionPayload }
+              : transaction,
+          )
           try {
-            const response = await apiRequest(`/transactions/${encodeURIComponent(existingTransactionId)}`, {
-              method: 'PATCH',
-              body: JSON.stringify(transactionPayload),
-            })
-            const savedTransaction = response?.data?.transaction || null
-            if (savedTransaction?.id) {
-              const current = readJSON('transactions', [])
-              const replaced = current.map((transaction) =>
-                String(transaction?.id || transaction?._id || '') === existingTransactionId
-                  ? { ...savedTransaction, ...transactionPayload }
-                  : transaction,
-              )
-              try {
-                localStorage.setItem('transactions', JSON.stringify(replaced))
-              } catch {
-                // ignore
-              }
-            }
+            localStorage.setItem('transactions', JSON.stringify(replaced))
+            try { window.dispatchEvent(new Event('transactions:updated')); setTimeout(() => { try { window.dispatchEvent(new Event('transactions:updated')) } catch (e) {} }, 80) } catch (e) { /* ignore */ }
           } catch {
-            offlineFallback = true
-          }
-        } else if (!isEditMode) {
-          try {
-            const response = await apiRequest('/transactions', {
-              method: 'POST',
-              body: JSON.stringify(transactionPayload),
-            })
-            const savedTransaction = response?.data?.transaction || null
-            if (savedTransaction?.id) {
-              const current = readJSON('transactions', [])
-              const replaced = current.map((transaction) =>
-                transaction.id === nextTransaction.id ? { ...savedTransaction, ...transactionPayload } : transaction,
-              )
-              try {
-                localStorage.setItem('transactions', JSON.stringify(replaced))
-              } catch {
-                // ignore
-              }
-            }
-          } catch {
-            offlineFallback = true
+            // ignore
           }
         }
+      } else if (!isEditMode) {
+        const response = await apiRequest('/transactions', {
+          method: 'POST',
+          body: JSON.stringify(transactionPayload),
+        })
+        const savedTransaction = getSavedTransactionFromResponse(response)
+        if (savedTransaction?.id) {
+          const current = readJSON('transactions', [])
+          const replaced = current.map((transaction) =>
+            transaction.id === nextTransaction.id ? { ...savedTransaction, ...transactionPayload } : transaction,
+          )
+          try {
+            localStorage.setItem('transactions', JSON.stringify(replaced))
+            try { window.dispatchEvent(new Event('transactions:updated')); setTimeout(() => { try { window.dispatchEvent(new Event('transactions:updated')) } catch (e) {} }, 80) } catch (e) { /* ignore */ }
+          } catch {
+            // ignore
+          }
+        }
+      }
+    } catch (error) {
+      syncError = error
+    }
+
+    if (syncError) {
+      try {
+        localStorage.setItem('transactions', JSON.stringify(transactions))
       } catch {
-        // unexpected
+        // ignore rollback errors
       }
 
-      if (offlineFallback) {
-        setSavedMessage(text.transactionSavedOffline)
-      }
-    })()
+      setIsSaving(false)
+      setSavedMessage('')
+      setError(syncError?.message || text.unableToSaveTransaction)
+      return
+    }
 
     setError('')
     setSavedMessage(
       isEditMode
         ? canSyncTransaction
           ? text.transactionUpdated
-          : text.transactionSavedOffline
-        : offlineFallback
-          ? text.transactionSavedOffline
-          : text.transactionSaved,
+          : text.transactionSaved
+        : text.transactionSaved,
     )
 
     setIsSaving(false)
@@ -408,6 +424,7 @@ export default function AddTransaction() {
       setNote('')
       setAttachment(null)
       setDate(getTodayDate())
+      setTime(getCurrentTimeValue())
       return
     }
 
@@ -474,7 +491,11 @@ export default function AddTransaction() {
               <p className="mt-1 text-sm text-slate-500">
                 {step === 1
                   ? text.chooseModuleHint
-                  : translateText(language, 'chooseSubmoduleHint', { module: selectedModuleData?.name || '' })}
+                  // : translateText(language, 'chooseSubmoduleHint', { module: selectedModuleData?.name || '' })}
+                  : translateText(language, 'chooseSubmoduleHint', {
+                    module: translateModuleLabel(language, selectedModule),
+                  })
+                }
               </p>
             </div>
             <button
@@ -502,14 +523,19 @@ export default function AddTransaction() {
                   setTransactionDirection(category)
                   handleModuleSelection(label, getModuleSubmodules(module, activeOrganization))
                 }}
-                onCustomModuleCreated={goToCustomSubmoduleStep}
               />
             ) : (
               <SubmoduleSelector
                 selectedModule={selectedModule}
-                selectedModuleName={selectedModuleData?.name}
+                selectedModuleName={translateModuleLabel(
+                  language,
+                  selectedModuleData?.name,
+                )}
                 submodules={selectedModuleSubmodules}
-                selectedSubmodule={selectedSubmodule}
+                selectedSubmodule={translateSubmoduleLabel(
+                  language,
+                  selectedSubmodule,
+                )}
                 organizations={organizations}
                 setOrganizations={setOrganizations}
                 activeOrganization={activeOrganization}
@@ -527,7 +553,6 @@ export default function AddTransaction() {
                 onCustomSubmoduleCreated={(submodule) => {
                   setSelectedSubmodule(submodule)
                   setForceSubmoduleSelection(false)
-                  setStep(4)
                 }}
               />
             )}
@@ -538,9 +563,9 @@ export default function AddTransaction() {
   }
 
   return (
-    <div className="theme-light-violet min-h-screen bg-[var(--card)] px-4 py-6 text-[var(--text)] sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-5xl">
-        <div className="mb-6 flex items-center justify-between gap-3">
+    <div className="theme-light-violet h-full overflow-hidden bg-[var(--card)] px-4 py-4 text-[var(--text)] sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-2xl">
+        <div className="mt-2 mb-6 flex items-center justify-between gap-3">
           <Link
             to={isEditMode ? '/transactions' : '/dashboard'}
             className="inline-flex items-center gap-2 rounded-full border border-white/6 bg-[var(--card)] px-4 py-2.5 text-sm font-light text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
@@ -553,11 +578,7 @@ export default function AddTransaction() {
           </div>
         </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="rounded-[2rem] border border-white bg-[var(--card)] p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-8"
-        >
+        <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}>
           {step === 4 ? (
             <TransactionForm
               isEditMode={isEditMode}
@@ -565,8 +586,14 @@ export default function AddTransaction() {
               language={language}
               locale={locale}
               selectedCurrency={selectedCurrency}
-              selectedModuleName={selectedModuleData?.name}
-              selectedSubmodule={selectedSubmodule}
+              selectedModuleName={translateModuleLabel(
+                language,
+                selectedModuleData?.name,
+              )}
+              selectedSubmodule={translateSubmoduleLabel(
+                language,
+                selectedSubmodule,
+              )}
               amountDisplayValue={amountDisplayValue}
               amountExpression={amountExpression}
               setAmountExpression={(updater) => {
@@ -581,6 +608,8 @@ export default function AddTransaction() {
               setAttachment={setAttachment}
               date={date}
               setDate={setDate}
+              time={time}
+              setTime={setTime}
               error={error}
               savedMessage={savedMessage}
               canSave={canSave}

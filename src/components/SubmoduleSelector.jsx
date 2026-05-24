@@ -1,7 +1,7 @@
 import { useMemo, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeftIcon, PlusIcon, Squares2X2Icon, TagIcon } from '@heroicons/react/24/outline'
-import { translateText } from '../i18n/translations'
+import { ArrowLeftIcon, PlusIcon, Squares2X2Icon } from '@heroicons/react/24/outline'
+import { translateText, translateModuleLabel, translateSubmoduleLabel } from '../i18n/translations'
 import { appendSubmoduleToModule, persistOrganizationModules } from '../utils/organizationPersistence'
 
 const CARD_SURFACE_STYLES = [
@@ -70,31 +70,44 @@ export default function SubmoduleSelector({
     <>
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">{text.allSubmodulesLabel}</p>
-        {needsScroll ? (
-          <div className="flex shrink-0 items-center gap-2">
-            <button
-              type="button"
-              onClick={() => scrollList('up')}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-primary-300 hover:text-primary-700"
-              aria-label={translateText(language, 'scrollUp')}
-            >
-              <ArrowLeftIcon className="h-4 w-4 rotate-90" />
-            </button>
-            <button
-              type="button"
-              onClick={() => scrollList('down')}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-primary-300 hover:text-primary-700"
-              aria-label={translateText(language, 'scrollDown')}
-            >
-              <ArrowLeftIcon className="h-4 w-4 -rotate-90" />
-            </button>
-          </div>
-        ) : null}
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setCreatingCustomSubmodule(true)}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-primary-200 bg-primary-50 text-primary-700 shadow-sm transition hover:border-primary-300 hover:bg-primary-100"
+            aria-label={text.createCustomSubmodule}
+          >
+            <PlusIcon className="h-4 w-4" />
+          </button>
+          {needsScroll ? (
+            <>
+              <button
+                type="button"
+                onClick={() => scrollList('up')}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-primary-300 hover:text-primary-700"
+                aria-label={translateText(language, 'scrollUp')}
+              >
+                <ArrowLeftIcon className="h-4 w-4 rotate-90" />
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollList('down')}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-primary-300 hover:text-primary-700"
+                aria-label={translateText(language, 'scrollDown')}
+              >
+                <ArrowLeftIcon className="h-4 w-4 -rotate-90" />
+              </button>
+            </>
+          ) : null}
+        </div>
       </div>
 
       <div className="mt-4 flex items-center gap-3">
         <div className="rounded-full bg-slate-100 px-4 py-2 text-sm font-light text-slate-700">
-          {selectedModuleName || text.selectModule}
+          {/* {selectedModuleName || text.selectModule} */}
+          {selectedModuleName
+            ? translateModuleLabel(language, selectedModuleName)
+            : text.selectModule}
         </div>
       </div>
 
@@ -123,58 +136,72 @@ export default function SubmoduleSelector({
                 className={`flex min-h-[4.5rem] items-center justify-between rounded-[1.25rem] border px-4 py-2.5 text-left transition-shadow hover:shadow-md ${surfaceTone} ${textTone}`}
               >
                 <div>
-                  <p className="text-base font-light capitalize">{submodule}</p>
+                  {/* <p className="text-base font-light capitalize">{submodule}</p> */}
+                  <p className="text-base font-light capitalize">
+                    {translateSubmoduleLabel(language, submodule)}
+                  </p>
                   <p className="mt-0.5 text-xs opacity-80">{text.clickToContinue}</p>
                 </div>
                 <Squares2X2Icon className="h-5 w-5 shrink-0 opacity-90" />
               </motion.button>
             )
           })}
-
-          <div>
-            {creatingCustomSubmodule ? (
-              <div className="flex min-h-[4.5rem] items-center rounded-[1.25rem] border border-primary-400 bg-white px-4 py-2.5 text-primary-700 shadow-[0_0_0_1px_rgba(59,130,246,0.10)]">
-                <input
-                  type="text"
-                  value={customSubmoduleDraft}
-                  onChange={(e) => setCustomSubmoduleDraft(e.target.value)}
-                  autoFocus
-                  onClick={(event) => event.stopPropagation()}
-                  onKeyDown={async (e) => {
-                    if (e.key === 'Enter' && customSubmoduleDraft.trim()) {
-                      e.preventDefault()
-                      await createCustomSubmodule(customSubmoduleDraft.trim())
-                    }
-                  }}
-                  className="h-full w-full rounded-xl border-transparent bg-transparent px-2 py-2 text-sm font-light text-black outline-none placeholder:text-slate-400 focus:border-transparent focus:outline-none"
-                  placeholder={text.newSubmodulePlaceholder}
-                />
-                <button
-                  type="button"
-                  onClick={async (e) => {
-                    e.stopPropagation()
-                    if (customSubmoduleDraft.trim()) {
-                      await createCustomSubmodule(customSubmoduleDraft.trim())
-                    }
-                  }}
-                  className="inline-flex items-center gap-2 rounded-xl border border-primary-200 bg-primary-50 px-3 py-2 text-primary-700"
-                >
-                  <PlusIcon className="h-4 w-4" />
-                </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setCreatingCustomSubmodule(true)}
-                className="flex min-h-[4.5rem] w-full items-center justify-between rounded-[1.25rem] border border-primary-400 bg-white px-4 py-2.5 text-left text-slate-500 shadow-[0_0_0_1px_rgba(59,130,246,0.10)] hover:border-primary-500 hover:bg-primary-50"
-              >
-                <span className="text-sm font-light">+ {text.createCustomSubmodule}</span>
-                <TagIcon className="h-5 w-5 shrink-0 opacity-70" />
-              </button>
-            )}
-          </div>
         </div>
       </div>
+
+      {creatingCustomSubmodule ? (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/35 px-3 py-4 backdrop-blur-sm" onClick={() => setCreatingCustomSubmodule(false)}>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.18, ease: 'easeOut' }}
+            className="w-full max-w-md rounded-[1.5rem] border border-white/80 bg-white p-4 shadow-glass"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <p className="text-xs font-light uppercase tracking-[0.24em] text-primary-600">{text.createCustomSubmodule}</p>
+            <h3 className="mt-2 text-xl font-light tracking-tight text-slate-800">{text.newSubmodulePlaceholder}</h3>
+
+            <div className="mt-4">
+              <input
+                type="text"
+                value={customSubmoduleDraft}
+                onChange={(e) => setCustomSubmoduleDraft(e.target.value)}
+                autoFocus
+                onKeyDown={async (e) => {
+                  if (e.key === 'Enter' && customSubmoduleDraft.trim()) {
+                    e.preventDefault()
+                    await createCustomSubmodule(customSubmoduleDraft.trim())
+                  }
+                }}
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-left text-sm font-light text-slate-700 outline-none placeholder:text-slate-400 focus:border-primary-500 focus:ring-1 focus:ring-primary-200"
+                placeholder={text.newSubmodulePlaceholder}
+              />
+            </div>
+
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setCreatingCustomSubmodule(false)}
+                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-light text-slate-700 transition hover:bg-slate-50"
+              >
+                {text.cancel}
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (customSubmoduleDraft.trim()) {
+                    await createCustomSubmodule(customSubmoduleDraft.trim())
+                  }
+                }}
+                className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary-500 to-primary-600 px-4 py-2 text-sm font-light text-white"
+              >
+                <PlusIcon className="h-4 w-4" />
+                {text.addSubmodule}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      ) : null}
     </>
   )
 }

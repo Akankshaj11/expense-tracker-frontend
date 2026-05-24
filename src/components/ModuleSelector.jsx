@@ -1,10 +1,10 @@
 import { useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowLeftIcon, PlusIcon } from '@heroicons/react/24/outline'
-import { translateText } from '../i18n/translations'
+import { translateText, translateModuleLabel } from '../i18n/translations'
 import { appendCustomModule, persistOrganizationModules } from '../utils/organizationPersistence'
 
-const SCROLL_MAX_HEIGHT = 'max-h-[14rem]'
+const SCROLL_MAX_HEIGHT = 'max-h-[12rem]'
 const SCROLL_STEP_PX = 300
 
 const MODULE_PALETTE = {
@@ -59,10 +59,9 @@ export default function ModuleSelector({
   language,
   text,
   onModuleSelect,
-  onCustomModuleCreated,
 }) {
   const listRef = useRef(null)
-  const [, setCreatingCustomModule] = useState(false)
+  const [isCustomModuleModalOpen, setIsCustomModuleModalOpen] = useState(false)
 
   const cellCount = moduleOptions.length + 1
   const needsScroll = useMemo(() => {
@@ -79,9 +78,8 @@ export default function ModuleSelector({
   const createCustomModule = async (name) => {
     const nextOrgs = appendCustomModule(organizations, activeOrganization.id, name, customModuleType)
     setCustomModuleDraft('')
-    setCreatingCustomModule(false)
+    setIsCustomModuleModalOpen(false)
     await persistOrganizationModules(activeOrganization.id, nextOrgs, setOrganizations)
-    onCustomModuleCreated(name)
   }
 
   const [customModuleType, setCustomModuleType] = useState('revenue')
@@ -90,26 +88,36 @@ export default function ModuleSelector({
     <>
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">{text.chooseModuleLabel}</p>
-        {needsScroll ? (
-          <div className="flex shrink-0 items-center gap-2">
-            <button
-              type="button"
-              onClick={() => scrollList('up')}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-primary-300 hover:text-primary-700"
-              aria-label={translateText(language, 'scrollUp')}
-            >
-              <ArrowLeftIcon className="h-4 w-4 rotate-90" />
-            </button>
-            <button
-              type="button"
-              onClick={() => scrollList('down')}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-primary-300 hover:text-primary-700"
-              aria-label={translateText(language, 'scrollDown')}
-            >
-              <ArrowLeftIcon className="h-4 w-4 -rotate-90" />
-            </button>
-          </div>
-        ) : null}
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setIsCustomModuleModalOpen(true)}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-primary-200 bg-primary-50 text-primary-700 shadow-sm transition hover:border-primary-300 hover:bg-primary-100"
+            aria-label={translateText(language, 'addModule')}
+          >
+            <PlusIcon className="h-4 w-4" />
+          </button>
+          {needsScroll ? (
+            <>
+              <button
+                type="button"
+                onClick={() => scrollList('up')}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-primary-300 hover:text-primary-700"
+                aria-label={translateText(language, 'scrollUp')}
+              >
+                <ArrowLeftIcon className="h-4 w-4 rotate-90" />
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollList('down')}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-primary-300 hover:text-primary-700"
+                aria-label={translateText(language, 'scrollDown')}
+              >
+                <ArrowLeftIcon className="h-4 w-4 -rotate-90" />
+              </button>
+            </>
+          ) : null}
+        </div>
       </div>
 
       <div
@@ -119,19 +127,26 @@ export default function ModuleSelector({
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           {moduleOptions.map((module, index) => {
             const category = module.category || 'revenue'
-            const label = module.name || category
+            // const label = module.name || category
+            const rawLabel = module.name || category
+
+            const label =
+              module.isCustom
+                ? rawLabel
+                : translateModuleLabel(language, rawLabel)
             const style = getModuleCardStyle(module, index)
 
             return (
               <motion.button
                 key={`${label}-${index}`}
                 type="button"
-                onClick={() => onModuleSelect(module, category, label)}
+                // onClick={() => onModuleSelect(module, category, label)}
+                onClick={() => onModuleSelect(module, category, rawLabel)}
                 initial={{ opacity: 0, y: 10, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ duration: 0.22, ease: 'easeOut', delay: index * 0.04 }}
                 whileHover={{ y: -2 }}
-                className="flex min-h-[6rem] flex-col items-center justify-center rounded-[1.25rem] border px-4 py-3 text-center text-white transition-shadow hover:shadow-md"
+                className="flex min-h-[5rem] flex-col items-center justify-center rounded-[1.25rem] border px-4 py-3 text-center text-white transition-shadow hover:shadow-md"
                 style={style}
               >
                 <p className="text-md font-light">{label}</p>
@@ -139,80 +154,89 @@ export default function ModuleSelector({
               </motion.button>
             )
           })}
-
-          <div className="md:col-span-1">
-            <motion.div
-              initial={{ opacity: 0, y: 10, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ duration: 0.22, ease: 'easeOut', delay: 0.16 }}
-              className="flex min-h-[6rem] items-start justify-start rounded-[1.25rem] border border-slate-300 bg-white px-3 py-3 text-slate-500 shadow-[0_0_0_1px_rgba(148,163,184,0.12)] hover:border-primary-500 hover:bg-blue-50"
-              onClick={() => setCreatingCustomModule(true)}
-            >
-              <div className="w-full">
-                <div className="flex items-center gap-2 w-full">
-                  <input
-                    type="text"
-                    value={customModuleDraft}
-                    onChange={(e) => setCustomModuleDraft(e.target.value)}
-                    onClick={(event) => event.stopPropagation()}
-                    onFocus={() => setCreatingCustomModule(true)}
-                    onKeyDown={async (e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault()
-                        if (customModuleDraft.trim()) {
-                          await createCustomModule(customModuleDraft.trim())
-                        }
-                      }
-                    }}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-left text-sm font-light text-slate-700 outline-none placeholder:text-slate-400 focus:border-primary-500 focus:ring-1 focus:ring-primary-200"
-                    placeholder={text.newModulePlaceholder}
-                  />
-
-                  <button
-                    type="button"
-                    onClick={async (e) => {
-                      e.stopPropagation()
-                      if (customModuleDraft.trim()) {
-                        await createCustomModule(customModuleDraft.trim())
-                      }
-                    }}
-                    className="inline-flex items-center gap-2 rounded-xl border border-primary-200 bg-primary-50 px-2 py-1.5 text-primary-700"
-                    aria-label={translateText(language, 'addModule')}
-                  >
-                    <PlusIcon className="h-4 w-4" />
-                  </button>
-                </div>
-
-                <div className="mt-3 w-full">
-                  <div className="mt-2 flex items-center gap-2">
-                    {[
-                      { value: 'revenue', label: 'Revenue', title: 'Revenue', selectedClass: 'border-emerald-500 bg-emerald-500 text-white' },
-                      { value: 'expense', label: 'Expense', title: 'Expense', selectedClass: 'border-red-500 bg-red-500 text-white' },
-                    ].map((item) => {
-                      const isActive = customModuleType === item.value
-                      return (
-                        <button
-                          key={item.value}
-                          type="button"
-                          title={item.title}
-                          aria-label={item.title}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setCustomModuleType(item.value)
-                          }}
-                          className={`inline-flex items-center justify-center rounded-full px-3 py-1 text-xs font-medium transition ${isActive ? item.selectedClass : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'}`}
-                        >
-                          {item.label}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </div>
         </div>
       </div>
+
+      {isCustomModuleModalOpen ? (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/35 px-3 py-4 backdrop-blur-sm" onClick={() => setIsCustomModuleModalOpen(false)}>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.18, ease: 'easeOut' }}
+            className="w-full max-w-md rounded-[1.5rem] border border-white/80 bg-white p-4 shadow-glass"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <p className="text-xs font-light uppercase tracking-[0.24em] text-primary-600">{text.addModule}</p>
+            <h3 className="mt-2 text-xl font-light tracking-tight text-slate-800">{text.newModulePlaceholder}</h3>
+
+            <div className="mt-4 flex items-center gap-2">
+              <input
+                type="text"
+                value={customModuleDraft}
+                onChange={(e) => setCustomModuleDraft(e.target.value)}
+                autoFocus
+                onKeyDown={async (e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    if (customModuleDraft.trim()) {
+                      await createCustomModule(customModuleDraft.trim())
+                    }
+                  }
+                }}
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-left text-sm font-light text-slate-700 outline-none placeholder:text-slate-400 focus:border-primary-500 focus:ring-1 focus:ring-primary-200"
+                placeholder={text.newModulePlaceholder}
+              />
+            </div>
+
+            <div className="mt-4">
+              <p className="text-xs font-light uppercase tracking-[0.14em] text-slate-500">{text.chooseTypeLabel}</p>
+              <div className="mt-2 flex items-center gap-2">
+                {[
+                  { value: 'revenue', label: 'Revenue', title: 'Revenue', selectedClass: 'border-emerald-500 bg-emerald-500 text-white' },
+                  { value: 'expense', label: 'Expense', title: 'Expense', selectedClass: 'border-red-500 bg-red-500 text-white' },
+                ].map((item) => {
+                  const isActive = customModuleType === item.value
+                  return (
+                    <button
+                      key={item.value}
+                      type="button"
+                      title={item.title}
+                      aria-label={item.title}
+                      onClick={() => setCustomModuleType(item.value)}
+                      className={`inline-flex items-center justify-center rounded-full px-3 py-1 text-xs font-medium transition ${isActive ? item.selectedClass : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'}`}
+                    >
+                      {item.label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setIsCustomModuleModalOpen(false)}
+                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-light text-slate-700 transition hover:bg-slate-50"
+              >
+                {text.cancel}
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (customModuleDraft.trim()) {
+                    await createCustomModule(customModuleDraft.trim())
+                  }
+                }}
+                className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary-500 to-primary-600 px-4 py-2 text-sm font-light text-white"
+                aria-label={translateText(language, 'addModule')}
+              >
+                <PlusIcon className="h-4 w-4" />
+                {text.addModule}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      ) : null}
     </>
   )
 }

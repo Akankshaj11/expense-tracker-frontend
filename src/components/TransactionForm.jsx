@@ -31,6 +31,8 @@ export default function TransactionForm({
   setAttachment,
   date,
   setDate,
+  time,
+  setTime,
   error,
   savedMessage,
   canSave,
@@ -128,17 +130,17 @@ export default function TransactionForm({
           ) : null}
 
           <div className="grid gap-4">
-            <div>
-              <label className="mb-1.5 block text-sm font-light text-slate-700">{text.notesLabel}</label>
-              <input
-                type="text"
-                value={note}
-                onChange={(event) => setNote(event.target.value)}
-                placeholder={text.notesPlaceholder}
-                className="w-full rounded-xl border border-white/6 bg-[var(--card)] px-3 py-2.5 text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
-              />
-            </div>
             <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <label className="mb-1.5 block text-sm font-light text-slate-700">{text.notesLabel}</label>
+                <input
+                  type="text"
+                  value={note}
+                  onChange={(event) => setNote(event.target.value)}
+                  placeholder={text.notesPlaceholder}
+                  className="w-full rounded-xl border border-white/6 bg-[var(--card)] px-3 py-2.5 text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+                />
+              </div>
               <div>
                 <label className="mb-1.5 block text-sm font-light text-slate-700">{text.attachmentLabel}</label>
                 <label className="flex cursor-pointer items-center justify-between rounded-xl border border-dashed border-slate-300 bg-[var(--card)] px-3 py-2.5 text-sm text-[var(--muted)] transition hover:border-primary-400 hover:bg-primary-50">
@@ -149,12 +151,23 @@ export default function TransactionForm({
                   <input type="file" className="hidden" onChange={(event) => setAttachment(event.target.files?.[0] || null)} />
                 </label>
               </div>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <label className="mb-1.5 block text-sm font-light text-slate-700">{text.dateLabel}</label>
                 <input
                   type="date"
                   value={date}
                   onChange={(event) => setDate(event.target.value)}
+                  className="w-full rounded-xl border border-white/6 bg-[var(--card)] px-3 py-2.5 text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-light text-slate-700">{text.timeLabel}</label>
+                <input
+                  type="time"
+                  value={time}
+                  onChange={(event) => setTime(event.target.value)}
                   className="w-full rounded-xl border border-white/6 bg-[var(--card)] px-3 py-2.5 text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
                 />
               </div>

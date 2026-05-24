@@ -1,7 +1,10 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { EllipsisVerticalIcon, Squares2X2Icon } from '@heroicons/react/24/outline'
+import { apiRequest } from '../../utils/api'
+import { loadOrganizationsFromBackend } from '../../utils/organizationSync'
+import { readJSON } from '../../utils/transactionHelpers'
+import DashboardModuleEditor from './DashboardModuleEditor'
 
 function getModuleTypeBadge(module) {
   if (!module?.isCustom || !module?.transactionType) {
@@ -25,28 +28,276 @@ function getModuleTypeBadge(module) {
   return null
 }
 
-export default function DashboardModulesSection({ text, moduleCards, onModuleClick }) {
+export default function DashboardModulesSection({ text, moduleCards, onModuleClick, activeOrganization, organizations, setOrganizations }) {
   const [openMenuId, setOpenMenuId] = useState(null)
-  const navigate = useNavigate()
+  const [isEditorOpen, setIsEditorOpen] = useState(false)
+  const [editingOriginalName, setEditingOriginalName] = useState('')
+  const [moduleNameDraft, setModuleNameDraft] = useState('')
+  const [submoduleDrafts, setSubmoduleDrafts] = useState([])
+  const [isSaving, setIsSaving] = useState(false)
+  const [error, setError] = useState('')
 
   const handleView = (moduleLabel) => {
     if (onModuleClick) onModuleClick(moduleLabel)
     setOpenMenuId(null)
   }
 
-  const handleEdit = (moduleLabel) => {
-    // navigate to manage page with query param for editing
-    navigate(`/manage-organization?editModule=${encodeURIComponent(moduleLabel)}`)
+  const openEditor = (module) => {
+    setEditingOriginalName(module.rawName || module.label || '')
+    setModuleNameDraft(module.rawName || module.label || '')
+    setSubmoduleDrafts(Array.isArray(module.rawSubmodules) ? [...module.rawSubmodules] : [])
+    setError('')
+    setIsEditorOpen(true)
     setOpenMenuId(null)
   }
 
-  const handleDelete = (moduleLabel) => {
-    const confirmed = window.confirm(`Delete module "${moduleLabel}"? This cannot be undone.`)
-    if (confirmed) {
-      // navigate to manage page with delete query — handled there if implemented
-      navigate(`/manage-organization?deleteModule=${encodeURIComponent(moduleLabel)}`)
+  const closeEditor = () => {
+    setIsEditorOpen(false)
+    setEditingOriginalName('')
+    setModuleNameDraft('')
+    setSubmoduleDrafts([])
+    setError('')
+    setIsSaving(false)
+  }
+
+  const updateSubmoduleDraft = (index, value) => {
+    setSubmoduleDrafts((current) => current.map((submodule, subIndex) => (subIndex === index ? value : submodule)))
+  }
+
+  const addSubmoduleDraft = () => {
+    setSubmoduleDrafts((current) => [...current, ''])
+  }
+
+  const removeSubmoduleDraft = (index) => {
+    setSubmoduleDrafts((current) => current.filter((_, subIndex) => subIndex !== index))
+  }
+
+  const persistUpdatedOrganizations = async (nextOrganizations) => {
+    const activeOrgId = String(activeOrganization?.id || '')
+    const activeOrg = nextOrganizations.find((org) => String(org.id) === activeOrgId)
+    if (!activeOrg) {
+      return
     }
-    setOpenMenuId(null)
+
+    const modulesForBackend = (activeOrg.modules || []).map((module) => ({
+      name: module.name,
+      transactionType: module.transactionType || 'revenue',
+      isCustom: module?.isCustom === true,
+      submodules: Array.isArray(module.submodules) ? module.submodules : [],
+    }))
+    const submodulesMap = {}
+    modulesForBackend.forEach((module) => {
+      submodulesMap[module.name] = Array.isArray(module.submodules) ? module.submodules : []
+    })
+
+    await apiRequest(`/organizations/${encodeURIComponent(activeOrg.id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ modules: modulesForBackend, submodules: submodulesMap }),
+    })
+
+    localStorage.setItem('organizations', JSON.stringify(nextOrganizations))
+    localStorage.setItem('organization', JSON.stringify(activeOrg))
+
+    if (typeof setOrganizations === 'function') {
+      setOrganizations(nextOrganizations)
+    }
+
+    try {
+      const refreshed = await loadOrganizationsFromBackend()
+      if (!Array.isArray(refreshed) || refreshed.length === 0) {
+        return
+      }
+
+      const refreshedActiveOrg = refreshed.find((org) => String(org.id) === activeOrgId) || refreshed[0]
+      const mergedOrganizations = refreshed.map((org) => (String(org.id) === activeOrgId ? refreshedActiveOrg : org))
+
+      localStorage.setItem('organizations', JSON.stringify(mergedOrganizations))
+      localStorage.setItem('organization', JSON.stringify(refreshedActiveOrg))
+
+      if (typeof setOrganizations === 'function') {
+        setOrganizations(mergedOrganizations)
+      }
+    } catch {
+      // Keep optimistic local state when refresh fails
+    }
+  }
+
+  const handleSave = async () => {
+    if (!activeOrganization) {
+      return
+    }
+
+    const nextName = moduleNameDraft.trim()
+    const nextSubmodules = submoduleDrafts.map((submodule) => submodule.trim()).filter(Boolean)
+
+    if (!nextName) {
+      setError(text.moduleNameRequired)
+      return
+    }
+
+    if (nextSubmodules.length === 0) {
+      setError(text.addAtLeastOneSubmodule)
+      return
+    }
+
+    const activeModules = Array.isArray(activeOrganization.modules) ? [...activeOrganization.modules] : []
+    const originalName = String(editingOriginalName || '').trim()
+    const duplicateExists = activeModules.some((module) => {
+      const normalized = String(module.name || '').trim().toLowerCase()
+      return normalized === nextName.toLowerCase() && normalized !== originalName.toLowerCase()
+    })
+
+    if (duplicateExists) {
+      setError(text.moduleNameAlreadyExists || 'Module name already exists')
+      return
+    }
+
+    const nextModules = activeModules.map((module) => {
+      if (String(module.name || '') !== originalName) {
+        return module
+      }
+
+      return {
+        ...module,
+        name: nextName,
+        transactionType: module.transactionType || 'revenue',
+        submodules: nextSubmodules,
+      }
+    })
+
+    const nextOrganizations = (readJSON('organizations', []) || []).map((organization) => {
+      if (organization.id !== activeOrganization.id) {
+        return organization
+      }
+
+      const nextSubmoduleMap = {}
+      nextModules.forEach((module) => {
+        nextSubmoduleMap[module.name] = Array.isArray(module.submodules) ? module.submodules : []
+      })
+
+      return {
+        ...organization,
+        modules: nextModules,
+        submodules: nextSubmoduleMap,
+      }
+    })
+
+    try {
+      setIsSaving(true)
+      await persistUpdatedOrganizations(nextOrganizations)
+
+      const transactions = readJSON('transactions', [])
+      const moduleRenameMap = new Map()
+      moduleRenameMap.set(originalName, nextName)
+      const submoduleRenameMap = new Map()
+      moduleCards
+        .find((item) => item.rawName === originalName)
+        ?.rawSubmodules?.forEach((oldSubmodule, index) => {
+          const newSubmodule = nextSubmodules[index]
+          if (newSubmodule && newSubmodule !== oldSubmodule) {
+            submoduleRenameMap.set(oldSubmodule, newSubmodule)
+          }
+        })
+
+      const updatedTransactions = transactions.map((transaction) => {
+        if (transaction.organizationId && transaction.organizationId !== activeOrganization.id) {
+          return transaction
+        }
+
+        if (String(transaction.module || '') !== originalName) {
+          return transaction
+        }
+
+        const nextTransaction = { ...transaction, module: nextName }
+        const mappedSubmodule = submoduleRenameMap.get(transaction.submodule)
+        if (mappedSubmodule) {
+          nextTransaction.submodule = mappedSubmodule
+        }
+        return nextTransaction
+      })
+
+      localStorage.setItem('transactions', JSON.stringify(updatedTransactions))
+      closeEditor()
+    } catch (saveError) {
+      setError(saveError?.message || text.unableToSaveOrganization || 'Unable to save changes')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleDelete = async (module, event) => {
+    event?.stopPropagation()
+
+    const moduleName = String(module.rawName || module.label || '').trim()
+    if (!moduleName || !activeOrganization?.id) {
+      setOpenMenuId(null)
+      return
+    }
+
+    const moduleLabel = module.label || moduleName
+    const confirmed = window.confirm(`Delete module "${moduleLabel}"? This cannot be undone.`)
+    if (!confirmed) {
+      setOpenMenuId(null)
+      return
+    }
+
+    const activeOrgId = String(activeOrganization.id)
+    const sourceOrganizations = Array.isArray(organizations) && organizations.length > 0 ? organizations : readJSON('organizations', [])
+    const currentOrg = sourceOrganizations.find((org) => String(org.id) === activeOrgId)
+    const activeModules = Array.isArray(currentOrg?.modules) ? currentOrg.modules : []
+
+    if (activeModules.length <= 1) {
+      alert(text.addAtLeastOneModule || 'At least one module is required')
+      setOpenMenuId(null)
+      return
+    }
+
+    const normalizedModuleName = moduleName.toLowerCase()
+    const nextModules = activeModules.filter(
+      (item) => String(item.name || '').trim().toLowerCase() !== normalizedModuleName,
+    )
+
+    if (nextModules.length === activeModules.length) {
+      alert(text.unableToSaveOrganization || 'Unable to delete this module')
+      setOpenMenuId(null)
+      return
+    }
+
+    const nextSubmodulesMap = {}
+    nextModules.forEach((item) => {
+      nextSubmodulesMap[item.name] = Array.isArray(item.submodules) ? item.submodules : []
+    })
+
+    const nextOrganizations = sourceOrganizations.map((organization) => {
+      if (String(organization.id) !== activeOrgId) {
+        return organization
+      }
+
+      return {
+        ...organization,
+        modules: nextModules,
+        submodules: nextSubmodulesMap,
+      }
+    })
+
+    try {
+      await persistUpdatedOrganizations(nextOrganizations)
+
+      const transactions = readJSON('transactions', [])
+      const nextTransactions = transactions.filter((transaction) => {
+        if (transaction.organizationId && String(transaction.organizationId) !== activeOrgId) {
+          return true
+        }
+
+        return String(transaction.module || '').trim().toLowerCase() !== normalizedModuleName
+      })
+      localStorage.setItem('transactions', JSON.stringify(nextTransactions))
+      window.dispatchEvent(new Event('transactions:updated'))
+    } catch {
+      alert(text.unableToSaveOrganization || 'Unable to save organization changes')
+    } finally {
+      setOpenMenuId(null)
+    }
   }
 
   return (
@@ -133,14 +384,14 @@ export default function DashboardModulesSection({ text, moduleCards, onModuleCli
                     </button>
                     <button
                       type="button"
-                      onClick={() => handleEdit(module.label)}
+                      onClick={() => openEditor(module)}
                       className="w-full px-3 py-2 text-left text-sm text-[var(--text)] hover:bg-white/5"
                     >
                       Edit
                     </button>
                     <button
                       type="button"
-                      onClick={() => handleDelete(module.label)}
+                      onClick={(event) => handleDelete(module, event)}
                       className="w-full px-3 py-2 text-left text-sm text-rose-600 hover:bg-white/5"
                     >
                       Delete
@@ -181,6 +432,21 @@ export default function DashboardModulesSection({ text, moduleCards, onModuleCli
           </motion.article>
         ))}
       </div>
+
+      <DashboardModuleEditor
+        text={text}
+        isOpen={isEditorOpen}
+        onClose={closeEditor}
+        moduleNameDraft={moduleNameDraft}
+        setModuleNameDraft={setModuleNameDraft}
+        submoduleDrafts={submoduleDrafts}
+        addSubmoduleDraft={addSubmoduleDraft}
+        updateSubmoduleDraft={updateSubmoduleDraft}
+        removeSubmoduleDraft={removeSubmoduleDraft}
+        isSaving={isSaving}
+        error={error}
+        onSave={handleSave}
+      />
     </section>
   )
 }

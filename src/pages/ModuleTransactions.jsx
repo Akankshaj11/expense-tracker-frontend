@@ -134,6 +134,9 @@ export default function ModuleTransactions() {
     }
   }, [])
 
+    const [transactions, setTransactions] = useState(() => readJSON('transactions', []))
+    const [attachmentCache, setAttachmentCache] = useState(() => readJSON('attachments', []))
+
   useEffect(() => {
     const handleLanguageChanged = (event) => {
       const newLanguage = (event && event.detail && event.detail.language) || localStorage.getItem('selectedLanguage') || 'en'
@@ -144,13 +147,27 @@ export default function ModuleTransactions() {
       if (event.key === 'selectedLanguage') {
         setLanguage(event.newValue || 'en')
       }
+      if (event.key === 'transactions' || event.key === 'attachments') {
+        setTransactions(readJSON('transactions', []))
+        setAttachmentCache(readJSON('attachments', []))
+      }
     }
 
     window.addEventListener('language:changed', handleLanguageChanged)
     window.addEventListener('storage', handleStorage)
+
+    // Listen for app-level transactions updates
+    const updateTransactionsFromStorage = () => {
+      setTransactions(readJSON('transactions', []))
+      setAttachmentCache(readJSON('attachments', []))
+    }
+
+    window.addEventListener('transactions:updated', updateTransactionsFromStorage)
+
     return () => {
       window.removeEventListener('language:changed', handleLanguageChanged)
       window.removeEventListener('storage', handleStorage)
+      window.removeEventListener('transactions:updated', updateTransactionsFromStorage)
     }
   }, [])
   
@@ -159,13 +176,16 @@ export default function ModuleTransactions() {
   const selectedCurrency = activeOrganization?.currency || readJSON('selectedCurrency', { code: 'USD', symbol: '$' })
   const text = translations[language] || translations.en
   const locale = getLocale(language)
-  const transactions = useMemo(() => readJSON('transactions', []), [])
-  const attachmentCache = useMemo(() => readJSON('attachments', []), [])
   const [selectedDate, setSelectedDate] = useState(getTodayDate())
   const [previewAttachment, setPreviewAttachment] = useState(null)
 
-  const moduleData = activeOrganization?.modules?.find((module) => module.name === moduleName) || null
-  const displayModuleName = translateModuleLabel(language, moduleName)
+  const moduleData =
+    activeOrganization?.modules?.find((module) => module.name === moduleName) ||
+    activeOrganization?.modules?.find((module) => translateModuleLabel(language, module.name) === moduleName) ||
+    null
+
+  const resolvedModuleName = moduleData?.name || moduleName
+  const displayModuleName = translateModuleLabel(language, resolvedModuleName)
 
   const moduleTransactions = useMemo(() => {
     if (!activeOrganization || !moduleName) {
@@ -178,10 +198,10 @@ export default function ModuleTransactions() {
           return false
         }
 
-        return transaction.module === moduleName && transaction.date === selectedDate
+        return transaction.module === resolvedModuleName && transaction.date === selectedDate
       })
       .sort((left, right) => new Date(right.createdAt || right.date || 0) - new Date(left.createdAt || left.date || 0))
-  }, [transactions, activeOrganization, moduleName, selectedDate])
+  }, [transactions, activeOrganization, resolvedModuleName, selectedDate, language])
 
   const resolveAttachmentPreview = (transaction) => {
     if (transaction.attachmentDataUrl) {
@@ -339,8 +359,8 @@ export default function ModuleTransactions() {
                         })()}
                         <p className="text-sm text-slate-500">{formatTime(transaction.createdAt, locale)}</p>
                       </div>
-                    </div>
 
+                    </div>
                     <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-[var(--muted)]">
                       {transaction.note ? <span className="rounded-full bg-[var(--card)] px-3 py-1.5 ring-1 ring-slate-200">{transaction.note}</span> : null}
                       {transaction.attachmentName ? (

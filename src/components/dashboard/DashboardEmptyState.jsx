@@ -16,3 +16,5 @@ export default function DashboardEmptyState({ text, onCreateOrganization }) {
     </section>
   )
 }
+
+

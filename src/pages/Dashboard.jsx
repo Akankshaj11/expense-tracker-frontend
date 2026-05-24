@@ -26,7 +26,7 @@ import {
   TicketIcon,
   TruckIcon,
 } from '@heroicons/react/24/outline'
-import { apiRequest, clearStoredAuth } from '../utils/api'
+import { apiRequest, authenticatedFetch, clearStoredAuth } from '../utils/api'
 import { loadOrganizationsFromBackend, readCachedOrganizations } from '../utils/organizationSync'
 import { translateText, getLocale, translateModuleLabel } from '../i18n/translations'
 import useLanguage from '../hooks/useLanguage'
@@ -239,6 +239,8 @@ function buildModuleCards(activeOrganization, currency, transactions, language =
     return {
       id: `${item.label}-${index}`,
       label: translateModuleLabel(language, item.label),
+      rawName: item.label,
+      rawSubmodules: [...item.submodules],
       submodules: item.submodules.map((submodule) => translateModuleLabel(language, submodule)),
       amountValue: displayAmountValue,
       amount: formatMoney(Math.abs(displayAmountValue), currency, locale),
@@ -306,6 +308,7 @@ export default function Dashboard() {
   const currentUser = readJSON('currentUser', null)
   const selectedCurrency = readJSON('selectedCurrency', { code: 'USD', symbol: '$' })
   const locale = getLocale(language)
+  const [transactionsRevision, setTransactionsRevision] = useState(0)
 
   useEffect(() => {
     let cancelled = false
@@ -334,12 +337,23 @@ export default function Dashboard() {
     }
   }, [activeOrgId])
 
+  useEffect(() => {
+    const handleTransactionsUpdated = () => {
+      setTransactionsRevision((current) => current + 1)
+    }
+
+    window.addEventListener('transactions:updated', handleTransactionsUpdated)
+    return () => {
+      window.removeEventListener('transactions:updated', handleTransactionsUpdated)
+    }
+  }, [])
+
   const activeOrganization = useMemo(() => {
     return organizations.find((item) => item.id === activeOrgId) || organizations[0] || null
   }, [organizations, activeOrgId])
 
   const activeCurrency = activeOrganization?.currency || selectedCurrency
-  const transactions = readJSON('transactions', [])
+  const transactions = useMemo(() => readJSON('transactions', []), [transactionsRevision])
   const activeOrganizationTransactions = useMemo(() => {
     if (!activeOrganization) {
       return []
@@ -553,6 +567,9 @@ export default function Dashboard() {
             <DashboardModulesSection
               text={text}
               moduleCards={moduleCards}
+              activeOrganization={activeOrganization}
+              organizations={organizations}
+              setOrganizations={setOrganizations}
               onModuleClick={(moduleLabel) => navigate(`/module/${encodeURIComponent(moduleLabel)}`)}
             />
 

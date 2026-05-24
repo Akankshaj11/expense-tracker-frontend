@@ -162,11 +162,37 @@ export async function authenticatedFetch(path, options = {}) {
     },
   })
 
-  if (response.status === 401 && !isPublicAuthPath(cleanPath)) {
-    // Clear only client-side copies; server will clear HttpOnly cookie on logout endpoint
-    notifySessionExpired()
-    sessionExpiredNotified = false
+ if (response.status === 401) {
+
+  // Do NOT refresh for login/register routes
+  if (isPublicAuthPath(cleanPath)) {
+    return response
   }
+
+  try {
+    // Attempt silent refresh
+    const refreshResponse = await fetch(
+      `${getApiBaseUrl()}/auth/refresh`,
+      {
+        method: 'POST',
+        credentials: 'include',
+      },
+    )
+
+    // Refresh successful → retry original request
+    if (refreshResponse.ok) {
+      return authenticatedFetch(cleanPath, options)
+    }
+
+    // Refresh failed
+    notifySessionExpired()
+
+  } catch {
+    notifySessionExpired()
+  }
+
+  sessionExpiredNotified = false
+}
 
   return response
 }

@@ -4,7 +4,12 @@ import { motion } from 'framer-motion'
 import { ArrowLeftIcon, BuildingOffice2Icon, CalendarDaysIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline'
 import { authenticatedFetch } from '../utils/api'
 import { loadOrganizationsFromBackend, readCachedOrganizations } from '../utils/organizationSync'
-import translations, { getLocale, translateText } from '../i18n/translations'
+
+import translations, {
+  getLocale,
+  translateText,
+  translateModuleLabel,
+} from '../i18n/translations'
 
 function readJSON(key, fallback) {
   try {
@@ -170,17 +175,6 @@ export default function Transactions() {
       .sort((left, right) => new Date(right.createdAt || right.date || 0) - new Date(left.createdAt || left.date || 0))
   }, [transactions, activeOrganization])
 
-  const revenueValue = organizationTransactions.reduce((sum, transaction) => {
-    return getTransactionCategory(transaction) === 'revenue' ? sum + Math.abs(Number(transaction?.amount || 0)) : sum
-  }, 0)
-  const expensesValue = organizationTransactions.reduce((sum, transaction) => {
-    return getTransactionCategory(transaction) === 'expenses' ? sum + Math.abs(Number(transaction?.amount || 0)) : sum
-  }, 0)
-  const investmentsValue = organizationTransactions.reduce((sum, transaction) => {
-    return getTransactionCategory(transaction) === 'investments' ? sum + Math.abs(Number(transaction?.amount || 0)) : sum
-  }, 0)
-  const totalTransactionsValue = revenueValue - expensesValue
-
   const handleDownloadReport = async () => {
     if (!activeOrganization) {
       return
@@ -284,22 +278,6 @@ export default function Transactions() {
             </div>
           </div>
 
-          <div className="mt-6 grid gap-4 sm:grid-cols-4">
-            {[
-              { label: text.totalBalance, value: formatMoney(Math.abs(totalTransactionsValue), selectedCurrency, locale), tone: totalTransactionsValue >= 0 ? 'text-emerald-600' : 'text-rose-600', sign: totalTransactionsValue >= 0 ? '+' : '-' },
-              { label: text.revenue, value: formatMoney(revenueValue, selectedCurrency, locale), tone: 'text-emerald-600', sign: '+' },
-              { label: text.expenses, value: formatMoney(expensesValue, selectedCurrency, locale), tone: 'text-rose-600', sign: '-' },
-              { label: text.investments, value: formatMoney(investmentsValue, selectedCurrency, locale), tone: 'text-violet-600', sign: '+' },
-            ].map((item) => (
-              <div key={item.label} className="rounded-[1.5rem] border border-white/6 bg-[var(--card)] p-5 shadow-sm">
-                <p className="text-sm font-light text-slate-500">{item.label}</p>
-                <p className={`mt-2 text-2xl font-light tracking-tight ${item.tone}`}>
-                  <span>{item.sign}</span> {item.value}
-                </p>
-              </div>
-            ))}
-          </div>
-
           <div className="mt-6 flex items-center justify-between gap-4">
             <div className="inline-flex items-center gap-2 rounded-full bg-primary-50 px-4 py-2 text-sm font-light text-primary-700">
               <BuildingOffice2Icon className="h-4 w-4" />
@@ -319,7 +297,8 @@ export default function Transactions() {
 
                 return (
                   <Link
-                    key={transaction.id || `${transaction.module || 'txn'}-${index}`}
+                    // key={transaction.id || `${transaction.module || 'txn'}-${index}`}
+                    key={transaction.id || `${translateModuleLabel(language, transaction.module) || 'txn'}-${index}`}
                     to={editPath}
                     className="block rounded-2xl border border-white/6 bg-[var(--card)] transition hover:-translate-y-0.5 hover:shadow-md"
                   >
@@ -331,9 +310,11 @@ export default function Transactions() {
                       className="flex items-center justify-between rounded-2xl px-4 py-4"
                     >
                       <div>
-                        <p className="font-light text-[var(--text)]">{transaction.note?.trim() || `${capitalize(transaction.module || text.transaction)} ${text.update}`}</p>
+                        {/* <p className="font-light text-[var(--text)]">{transaction.note?.trim() || `${capitalize(transaction.module || text.transaction)} ${text.update}`}</p> */}
+                        <p className="font-light text-[var(--text)]">{transaction.note?.trim() || `${capitalize(translateModuleLabel(language, transaction.module) || text.transaction)} ${text.update}`}</p>
                         <p className="text-sm text-slate-500">
-                          {capitalize(transaction.module || text.transaction)} · {formatDateTime(transaction.createdAt || transaction.date, locale)}
+                          {/* {capitalize(transaction.module || text.transaction)} · {formatDateTime(transaction.createdAt || transaction.date, locale)} */}
+                          {capitalize(translateModuleLabel(language, transaction.module) || text.transaction)} · {formatDateTime(transaction.createdAt || transaction.date, locale)}
                         </p>
                       </div>
                       <p className={`text-sm font-light ${amount >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>

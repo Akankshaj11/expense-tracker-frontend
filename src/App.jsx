@@ -53,21 +53,25 @@ export default function App(){
   return (
     <BrowserRouter>
       <SessionExpiryListener />
-      <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/select-currency" element={<CurrencySelect />} />
-        <Route path="/select-language" element={<LanguageSelect />} />
-        <Route path="/create-organization" element={<CreateOrganization />} />
-        <Route path="/manage-organization" element={<ManageOrganization />} />
-        <Route path="/add-transaction" element={<AddTransaction />} />
-        <Route path="/edit-transaction/:transactionId" element={<AddTransaction />} />
-        <Route path="/transactions" element={<Transactions />} />
-        <Route path="/module/:moduleName" element={<ModuleTransactions />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-      </Routes>
-      <Footer />
+      <div className="flex min-h-screen flex-col">
+        <main className="flex-1 overflow-hidden bg-white">
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/select-currency" element={<CurrencySelect />} />
+            <Route path="/select-language" element={<LanguageSelect />} />
+            <Route path="/create-organization" element={<CreateOrganization />} />
+            <Route path="/manage-organization" element={<ManageOrganization />} />
+            <Route path="/add-transaction" element={<AddTransaction />} />
+            <Route path="/edit-transaction/:transactionId" element={<AddTransaction />} />
+            <Route path="/transactions" element={<Transactions />} />
+            <Route path="/module/:moduleName" element={<ModuleTransactions />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+          </Routes>
+        </main>
+        <Footer />
+      </div>
     </BrowserRouter>
   )
 }
