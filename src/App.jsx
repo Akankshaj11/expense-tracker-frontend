@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Register from './pages/Register'
@@ -70,8 +70,16 @@ export default function App(){
             <Route path="/dashboard" element={<Dashboard />} />
           </Routes>
         </main>
-        <Footer />
+        {/* Render short footer on all pages except the Landing (home) page */}
+        <RenderFooterUnlessHome />
       </div>
     </BrowserRouter>
   )
+}
+
+function RenderFooterUnlessHome() {
+  const location = useLocation()
+  // hide the short copyright footer on the home page where we show a full company footer
+  if (location?.pathname === '/') return null
+  return <Footer />
 }

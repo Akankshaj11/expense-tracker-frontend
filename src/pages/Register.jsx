@@ -99,7 +99,7 @@ export default function Register() {
   }
 
   return (
-    <div className="theme-light-violet relative h-screen overflow-hidden flex items-center justify-center px-4 py-6 sm:px-6 lg:px-8 bg-[var(--bg)]">
+    <div className="theme-light-violet relative flex items-center justify-center px-4 py-8 sm:px-6 lg:px-8 bg-[var(--bg)]">
       {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary-200/30 rounded-full blur-3xl" />
@@ -112,13 +112,13 @@ export default function Register() {
         transition={{ duration: 0.5 }}
         className="relative w-full max-w-md"
       >
-        <div className="bg-[var(--card)] rounded-2xl shadow-glass p-6 sm:p-8">
+        <div className="bg-[var(--card)] rounded-2xl shadow-glass p-4 sm:p-6">
           {/* Header */}
           <div className="text-center mb-6">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 text-white font-light text-lg mx-auto mb-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 text-white font-light text-lg mx-auto mb-4">
               FT
             </div>
-            <h1 className="text-3xl font-light text-[var(--text)]">Get Started</h1>
+            <h1 className="text-2xl font-light text-[var(--text)]">Get Started</h1>
             <p className="mt-2 text-[var(--muted)]">Create your FinTrack account</p>
           </div>
 
@@ -134,7 +134,7 @@ export default function Register() {
           )}
 
           {/* Form */}
-          <form onSubmit={handleRegister} className="space-y-3">
+          <form onSubmit={handleRegister} className="space-y-2">
             <div>
               <label htmlFor="email" className="block text-sm font-light text-slate-700 mb-2">
                 Email Address
@@ -145,7 +145,7 @@ export default function Register() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="w-full px-4 py-2.5 rounded-lg border border-white/6 bg-[var(--card)] text-[var(--text)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+                className="w-full px-4 py-2 rounded-lg border border-white/6 bg-[var(--card)] text-[var(--text)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
               />
             </div>
 
@@ -159,7 +159,7 @@ export default function Register() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full px-4 py-2.5 rounded-lg border border-white/6 bg-[var(--card)] text-[var(--text)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+                className="w-full px-4 py-2 rounded-lg border border-white/6 bg-[var(--card)] text-[var(--text)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
               />
               <p className="mt-1 text-xs text-slate-500">At least 6 characters</p>
             </div>
@@ -174,7 +174,7 @@ export default function Register() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full px-4 py-2.5 rounded-lg border border-white/6 bg-[var(--card)] text-[var(--text)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+                className="w-full px-4 py-2 rounded-lg border border-white/6 bg-[var(--card)] text-[var(--text)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
               />
             </div>
 
@@ -183,7 +183,7 @@ export default function Register() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-4 px-4 py-2.5 rounded-lg bg-gradient-to-r from-primary-500 to-primary-600 text-white font-light shadow-glass hover:shadow-primary-500/40 transition hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full mt-4 px-4 py-2 rounded-lg bg-gradient-to-r from-primary-500 to-primary-600 text-white font-light shadow-glass hover:shadow-primary-500/40 transition hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? 'Creating account...' : 'Create Account'}
               {!loading && <ArrowRightIcon className="h-4 w-4" />}

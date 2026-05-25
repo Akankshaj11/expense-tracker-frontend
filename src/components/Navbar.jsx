@@ -31,11 +31,17 @@ export default function Navbar(){
           </Link>
 
           <nav className="hidden lg:flex items-center gap-8 text-sm">
-            {['About', 'Features', 'Modules', 'Analytics', 'Pricing'].map((item) => (
-              <a key={item} href={`#${item.toLowerCase()}`} className="group relative text-white/60 hover:text-white transition-colors">
-                {item}
+            {[
+              {label: 'About', to: '/#about'},
+              {label: 'Features', to: '/#features'},
+              {label: 'Modules', to: '/#modules'},
+              {label: 'Analytics', to: '/#analytics'},
+              {label: 'Pricing', to: '/#pricing'},
+            ].map((item) => (
+              <Link key={item.label} to={item.to} className="group relative text-white/60 hover:text-white transition-colors">
+                {item.label}
                 <span className="absolute left-0 -bottom-2 h-0.5 w-0 bg-gradient-to-r from-primary-500 to-primary-600 transition-all duration-300 group-hover:w-full rounded" />
-              </a>
+              </Link>
             ))}
           </nav>
 
@@ -63,10 +69,16 @@ export default function Navbar(){
             className="md:hidden border-t border-white/20 bg-white/6 px-4 pb-5 pt-3 shadow-lg backdrop-blur-xl"
           >
             <div className="container-max mx-auto flex flex-col gap-3 text-sm text-white">
-              {['About', 'Features', 'Modules', 'Analytics', 'Pricing'].map((item) => (
-                  <a key={item} href={`#${item.toLowerCase()}`} className="rounded-xl px-3 py-3 transition hover:bg-white/10 hover:text-white" onClick={() => setMobileOpen(false)}>
-                    {item}
-                  </a>
+              {[
+                {label: 'About', to: '/#about'},
+                {label: 'Features', to: '/#features'},
+                {label: 'Modules', to: '/#modules'},
+                {label: 'Analytics', to: '/#analytics'},
+                {label: 'Pricing', to: '/#pricing'},
+              ].map((item) => (
+                  <Link key={item.label} to={item.to} className="rounded-xl px-3 py-3 transition hover:bg-white/10 hover:text-white" onClick={() => setMobileOpen(false)}>
+                    {item.label}
+                  </Link>
                 ))}
               <div className="mt-2 flex gap-3">
                 <Link to="/login" className="flex-1 rounded-full border border-white/12 bg-white/6 px-4 py-3 font-light text-center">Login</Link>

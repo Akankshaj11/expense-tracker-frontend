@@ -8,11 +8,26 @@ import HowItWorks from '../components/HowItWorks'
 import DashboardPreview from '../components/DashboardPreview'
 import Testimonials from '../components/Testimonials'
 import CTA from '../components/CTA'
-import Footer from '../components/Footer'
+import FooterFull from '../components/FooterFull'
+import { useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 
 export default function Landing(){
+  const location = useLocation()
+
+  useEffect(() => {
+    if (location.hash) {
+      const id = location.hash.replace('#', '')
+      const el = document.getElementById(id)
+      if (el) {
+        // small timeout to ensure element is mounted
+        setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
+      }
+    }
+  }, [location])
+
   return (
-    <div id="top" className="relative overflow-x-hidden">
+    <div id="top" className="relative overflow-x-hidden bg-black text-white">
       <Navbar />
 
       <main>
@@ -30,7 +45,7 @@ export default function Landing(){
         </section>
       </main>
 
-      <Footer />
+      <FooterFull />
     </div>
   )
 }
