@@ -229,7 +229,7 @@ export default function AddTransaction() {
       }
     }
 
-    const currentUser = readJSON('currentUser', null)
+    // const currentUser = readJSON('currentUser', null)
     const transactionPayload = {
       organizationId: activeOrganization?.id || '',
       module: selectedModule,
@@ -245,7 +245,6 @@ export default function AddTransaction() {
       date,
       time,
       currency: selectedCurrency?.code || 'USD',
-      ownerId: currentUser?.id || currentUser?._id || currentUser?.email || '',
     }
 
     const canSyncTransaction = isEditMode && isMongoObjectId(existingTransactionId)

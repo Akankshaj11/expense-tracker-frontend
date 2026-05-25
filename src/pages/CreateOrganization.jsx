@@ -133,7 +133,7 @@ export default function CreateOrganization() {
     }
 
     const selectedCurrency = JSON.parse(localStorage.getItem('selectedCurrency') || 'null')
-    const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null')
+    // const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null')
 
     const organizationPayload = {
       organizationName: organizationName.trim(),
@@ -141,7 +141,6 @@ export default function CreateOrganization() {
       currency: selectedCurrency,
       modules: activeModules,
       submodules,
-      ownerId: currentUser?.id || currentUser?._id || currentUser?.email || '',
     }
 
     let savedOrganization = null

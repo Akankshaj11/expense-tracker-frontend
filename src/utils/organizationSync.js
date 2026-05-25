@@ -24,14 +24,15 @@ export function getStoredCurrentUser() {
 }
 
 export async function loadOrganizationsFromBackend() {
-  const currentUser = getStoredCurrentUser()
-  const ownerId = currentUser?.id || currentUser?._id || currentUser?.email || ''
-  if (!ownerId) {
-    return readCachedOrganizations()
-  }
+  // const currentUser = getStoredCurrentUser()
+  // const ownerId = currentUser?.id || currentUser?._id || currentUser?.email || ''
+  // if (!ownerId) {
+  //   return readCachedOrganizations()
+  // }
 
   try {
-    const response = await apiRequest(`/organizations?ownerId=${encodeURIComponent(ownerId)}`)
+    // const response = await apiRequest(`/organizations?ownerId=${encodeURIComponent(ownerId)}`)
+    const response = await apiRequest('/organizations')
     const organizations = Array.isArray(response?.data?.items) ? response.data.items : []
 
     if (organizations.length > 0) {
