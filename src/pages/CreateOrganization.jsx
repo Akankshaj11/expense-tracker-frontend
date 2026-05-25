@@ -196,7 +196,7 @@ export default function CreateOrganization() {
         animate={{ opacity: 1, y: 0 }}
         className="relative mx-auto flex w-full min-h-[calc(100vh-6rem)] items-center justify-center px-2 sm:px-4 lg:px-0"
       >
-        <div className="w-full max-w-3xl rounded-[2rem] border border-white/80 bg-[var(--card)] p-5 shadow-glass sm:p-8">
+        <div className="inner-card-accent w-full max-w-3xl rounded-[2rem] border border-white/80 bg-[var(--card)] p-5 shadow-glass sm:p-8">
           <div className="mb-6 flex justify-start">
             <button
               type="button"
@@ -222,7 +222,7 @@ export default function CreateOrganization() {
                   type="text"
                   value={organizationName}
                   onChange={(e) => setOrganizationName(e.target.value)}
-                  className="w-full rounded-xl border border-white/6 bg-[var(--card)] px-4 py-3 text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+                  className="w-full rounded-xl border border-white/6 bg-[var(--card)] px-4 py-3 text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 input-glass"
                   placeholder={text.organizationNamePlaceholder}
                 />
               </div>
@@ -233,7 +233,7 @@ export default function CreateOrganization() {
                   type="text"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full rounded-xl border border-white/6 bg-[var(--card)] px-4 py-3 text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+                  className="w-full rounded-xl border border-white/6 bg-[var(--card)] px-4 py-3 text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 input-glass"
                   placeholder={text.descriptionPlaceholder}
                 />
               </div>

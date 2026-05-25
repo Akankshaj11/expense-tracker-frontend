@@ -34,7 +34,6 @@ export default function Navbar(){
             {[
               {label: 'About', to: '/#about'},
               {label: 'Features', to: '/#features'},
-              {label: 'Modules', to: '/#modules'},
               {label: 'Analytics', to: '/#analytics'},
               {label: 'Pricing', to: '/#pricing'},
             ].map((item) => (
@@ -72,7 +71,6 @@ export default function Navbar(){
               {[
                 {label: 'About', to: '/#about'},
                 {label: 'Features', to: '/#features'},
-                {label: 'Modules', to: '/#modules'},
                 {label: 'Analytics', to: '/#analytics'},
                 {label: 'Pricing', to: '/#pricing'},
               ].map((item) => (

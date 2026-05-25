@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   BuildingOffice2Icon,
@@ -39,9 +40,56 @@ function LanguageRow({ language, setLanguage, text }) {
   )
 }
 
-function OrganizationMenu({ activeOrgId, activeOrganization, organizations, orgMenuOpen, setOrgMenuOpen, setProfileOpen, handleSwitchOrg, handleCreateNewOrg, text }) {
+function useIsDesktop() {
+  const getMatch = () => (typeof window !== 'undefined' ? window.matchMedia('(min-width: 768px)').matches : true)
+  const [isDesktop, setIsDesktop] = useState(getMatch)
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(min-width: 768px)')
+    const handleChange = (event) => setIsDesktop(event.matches)
+
+    setIsDesktop(mediaQuery.matches)
+
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', handleChange)
+      return () => mediaQuery.removeEventListener('change', handleChange)
+    }
+
+    mediaQuery.addListener(handleChange)
+    return () => mediaQuery.removeListener(handleChange)
+  }, [])
+
+  return isDesktop
+}
+
+function OrganizationMenu({ activeOrgId, activeOrganization, organizations, orgMenuOpen, setOrgMenuOpen, setProfileOpen, handleSwitchOrg, handleCreateNewOrg, text, mobile = false }) {
+  const containerRef = useRef(null)
+  const isDesktop = useIsDesktop()
+  const isActiveView = mobile ? !isDesktop : isDesktop
+
+  useEffect(() => {
+    if (!orgMenuOpen || !isActiveView) {
+      return undefined
+    }
+
+    const handlePointerDown = (event) => {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setOrgMenuOpen(false)
+        setProfileOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handlePointerDown)
+    document.addEventListener('touchstart', handlePointerDown)
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown)
+      document.removeEventListener('touchstart', handlePointerDown)
+    }
+  }, [orgMenuOpen, isActiveView, setOrgMenuOpen, setProfileOpen])
+
   return (
-    <div className="relative">
+    <div ref={containerRef} className="relative">
       <button
         type="button"
         onClick={() => {
@@ -102,12 +150,36 @@ function OrganizationMenu({ activeOrgId, activeOrganization, organizations, orgM
 }
 
 function ProfileMenu({ currentUser, firstName, activeOrganization, activeCurrency, profileOpen, setProfileOpen, setOrgMenuOpen, language, setLanguage, handleLogout, text, mobile = false }) {
+  const containerRef = useRef(null)
+  const isDesktop = useIsDesktop()
+  const isActiveView = mobile ? !isDesktop : isDesktop
   const panelClassName = mobile
     ? 'absolute right-0 mt-3 w-[calc(100vw-2rem)] max-w-sm rounded-2xl border border-white/6 bg-[var(--card)] p-4 shadow-2xl shadow-slate-200/80'
     : 'absolute right-0 mt-3 w-72 rounded-2xl border border-white/6 bg-[var(--card)] p-4 shadow-2xl shadow-slate-200/80'
 
+  useEffect(() => {
+    if (!profileOpen || !isActiveView) {
+      return undefined
+    }
+
+    const handlePointerDown = (event) => {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setProfileOpen(false)
+        setOrgMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handlePointerDown)
+    document.addEventListener('touchstart', handlePointerDown)
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown)
+      document.removeEventListener('touchstart', handlePointerDown)
+    }
+  }, [profileOpen, isActiveView, setProfileOpen, setOrgMenuOpen])
+
   return (
-    <div className="relative">
+    <div ref={containerRef} className="relative">
       <button
         type="button"
         onClick={() => {
@@ -240,6 +312,7 @@ export default function DashboardHeader({
               handleSwitchOrg={handleSwitchOrg}
               handleCreateNewOrg={handleCreateNewOrg}
               text={text}
+              mobile
             />
 
             <ProfileMenu

@@ -46,7 +46,7 @@ export default function TransactionForm({
 }) {
   return (
     <section className="mt-6">
-      <div className="rounded-[1.75rem] border border-white/6 bg-[var(--card)] p-4 sm:p-5">
+      <div className="inner-card-accent rounded-[1.75rem] border border-white/6 bg-[var(--card)] p-4 sm:p-5">
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">{text.transactionForm}</p>
@@ -96,7 +96,7 @@ export default function TransactionForm({
                   )
                 }}
                 placeholder="600"
-                className="w-full bg-transparent pl-7 pr-24 text-base font-light text-[var(--text)] outline-none placeholder:text-slate-400"
+                className="w-full bg-transparent pl-7 pr-24 text-base font-light text-[var(--text)] outline-none placeholder:text-slate-400 input-glass"
               />
             </div>
           </div>
@@ -138,7 +138,7 @@ export default function TransactionForm({
                   value={note}
                   onChange={(event) => setNote(event.target.value)}
                   placeholder={text.notesPlaceholder}
-                  className="w-full rounded-xl border border-white/6 bg-[var(--card)] px-3 py-2.5 text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+                  className="w-full rounded-xl border border-white/6 bg-[var(--card)] px-3 py-2.5 text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 input-glass"
                 />
               </div>
               <div>
@@ -159,7 +159,7 @@ export default function TransactionForm({
                   type="date"
                   value={date}
                   onChange={(event) => setDate(event.target.value)}
-                  className="w-full rounded-xl border border-white/6 bg-[var(--card)] px-3 py-2.5 text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+                  className="w-full rounded-xl border border-white/6 bg-[var(--card)] px-3 py-2.5 text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 input-glass"
                 />
               </div>
               <div>
@@ -168,7 +168,7 @@ export default function TransactionForm({
                   type="time"
                   value={time}
                   onChange={(event) => setTime(event.target.value)}
-                  className="w-full rounded-xl border border-white/6 bg-[var(--card)] px-3 py-2.5 text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+                  className="w-full rounded-xl border border-white/6 bg-[var(--card)] px-3 py-2.5 text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 input-glass"
                 />
               </div>
             </div>
@@ -182,7 +182,7 @@ export default function TransactionForm({
               type="button"
               disabled={!canSave || isSaving}
               onClick={() => onSave(false)}
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-900 px-5 py-3 text-sm font-light text-white transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-2 rounded-full accent-cta px-5 py-3 text-sm font-light transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isSaving ? (
                 <>

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { EllipsisVerticalIcon, Squares2X2Icon } from '@heroicons/react/24/outline'
 import { apiRequest } from '../../utils/api'
@@ -36,6 +36,27 @@ export default function DashboardModulesSection({ text, moduleCards, onModuleCli
   const [submoduleDrafts, setSubmoduleDrafts] = useState([])
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
+  const menuRef = useRef(null)
+
+  useEffect(() => {
+    if (!openMenuId) {
+      return undefined
+    }
+
+    const handlePointerDown = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setOpenMenuId(null)
+      }
+    }
+
+    document.addEventListener('mousedown', handlePointerDown)
+    document.addEventListener('touchstart', handlePointerDown)
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown)
+      document.removeEventListener('touchstart', handlePointerDown)
+    }
+  }, [openMenuId])
 
   const handleView = (moduleLabel) => {
     if (onModuleClick) onModuleClick(moduleLabel)
@@ -357,7 +378,7 @@ export default function DashboardModulesSection({ text, moduleCards, onModuleCli
                   <p className="text-sm text-slate-500">{module.submodules.length} {text.submodules.toLowerCase()}</p>
                 </div>
               </div>
-              <div className="relative">
+              <div ref={menuRef} className="relative">
                 <button
                   type="button"
                   onClick={(e) => {

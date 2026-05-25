@@ -157,12 +157,12 @@ const moduleThemes = {
   travel: { label: 'Travel', bg: '#DBEAFE', fg: '#0284C7', iconBg: '#E0F2FE', icon: PaperAirplaneIcon },
   shopping: { label: 'Shopping', bg: '#FCE7F3', fg: '#EC4899', iconBg: '#FBCFE8', icon: ShoppingBagIcon },
   bills: { label: 'Bills', bg: '#FEE2E2', fg: '#DC2626', iconBg: '#FECACA', icon: CreditCardIcon },
-  health: { label: 'Health', bg: '#ECE7F5', fg: '#7C3AED', iconBg: '#EDE9FE', icon: HeartIcon },
+  health: { label: 'Health', bg: '#ECE7F5', fg: '#0f4aa6', iconBg: '#EDEFFB', icon: HeartIcon },
   entertainment: { label: 'Entertainment', bg: '#F9A8D4', fg: '#BE185D', iconBg: '#FBE0F0', icon: MusicalNoteIcon },
   education: { label: 'Education', bg: '#E0E7FF', fg: '#4F46E5', iconBg: '#EDE9FE', icon: AcademicCapIcon },
-  rent: { label: 'Rent', bg: '#F3E8FF', fg: '#7C3AED', iconBg: '#EDE9FE', icon: HomeIcon },
+  rent: { label: 'Rent', bg: '#F3E8FF', fg: '#0f4aa6', iconBg: '#EDEFFB', icon: HomeIcon },
   salary: { label: 'Salary', bg: '#DCFCE7', fg: '#16A34A', iconBg: '#DBEAFE', icon: CurrencyDollarIcon },
-  investment: { label: 'Investment', bg: '#F5F3FF', fg: '#7C3AED', iconBg: '#EDE9FE', icon: ChartBarIcon },
+  investment: { label: 'Investment', bg: '#F5F3FF', fg: '#0f4aa6', iconBg: '#EDEFFB', icon: ChartBarIcon },
   savings: { label: 'Savings', bg: '#ECFDF5', fg: '#059669', iconBg: '#D1FAE5', icon: CircleStackIcon },
   subscriptions: { label: 'Subscriptions', bg: '#FEF08A', fg: '#CA8A04', iconBg: '#FEF3C7', icon: TicketIcon },
   transportation: { label: 'Transportation', bg: '#F3E8FF', fg: '#9333EA', iconBg: '#F3E8FF', icon: TruckIcon },
@@ -508,7 +508,7 @@ export default function Dashboard() {
   ]
 
   return (
-    <div className="theme-light-violet min-h-screen bg-[var(--card)] text-[var(--text)]">
+    <div className="theme-light-violet min-h-screen text-[var(--text)]">
       <DashboardHeader
         activeOrganization={activeOrganization}
         activeOrgId={activeOrgId}

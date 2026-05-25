@@ -14,14 +14,14 @@ import { ArrowRightIcon, PlayCircleIcon } from '@heroicons/react/24/outline'
           <p className="text-sm font-light text-[var(--muted)]">Total balance</p>
           <p className="mt-1 text-3xl font-light tracking-tight text-white">$12,482.00</p>
         </div>
-        <div className="rounded-full px-3 py-1 text-xs font-light" style={{background:'linear-gradient(90deg, rgba(99,102,241,0.12), rgba(139,92,246,0.12))', color:'#fff'}}>
+          <div className="rounded-full px-3 py-1 text-xs font-light" style={{background:'linear-gradient(90deg, rgba(15,74,166,0.12), rgba(14,165,164,0.12))', color:'#fff'}}>
           +8.2% this month
         </div>
       </div>
-      <div className="mt-6 grid grid-cols-4 gap-3 sm:gap-4">
+          <div className="mt-6 grid grid-cols-4 gap-3 sm:gap-4">
         {[
-          { label: 'BTC', value: '6.0286', from: '#FF4DA0', to: '#D946EF' },
-          { label: 'DOGE', value: '16.800', from: '#8B5CF6', to: '#6366F1' },
+          { label: 'BTC', value: '6.0286', from: '#d4af37', to: '#c9a227' },
+          { label: 'DOGE', value: '16.800', from: '#0f4aa6', to: '#0b3a84' },
           { label: 'ETH', value: '0.0086', from: '#06B6D4', to: '#06B6D4' },
           { label: 'USDT', value: '7.860', from: '#111827', to: '#0F172A' },
         ].map((card, index) => (
@@ -84,7 +84,7 @@ export default function Hero() {
           </motion.p>
 
           <motion.h1 initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08, duration: 0.5 }} className="mt-8 max-w-2xl text-4xl font-light leading-[1.05] text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.4)] sm:text-5xl lg:text-6xl">
-            Smart Spending. <span className="text-[#7A0099] [-webkit-text-stroke:1px_rgba(156,163,175,0.8)] drop-shadow-[0_0_15px_rgba(122,0,153,0.15)]">Premium Experience.</span>
+            Smart Spending. <span className="letter-outline text-[var(--primary-500)]">Premium Experience.</span>
           </motion.h1>
 
           <motion.p

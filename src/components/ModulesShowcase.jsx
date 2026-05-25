@@ -47,9 +47,9 @@ export default function ModulesShowcase(){
                 <div className="mt-4 flex flex-wrap gap-3">
                   {node.children.map((child, i) => {
                     const gradients = [
-                      ['#FF4DA0', '#D946EF'],
-                      ['#8B5CF6', '#6366F1'],
-                      ['#06B6D4', '#06B6D4'],
+                      ['#0ea5a4', '#06b6d4'],
+                      ['#0f4aa6', '#0b3a84'],
+                      ['#d4af37', '#c9a227'],
                       ['#111827', '#0F172A'],
                     ]
                     const g = gradients[i % gradients.length]

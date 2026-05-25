@@ -11,6 +11,8 @@ import Dashboard from './pages/Dashboard'
 import AddTransaction from './pages/AddTransaction'
 import ModuleTransactions from './pages/ModuleTransactions'
 import Transactions from './pages/Transactions'
+import TermsOfService from './pages/TermsOfService'
+import PrivacyPolicy from './pages/PrivacyPolicy'
 import Footer from './components/Footer'
 
 function syncDocumentLanguage() {
@@ -36,6 +38,16 @@ function SessionExpiryListener() {
   return null
 }
 
+function ScrollToTop() {
+  const location = useLocation()
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+  }, [location.pathname, location.search, location.hash])
+
+  return null
+}
+
 export default function App(){
   useEffect(() => {
     syncDocumentLanguage()
@@ -53,6 +65,7 @@ export default function App(){
   return (
     <BrowserRouter>
       <SessionExpiryListener />
+      <ScrollToTop />
       <div className="flex min-h-screen flex-col">
         <main className="flex-1 overflow-hidden bg-white">
           <Routes>
@@ -68,6 +81,8 @@ export default function App(){
             <Route path="/transactions" element={<Transactions />} />
             <Route path="/module/:moduleName" element={<ModuleTransactions />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/terms" element={<TermsOfService />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
           </Routes>
         </main>
         {/* Render short footer on all pages except the Landing (home) page */}

@@ -62,7 +62,7 @@ export default function Login() {
   }
 
   return (
-    <div className="theme-light-violet relative h-screen overflow-hidden flex items-center justify-center px-4 py-6 sm:px-6 lg:px-8 bg-[var(--bg)]">
+    <div className="theme-light-violet relative h-screen overflow-hidden flex items-center justify-center px-4 py-6 sm:px-6 lg:px-8">
       {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary-200/30 rounded-full blur-3xl" />
@@ -75,7 +75,7 @@ export default function Login() {
         transition={{ duration: 0.5 }}
         className="relative w-full max-w-md"
       >
-        <div className="bg-[var(--card)] rounded-2xl shadow-glass p-6 sm:p-8">
+        <div className="inner-card-accent bg-[var(--card)] rounded-2xl shadow-glass p-6 sm:p-8">
           {/* Header */}
           <div className="text-center mb-6">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 text-white font-light text-lg mx-auto mb-4">
@@ -139,7 +139,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-4 px-4 py-2.5 rounded-lg bg-gradient-to-r from-primary-500 to-primary-600 text-white font-light shadow-glass hover:shadow-primary-500/40 transition hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full mt-4 px-4 py-2.5 rounded-lg accent-cta font-light shadow-glass hover:shadow-primary-500/40 transition hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? 'Signing in...' : 'Sign In'}
               {!loading && <ArrowRightIcon className="h-4 w-4" />}

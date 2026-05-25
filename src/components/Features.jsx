@@ -1,25 +1,20 @@
 import { motion } from 'framer-motion'
 import {
   BanknotesIcon,
-  ClipboardDocumentListIcon,
-  CreditCardIcon,
   CurrencyDollarIcon,
   DocumentArrowUpIcon,
   ArrowDownTrayIcon,
   PresentationChartBarIcon,
   Square3Stack3DIcon,
-  ClockIcon,
 } from '@heroicons/react/24/outline'
 
 const features = [
   {title:'Manage Organizations', desc:'Create and switch between organizations with clean permissions.', icon: BanknotesIcon},
-  {title:'Custom Modules & Submodules', desc:'Shape revenue, expense, and investment hierarchies your way.', icon: Square3Stack3DIcon},
+  {title:'Modules & Submodules', desc:'Shape revenue, expense, and investment hierarchies your way.', icon: Square3Stack3DIcon},
   {title:'Multi-Currency', desc:'Operate across regions with intuitive currency handling.', icon: CurrencyDollarIcon},
   {title:'Smart Expense Tracking', desc:'Track recurring spend and identify patterns fast.', icon: PresentationChartBarIcon},
   {title:'Attach Bills & Receipts', desc:'Keep proof and attachments on every record.', icon: DocumentArrowUpIcon},
   {title:'Download reports', desc:'Export transactions (PDF) for a module and date to share or archive.', icon: ArrowDownTrayIcon},
-  {title:'Analytics Dashboard', desc:'Clean graphs and summaries ready for real reporting.', icon: ClipboardDocumentListIcon},
-  {title:'Recent Activity Tracking', desc:'Stay current with a live feed of every change.', icon: ClockIcon},
 ]
 
 function Card({f}){
@@ -45,7 +40,7 @@ export default function Features(){
         <p className="prose-justified mt-4 text-base">A clean and intuitive workspace designed to manage your daily expenses with ease & clarity.</p>
       </div>
 
-      <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {features.map(f=> <Card key={f.title} f={f} />)}
       </div>
     </section>

@@ -17,11 +17,7 @@ export default function FooterFull() {
 
             <p className="text-sm text-white/90">Collaborate, attach receipts, and export print-ready reports.</p>
 
-            <div className="mt-3 flex items-center gap-4 text-white">
-              <span className="text-xl">f</span>
-              <span className="text-xl">♢</span>
-              <span className="text-xl">▶</span>
-            </div>
+            {/* Social links removed per request */}
           </div>
 
           {/* Quick Links */}
@@ -30,7 +26,6 @@ export default function FooterFull() {
             <ul className="space-y-3">
               <li><Link to={'/#about'} className="hover:underline">About</Link></li>
               <li><Link to={'/#features'} className="hover:underline">Features</Link></li>
-              <li><Link to={'/#modules'} className="hover:underline">Modules</Link></li>
               <li><Link to={'/#analytics'} className="hover:underline">Analytics</Link></li>
               <li><Link to={'/#pricing'} className="hover:underline">Pricing</Link></li>
             </ul>

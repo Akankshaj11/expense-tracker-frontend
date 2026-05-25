@@ -32,10 +32,10 @@ export default function DashboardPreview() {
 
 					<div className="mt-6 grid gap-4 md:grid-cols-4">
 						{[
-							{ label: 'Revenue', value: '$0', from: '#0EA5A0', to: '#06B6D4' },
-							{ label: 'Expenses', value: '$0', from: '#EF4444', to: '#F97316' },
-							{ label: 'Savings', value: '$0', from: '#06B6D4', to: '#6366F1' },
-							{ label: 'Investments', value: '$0', from: '#7C3AED', to: '#4C1D95' },
+							{ label: 'Revenue', value: '$0', from: '#0ea5a4', to: '#06b6d4' },
+							{ label: 'Expenses', value: '$0', from: '#ef4444', to: '#f97316' },
+							{ label: 'Savings', value: '$0', from: '#06b6d4', to: '#0f4aa6' },
+							{ label: 'Investments', value: '$0', from: '#0f4aa6', to: '#0b3a84' },
 						].map((card) => (
 							<div key={card.label} className={`rounded-2xl p-4 shadow-sm`} style={{background:`linear-gradient(135deg, ${card.from}, ${card.to})`}}>
 								<p className="text-xs font-light uppercase tracking-[0.18em] text-white/80">{card.label}</p>

@@ -39,15 +39,15 @@ export function getModuleCategory(module) {
   }
 
   const moduleName = String(module?.name || '').toLowerCase()
-  if (moduleName === 'revenue') {
+  if (moduleName === 'revenue' || moduleName === 'revenues') {
     return 'revenue'
   }
 
-  if (moduleName === 'expenses') {
+  if (moduleName === 'expense' || moduleName === 'expenses') {
     return 'expenses'
   }
 
-  if (moduleName === 'investments') {
+  if (moduleName === 'investment' || moduleName === 'investments') {
     return 'investments'
   }
 

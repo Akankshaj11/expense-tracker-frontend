@@ -5,16 +5,16 @@ import { translateText, translateModuleLabel, translateSubmoduleLabel } from '..
 import { appendSubmoduleToModule, persistOrganizationModules } from '../utils/organizationPersistence'
 
 const CARD_SURFACE_STYLES = [
-  'border-orange-200 bg-orange-50',
+  'border-amber-200 bg-amber-50',
   'border-primary-200 bg-primary-50',
-  'border-violet-200 bg-violet-50',
+  'border-sky-200 bg-sky-50',
   'border-emerald-200 bg-emerald-50',
 ]
 
 const CARD_TEXT_STYLES = [
-  'text-orange-700',
+  'text-amber-700',
   'text-primary-700',
-  'text-violet-700',
+  'text-sky-700',
   'text-emerald-700',
 ]
 
@@ -22,9 +22,9 @@ const SCROLL_MAX_HEIGHT = 'max-h-[11rem]'
 const SCROLL_STEP_PX = 300
 
 const SELECTED_SURFACE_STYLES = [
-  'border-orange-300 bg-orange-100 shadow-[0_0_0_1px_rgba(249,115,22,0.12)]',
-  'border-primary-300 bg-primary-100 shadow-[0_0_0_1px_rgba(59,130,246,0.12)]',
-  'border-violet-300 bg-violet-100 shadow-[0_0_0_1px_rgba(139,92,246,0.12)]',
+  'border-amber-300 bg-amber-100 shadow-[0_0_0_1px_rgba(212,175,55,0.12)]',
+  'border-primary-300 bg-primary-100 shadow-[0_0_0_1px_rgba(15,74,166,0.12)]',
+  'border-sky-300 bg-sky-100 shadow-[0_0_0_1px_rgba(14,165,164,0.12)]',
   'border-emerald-300 bg-emerald-100 shadow-[0_0_0_1px_rgba(16,185,129,0.12)]',
 ]
 

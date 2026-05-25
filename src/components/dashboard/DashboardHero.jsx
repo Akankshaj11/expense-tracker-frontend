@@ -13,7 +13,7 @@ export default function DashboardHero({ text, firstName, activeOrganization, lan
   const greetingKey = selectGreetingKeyByHour(hour)
 
   return (
-    <section className="rounded-[2rem] border border-white bg-[var(--card)] p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-8">
+    <section className="inner-card-accent rounded-[2rem] border border-white bg-[var(--card)] p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-8">
       <div className="flex flex-col gap-6">
         <div className="min-h-[8.5rem] space-y-3">
           <p className="text-sm font-light uppercase tracking-[0.26em] text-primary-600">{text.dashboard}</p>
@@ -32,7 +32,7 @@ export default function DashboardHero({ text, firstName, activeOrganization, lan
           <button
             type="button"
             onClick={onAddTransaction}
-            className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary-500 to-primary-600 px-5 py-3 text-sm font-light text-white shadow-lg shadow-primary-500/25 transition hover:-translate-y-0.5"
+            className="inline-flex items-center gap-2 rounded-full accent-cta px-5 py-3 text-sm font-light transition hover:-translate-y-0.5"
           >
             {text.addTransaction}
             <PlusIcon className="h-4 w-4" />

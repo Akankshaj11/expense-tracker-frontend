@@ -3,7 +3,6 @@ import Hero from '../components/Hero'
 import Stats from '../components/Stats'
 import About from '../components/About'
 import Features from '../components/Features'
-import ModulesShowcase from '../components/ModulesShowcase'
 import HowItWorks from '../components/HowItWorks'
 import DashboardPreview from '../components/DashboardPreview'
 import Testimonials from '../components/Testimonials'
@@ -37,7 +36,6 @@ export default function Landing(){
           <About />
           <Stats />
           <Features />
-          <ModulesShowcase />
           {/* <HowItWorks /> */}
           <DashboardPreview />
           <Testimonials />

@@ -235,7 +235,7 @@ export default function AddTransaction() {
       module: selectedModule,
       submodule: selectedSubmodule,
       transactionType: transactionDirection,
-      direction: transactionDirection,
+      // direction: transactionDirection,
       amountExpression,
       amount: totalAmount,
       note: note.trim(),
@@ -432,8 +432,8 @@ export default function AddTransaction() {
 
   if (!activeOrganization) {
     return (
-      <div className="theme-light-violet flex min-h-screen items-center justify-center bg-[var(--card)] px-4">
-        <div className="w-full max-w-xl rounded-[2rem] border border-white/6 bg-[var(--card)] p-8 text-center shadow-sm">
+      <div className="theme-light-violet flex min-h-screen items-center justify-center px-4">
+        <div className="inner-card-accent w-full max-w-xl rounded-[2rem] border border-white/6 bg-[var(--card)] p-8 text-center shadow-sm">
           <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">{text.noOrganizationFound}</p>
           <h1 className="mt-3 text-3xl font-light tracking-tight text-[var(--text)]">{text.createOrganizationFirst}</h1>
           <p className="mt-3 text-base leading-7 text-[var(--muted)]">{text.needOrganizationBeforeAdding}</p>
@@ -451,8 +451,8 @@ export default function AddTransaction() {
 
   if (!isHydrated) {
     return (
-      <div className="theme-light-violet flex min-h-screen items-center justify-center bg-[var(--card)] px-4">
-        <div className="w-full max-w-xl rounded-[2rem] border border-white/6 bg-[var(--card)] p-8 text-center shadow-sm">
+      <div className="theme-light-violet flex min-h-screen items-center justify-center px-4">
+        <div className="inner-card-accent w-full max-w-xl rounded-[2rem] border border-white/6 bg-[var(--card)] p-8 text-center shadow-sm">
           <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">{text.loadingTransaction}</p>
           <h1 className="mt-3 text-3xl font-light tracking-tight text-[var(--text)]">{text.preparingEditor}</h1>
         </div>
@@ -462,8 +462,8 @@ export default function AddTransaction() {
 
   if (isEditMode && !loadedTransaction) {
     return (
-      <div className="theme-light-violet flex min-h-screen items-center justify-center bg-[var(--card)] px-4">
-        <div className="w-full max-w-xl rounded-[2rem] border border-white/6 bg-[var(--card)] p-8 text-center shadow-sm">
+      <div className="theme-light-violet flex min-h-screen items-center justify-center px-4">
+        <div className="inner-card-accent w-full max-w-xl rounded-[2rem] border border-white/6 bg-[var(--card)] p-8 text-center shadow-sm">
           <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">{text.transactionNotFound}</p>
           <h1 className="mt-3 text-3xl font-light tracking-tight text-[var(--text)]">{text.unableToEditTransaction}</h1>
           <button
@@ -562,7 +562,7 @@ export default function AddTransaction() {
   }
 
   return (
-    <div className="theme-light-violet h-full overflow-hidden bg-[var(--card)] px-4 py-4 text-[var(--text)] sm:px-6 lg:px-8">
+    <div className="theme-light-violet h-full overflow-hidden px-4 py-4 text-[var(--text)] sm:px-6 lg:px-8">
       <div className="mx-auto max-w-2xl">
         <div className="mt-2 mb-6 flex items-center justify-between gap-3">
           <Link

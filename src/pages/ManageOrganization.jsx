@@ -97,7 +97,7 @@ export default function ManageOrganization() {
 
   if (!activeOrganization) {
     return (
-      <div className="theme-light-violet flex min-h-screen items-center justify-center bg-[var(--card)] px-4">
+      <div className="theme-light-violet flex min-h-screen items-center justify-center px-4">
         <div className="w-full max-w-xl rounded-[2rem] border border-white/6 bg-[var(--card)] p-8 text-center shadow-sm">
           <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">{text.noOrganizationFound}</p>
           <h1 className="mt-3 text-3xl font-light tracking-tight text-[var(--text)]">{text.createAnOrganizationFirst}</h1>
@@ -383,7 +383,7 @@ export default function ManageOrganization() {
   }
 
   return (
-    <div className="theme-light-violet min-h-screen bg-[var(--card)] px-4 py-6 text-[var(--text)] sm:px-6 lg:px-8">
+    <div className="theme-light-violet min-h-screen px-4 py-6 text-[var(--text)] sm:px-6 lg:px-8">
       <div className="mx-auto max-w-6xl">
         <div className="mb-6 flex items-center justify-between gap-3">
           <Link to="/dashboard" className="inline-flex items-center gap-2 rounded-full border border-white/6 bg-[var(--card)] px-4 py-2.5 text-sm font-light text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
@@ -395,7 +395,7 @@ export default function ManageOrganization() {
           </div>
         </div>
 
-        <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} className="rounded-[2rem] border border-white bg-[var(--card)] p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-8">
+        <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} className="inner-card-accent rounded-[2rem] border border-white bg-[var(--card)] p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-8">
           <div className="flex flex-col gap-3 border-b border-white/4 pb-6">
             <p className="text-sm font-light uppercase tracking-[0.26em] text-primary-600">{text.manageOrganization}</p>
             <h1 className="text-3xl font-light tracking-tight text-[var(--text)]">{activeOrganization.organizationName}</h1>
@@ -448,7 +448,7 @@ export default function ManageOrganization() {
                   initial={{ opacity: 0, scale: 0.96, y: 10 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   transition={{ duration: 0.18, ease: 'easeOut' }}
-                  className="w-full max-w-md rounded-[1.5rem] border border-white/80 bg-[var(--card)] p-3 shadow-glass sm:p-4"
+                  className="inner-card-accent w-full max-w-md rounded-[1.5rem] border border-white/80 bg-[var(--card)] p-3 shadow-glass sm:p-4"
                   onClick={(event) => event.stopPropagation()}
                 >
                   <div className="mb-3 flex items-start justify-between gap-3 border-b border-white/60 pb-3">
@@ -475,7 +475,7 @@ export default function ManageOrganization() {
                           type="text"
                           value={moduleDraft.name}
                           onChange={(event) => updateModuleDraft('name', event.target.value)}
-                          className="w-full rounded-xl border border-dashed border-primary-300 bg-primary-50/70 px-3 py-2.5 text-sm font-light text-[var(--text)] outline-none transition focus:border-primary-500 focus:bg-[var(--card)] focus:ring-2 focus:ring-primary-500/20"
+                          className="w-full rounded-xl border border-dashed border-primary-300 bg-primary-50/70 px-3 py-2.5 text-sm font-light text-[var(--text)] outline-none transition focus:border-primary-500 focus:bg-[var(--card)] focus:ring-2 focus:ring-primary-500/20 input-glass"
                           placeholder={
                             module.isCustom
                               ? text.moduleNamePlaceholder
@@ -589,7 +589,7 @@ export default function ManageOrganization() {
                         type="text"
                         value={module.name}
                         onChange={(event) => updateModule(module.id, 'name', event.target.value)}
-                        className="w-full rounded-xl border border-white/6 bg-[var(--card)] px-4 py-3 text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+                        className="w-full rounded-xl border border-white/6 bg-[var(--card)] px-4 py-3 text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 input-glass"
                         placeholder={
                           module.isCustom
                             ? text.moduleNamePlaceholder
@@ -668,7 +668,7 @@ export default function ManageOrganization() {
                 <TrashIcon className="h-4 w-4" />
                 {text.deleteOrganization}
               </button>
-              <button type="submit" className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-primary-500 to-primary-600 px-6 py-3 text-sm font-light text-white shadow-lg shadow-primary-500/25 transition hover:-translate-y-0.5">
+              <button type="submit" className="inline-flex items-center justify-center gap-2 rounded-full accent-cta px-6 py-3 text-sm font-light transition hover:-translate-y-0.5">
                 {text.saveChanges}
                 <PlusIcon className="h-4 w-4" />
               </button>
@@ -678,7 +678,7 @@ export default function ManageOrganization() {
 
         {deleteConfirmOpen ? (
           <div className="fixed inset-0 flex items-center justify-center bg-black/30 px-4 py-6 backdrop-blur-sm">
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md rounded-[2rem] border border-white bg-[var(--card)] p-6 shadow-lg sm:p-8">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="inner-card-accent w-full max-w-md rounded-[2rem] border border-white bg-[var(--card)] p-6 shadow-lg sm:p-8">
               <div className="mb-6">
                 <h2 className="text-2xl font-light text-[var(--text)]">{text.deleteOrganization}</h2>
                 <p className="mt-2 text-base leading-7 text-[var(--muted)]">{translateText(language, 'deleteOrganizationConfirmation', { organization: activeOrganization.organizationName })}</p>

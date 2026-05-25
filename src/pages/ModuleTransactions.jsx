@@ -252,8 +252,8 @@ export default function ModuleTransactions() {
 
   if (!activeOrganization) {
     return (
-      <div className="theme-light-violet flex min-h-screen items-center justify-center bg-[var(--card)] px-4">
-        <div className="w-full max-w-xl rounded-[2rem] border border-white/6 bg-[var(--card)] p-8 text-center shadow-sm">
+      <div className="theme-light-violet flex min-h-screen items-center justify-center px-4">
+        <div className="inner-card-accent w-full max-w-xl rounded-[2rem] border border-white/6 bg-[var(--card)] p-8 text-center shadow-sm">
           <h1 className="text-3xl font-light tracking-tight text-[var(--text)]">{text.noOrganizationFound}</h1>
           <p className="mt-3 text-base leading-7 text-[var(--muted)]">{text.createOrganizationFirst}</p>
           <Link to="/create-organization" className="mt-6 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary-500 to-primary-600 px-5 py-3 text-sm font-light text-white shadow-lg shadow-primary-500/25">
@@ -265,7 +265,7 @@ export default function ModuleTransactions() {
   }
 
   return (
-    <div className="theme-light-violet min-h-screen bg-[var(--card)] px-4 py-6 text-[var(--text)] sm:px-6 lg:px-8">
+    <div className="theme-light-violet min-h-screen px-4 py-6 text-[var(--text)] sm:px-6 lg:px-8">
       <div className="mx-auto max-w-6xl">
         <div className="mb-6 flex items-center justify-between gap-3">
           <button
@@ -282,7 +282,7 @@ export default function ModuleTransactions() {
           </div>
         </div>
 
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="rounded-[2rem] border border-white bg-[var(--card)] p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-8">
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="inner-card-accent rounded-[2rem] border border-white bg-[var(--card)] p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-8">
           <div className="flex flex-col gap-4 border-b border-white/4 pb-6 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="text-sm font-light uppercase tracking-[0.22em] text-primary-600">{text.moduleTransactionsTitle}</p>
@@ -296,7 +296,7 @@ export default function ModuleTransactions() {
                   type="button"
                   onClick={() => navigate('/add-transaction')}
                   aria-label={text.addTransaction}
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg shadow-primary-500/25 transition hover:-translate-y-0.5"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full accent-cta text-white shadow-lg shadow-primary-500/25 transition hover:-translate-y-0.5"
                 >
                   <PlusIcon className="h-4 w-4" />
                 </button>
