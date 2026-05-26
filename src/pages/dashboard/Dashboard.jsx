@@ -26,18 +26,18 @@ import {
   TicketIcon,
   TruckIcon,
 } from '@heroicons/react/24/outline'
-import { apiRequest, authenticatedFetch, clearStoredAuth } from '../utils/api'
-import { loadOrganizationsFromBackend, readCachedOrganizations } from '../utils/organizationSync'
-import { translateText, getLocale, translateModuleLabel } from '../i18n/translations'
-import useLanguage from '../hooks/useLanguage'
-import DashboardHeader from '../components/dashboard/DashboardHeader'
-import DashboardHero from '../components/dashboard/DashboardHero'
-import DashboardMetricCards from '../components/dashboard/DashboardMetricCards'
-import DashboardModulesSection from '../components/dashboard/DashboardModulesSection'
-import DashboardRecentActivity from '../components/dashboard/DashboardRecentActivity'
-import DashboardWorkspaceSummary from '../components/dashboard/DashboardWorkspaceSummary'
-import DashboardEmptyState from '../components/dashboard/DashboardEmptyState'
-import { persistOrganizationCurrency } from '../utils/organizationPersistence'
+import { apiRequest, authenticatedFetch, clearStoredAuth } from '../../utils/api'
+import { loadOrganizationsFromBackend, readCachedOrganizations } from '../../utils/organizationSync'
+import { translateText, getLocale, translateModuleLabel } from '../../i18n/translations'
+import useLanguage from '../../hooks/useLanguage'
+import DashboardHeader from '../../components/dashboard/DashboardHeader'
+import DashboardHero from '../../components/dashboard/DashboardHero'
+import DashboardMetricCards from '../../components/dashboard/DashboardMetricCards'
+import DashboardModulesSection from '../../components/dashboard/DashboardModulesSection'
+import DashboardRecentActivity from '../../components/dashboard/DashboardRecentActivity'
+import DashboardWorkspaceSummary from '../../components/dashboard/DashboardWorkspaceSummary'
+import DashboardEmptyState from '../../components/dashboard/DashboardEmptyState'
+import { persistOrganizationCurrency } from '../../utils/organizationPersistence'
 
 function readJSON(key, fallback) {
   try {

@@ -2,14 +2,14 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ArrowLeftIcon, BuildingOffice2Icon, CalendarDaysIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline'
-import { authenticatedFetch } from '../utils/api'
-import { loadOrganizationsFromBackend, readCachedOrganizations } from '../utils/organizationSync'
+import { authenticatedFetch } from '../../utils/api'
+import { loadOrganizationsFromBackend, readCachedOrganizations } from '../../utils/organizationSync'
 
 import translations, {
   getLocale,
   translateText,
   translateModuleLabel,
-} from '../i18n/translations'
+} from '../../i18n/translations'
 
 function readJSON(key, fallback) {
   try {

@@ -1,8 +1,8 @@
 import { useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowLeftIcon, PlusIcon } from '@heroicons/react/24/outline'
-import { translateText, translateModuleLabel } from '../i18n/translations'
-import { appendCustomModule, persistOrganizationModules } from '../utils/organizationPersistence'
+import { translateText, translateModuleLabel } from '../../i18n/translations'
+import { appendCustomModule, persistOrganizationModules } from '../../utils/organizationPersistence'
 
 const SCROLL_MAX_HEIGHT = 'max-h-[12rem]'
 const SCROLL_STEP_PX = 300

@@ -2,9 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ArrowLeftIcon, PaperClipIcon, TagIcon, XMarkIcon, ArrowDownTrayIcon, PlusIcon } from '@heroicons/react/24/outline'
-import { authenticatedFetch } from '../utils/api'
-import { loadOrganizationsFromBackend, readCachedOrganizations } from '../utils/organizationSync'
-import translations, { translateText, getLocale, translateModuleLabel } from '../i18n/translations'
+import { authenticatedFetch } from '../../utils/api'
+import { loadOrganizationsFromBackend, readCachedOrganizations } from '../../utils/organizationSync'
+import translations, { translateText, getLocale, translateModuleLabel } from '../../i18n/translations'
 
 function readJSON(key, fallback) {
   try {
@@ -294,7 +294,7 @@ export default function ModuleTransactions() {
               <div className="w-full sm:w-auto flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => navigate('/add-transaction')}
+                  onClick={() => navigate('/add-transaction', { state: { preselectedModule: resolvedModuleName } })}
                   aria-label={text.addTransaction}
                   className="inline-flex h-11 w-11 items-center justify-center rounded-full accent-cta text-white shadow-lg shadow-primary-500/25 transition hover:-translate-y-0.5"
                 >

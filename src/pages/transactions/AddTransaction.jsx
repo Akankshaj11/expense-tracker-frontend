@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ArrowLeftIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/outline'
-import ModuleSelector from '../components/ModuleSelector'
-import SubmoduleSelector from '../components/SubmoduleSelector'
-import TransactionForm from '../components/TransactionForm'
-import { apiRequest } from '../utils/api'
-import { loadOrganizationsFromBackend, readCachedOrganizations } from '../utils/organizationSync'
-import { buildModuleOptions, getModuleSubmodules } from '../utils/moduleUtils'
+import ModuleSelector from '../../components/transaction/ModuleSelector'
+import SubmoduleSelector from '../../components/transaction/SubmoduleSelector'
+import TransactionForm from '../../components/transaction/TransactionForm'
+import { apiRequest } from '../../utils/api'
+import { loadOrganizationsFromBackend, readCachedOrganizations } from '../../utils/organizationSync'
+import { buildModuleOptions, getModuleSubmodules } from '../../utils/moduleUtils'
 import {
   evaluateExpression,
   getAmountInputDisplay,
@@ -17,14 +17,14 @@ import {
   readFileAsDataUrl,
   readJSON,
   tokenizeExpression,
-} from '../utils/transactionHelpers'
+} from '../../utils/transactionHelpers'
 
 import translations, {
   translateText,
   getLocale,
   translateModuleLabel,
   translateSubmoduleLabel,
-} from '../i18n/translations'
+} from '../../i18n/translations'
 
 function getCurrentTimeValue() {
   const now = new Date()
@@ -74,6 +74,7 @@ export default function AddTransaction() {
   const [isHydrated, setIsHydrated] = useState(!isEditMode)
   const [loadedTransaction, setLoadedTransaction] = useState(null)
   const [forceSubmoduleSelection, setForceSubmoduleSelection] = useState(false)
+  const [preselectedFromModule, setPreselectedFromModule] = useState('')
 
   const [language, setLanguage] = useState(() => localStorage.getItem('selectedLanguage') || 'en')
   const text = translations[language] || translations.en
@@ -137,6 +138,31 @@ export default function AddTransaction() {
     setIsHydrated(true)
   }, [isEditMode, transactionId, text.transactionNotFound])
 
+  // Preselect module when navigated from a module page (+ button)
+  const location = useLocation()
+  useEffect(() => {
+    if (isEditMode) return
+    const pre = location?.state?.preselectedModule || ''
+    if (!pre) return
+
+    const matched = organizationModules.find((m) => String(m.name) === String(pre)) ||
+      organizationModules.find((m) => translateModuleLabel(language, m.name) === String(pre)) || null
+    if (!matched) return
+
+    // Determine transaction direction from module type
+    const t = String(matched.transactionType || matched.moduleType || matched.type || '').toLowerCase()
+    if (['revenue', 'income', 'in', 'credit', 'incoming', 'plus', '+'].includes(t)) setTransactionDirection('revenue')
+    else if (['expense', 'expenses', 'out', 'debit', 'outgoing', 'minus', '-'].includes(t)) setTransactionDirection('expenses')
+    else if (['investment', 'investments'].includes(t)) setTransactionDirection('investments')
+
+    const subs = getModuleSubmodules(matched, activeOrganization)
+    setSelectedModule(matched.name)
+    setSelectedSubmodule(subs[0] || '')
+    setForceSubmoduleSelection(true)
+    setStep(3)
+    setPreselectedFromModule(pre)
+  }, [location, organizationModules, activeOrganization, isEditMode, language])
+
   useEffect(() => {
     const currentModule = organizationModules.find((module) => module.name === selectedModule)
     const currentSubmodules = getModuleSubmodules(currentModule, activeOrganization)
@@ -165,6 +191,13 @@ export default function AddTransaction() {
     }
 
     if (step === 3) {
+      // If this flow was opened directly from a module card, closing should return
+      // to the previous page instead of going back to module selection.
+      if (preselectedFromModule) {
+        navigate(-1)
+        return
+      }
+
       setStep(1)
       setSelectedSubmodule('')
       setCreatingCustomSubmodule(false)

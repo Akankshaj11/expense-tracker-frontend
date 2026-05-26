@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowRightIcon } from '@heroicons/react/24/outline'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { apiRequest } from '../utils/api'
+import { apiRequest } from '../../utils/api'
 
 export default function Login() {
   const navigate = useNavigate()

@@ -2,16 +2,16 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ArrowLeftIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
-import { apiRequest } from '../utils/api'
-import { loadOrganizationsFromBackend, readCachedOrganizations } from '../utils/organizationSync'
-import { getPersistedModuleTransactionType } from '../utils/moduleUtils'
-import useLanguage from '../hooks/useLanguage'
+import { apiRequest } from '../../utils/api'
+import { loadOrganizationsFromBackend, readCachedOrganizations } from '../../utils/organizationSync'
+import { getPersistedModuleTransactionType } from '../../utils/moduleUtils'
+import useLanguage from '../../hooks/useLanguage'
 
 import {
   translateText,
   translateModuleLabel,
   translateSubmoduleLabel,
-} from '../i18n/translations'
+} from '../../i18n/translations'
 
 function readJSON(key, fallback) {
   try {
@@ -580,11 +580,14 @@ export default function ManageOrganization() {
                   <div className="flex items-center justify-between gap-3 border-b border-white/6 pb-4">
                     <div className="flex-1">
                       <label className="mb-2 block text-xs font-light uppercase tracking-[0.18em] text-slate-500">{translateText(language, 'moduleLabelWithNumber', { number: moduleIndex + 1 })}</label>
-                      {!module.isCustom ? (
-                        <p className="mb-2 text-sm font-light text-primary-600">
-                          {translateModuleLabel(language, module.name)}
-                        </p>
-                      ) : null}
+                      {
+                        (() => {
+                          const translatedModule = translateModuleLabel(language, module.name)
+                          return translatedModule && translatedModule !== module.name ? (
+                            <p className="mb-2 text-sm font-light text-primary-600">{module.name} <span className="text-xs text-primary-600">({translatedModule})</span></p>
+                          ) : null
+                        })()
+                      }
                       <input
                         type="text"
                         value={module.name}
@@ -629,17 +632,26 @@ export default function ManageOrganization() {
                             </p>
                           ) : null} */}
                           <span className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-primary-500" />
-                          <input
-                            type="text"
-                            value={submodule}
-                            onChange={(event) => updateSubmodule(module.id, subIndex, event.target.value)}
-                            className="min-w-0 flex-1 rounded-xl text-slate-400 border border-white/6 bg-[var(--card)] px-3 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
-                            placeholder={
-                              translateSubmoduleLabel(language, submodule) ||
-                              translateText(language, 'submoduleNumberPlaceholder', {
-                                number: subIndex + 1,
-                              })
-                            } />
+                              <input
+                                type="text"
+                                value={submodule}
+                                onChange={(event) => updateSubmodule(module.id, subIndex, event.target.value)}
+                                className="min-w-0 flex-1 rounded-xl text-slate-400 border border-white/6 bg-[var(--card)] px-3 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+                                placeholder={
+                                  translateSubmoduleLabel(language, submodule) ||
+                                  translateText(language, 'submoduleNumberPlaceholder', {
+                                    number: subIndex + 1,
+                                  })
+                                }
+                              />
+                              {
+                                (() => {
+                                  const translatedSub = translateSubmoduleLabel(language, submodule)
+                                  return translatedSub && translatedSub !== submodule ? (
+                                    <span className="ml-2 text-xs font-light text-primary-600">({translatedSub})</span>
+                                  ) : null
+                                })()
+                              }
                           <button
                             type="button"
                             onClick={() => removeSubmodule(module.id, subIndex)}

@@ -1442,16 +1442,25 @@ export function translateModuleLabel(language, moduleName) {
 }
 
 export function translateSubmoduleLabel(language, submodule) {
-  const key = String(submodule || "")
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, "");
+  const raw = String(submodule || "").trim()
+  if (!raw) return raw
 
-  return (
-    translations[language]?.submoduleLabels?.[key] ||
-    translations.en.submoduleLabels?.[key] ||
-    submodule
-  );
+  // Normalize the incoming submodule value to compare against
+  // translation map keys in a forgiving way (lowercase, remove spaces).
+  const normalizedInput = raw.toLowerCase().replace(/\s+/g, "")
+
+  const labels = translations[language]?.submoduleLabels || translations.en.submoduleLabels || {}
+
+  // Try to find a matching key by normalizing the translation keys too
+  for (const k of Object.keys(labels)) {
+    const normalizedKey = String(k).toLowerCase().replace(/\s+/g, "")
+    if (normalizedKey === normalizedInput) {
+      return labels[k]
+    }
+  }
+
+  // Fallback to direct lookup (if keys are already normalized) or the raw value
+  return labels[raw] || labels[submodule] || submodule
 }
 
 export default translations;

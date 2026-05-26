@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowRightIcon } from '@heroicons/react/24/outline'
 import { useNavigate } from 'react-router-dom'
-import { CURRENCIES } from '../utils/currencies'
+import { CURRENCIES } from '../../utils/currencies'
 
 export default function CurrencySelect() {
   const navigate = useNavigate()

@@ -2,9 +2,9 @@ import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowLeftIcon, ArrowRightIcon, PlusIcon } from '@heroicons/react/24/outline'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { apiRequest } from '../utils/api'
-import { translateModuleLabel, translateText } from '../i18n/translations'
-import useLanguage from '../hooks/useLanguage'
+import { apiRequest } from '../../utils/api'
+import { translateModuleLabel, translateText } from '../../i18n/translations'
+import useLanguage from '../../hooks/useLanguage'
 
 const revenueModules = ['Salary', 'Freelance', 'Bonus', 'Interest', 'Commission']
 const expenseModules = ['Food', 'Travel', 'Shopping', 'Bills', 'Health', 'Entertainment', 'Education', 'Rent', 'Subscriptions', 'Loans', 'Taxes']

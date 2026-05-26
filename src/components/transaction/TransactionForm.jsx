@@ -5,12 +5,12 @@ import {
   PlusIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline'
-import { translateText } from '../i18n/translations'
+import { translateText } from '../../i18n/translations'
 import {
   buildAmountExpression,
   formatMoney,
   removeTokenFromExpression,
-} from '../utils/transactionHelpers'
+} from '../../utils/transactionHelpers'
 
 export default function TransactionForm({
   isEditMode,

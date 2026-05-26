@@ -1,8 +1,8 @@
 import { useMemo, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowLeftIcon, PlusIcon, Squares2X2Icon } from '@heroicons/react/24/outline'
-import { translateText, translateModuleLabel, translateSubmoduleLabel } from '../i18n/translations'
-import { appendSubmoduleToModule, persistOrganizationModules } from '../utils/organizationPersistence'
+import { translateText, translateModuleLabel, translateSubmoduleLabel } from '../../i18n/translations'
+import { appendSubmoduleToModule, persistOrganizationModules } from '../../utils/organizationPersistence'
 
 const CARD_SURFACE_STYLES = [
   'border-amber-200 bg-amber-50',

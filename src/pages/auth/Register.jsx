@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowRightIcon, CheckCircleIcon } from '@heroicons/react/24/outline'
 import { Link, useNavigate } from 'react-router-dom'
-import { apiRequest } from '../utils/api'
+import { apiRequest } from '../../utils/api'
 
 export default function Register() {
   const navigate = useNavigate()
