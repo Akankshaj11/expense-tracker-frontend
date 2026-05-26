@@ -1,3 +1,4 @@
+// Repo file header
 import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import Landing from './pages/landing/Landing'
@@ -15,15 +16,18 @@ import TermsOfService from './pages/landing/TermsOfService'
 import PrivacyPolicy from './pages/landing/PrivacyPolicy'
 import Footer from './components/Footer'
 
+// Function: syncDocumentLanguage
 function syncDocumentLanguage() {
   const language = localStorage.getItem('selectedLanguage') || 'en'
   document.documentElement.lang = language
 }
 
+// Function: SessionExpiryListener
 function SessionExpiryListener() {
   const navigate = useNavigate()
 
   useEffect(() => {
+    // Function: handleSessionExpired
     const handleSessionExpired = (event) => {
       const message = event?.detail?.message || 'Your session has expired. Please login again.'
       alert(message)
@@ -38,6 +42,7 @@ function SessionExpiryListener() {
   return null
 }
 
+// Function: ScrollToTop
 function ScrollToTop() {
   const location = useLocation()
 
@@ -52,7 +57,9 @@ export default function App(){
   useEffect(() => {
     syncDocumentLanguage()
 
+    // Function: handleStorageChange
     const handleStorageChange = () => syncDocumentLanguage()
+    // Function: handleLanguageChanged
     const handleLanguageChanged = () => syncDocumentLanguage()
     window.addEventListener('storage', handleStorageChange)
     window.addEventListener('language:changed', handleLanguageChanged)
@@ -92,6 +99,7 @@ export default function App(){
   )
 }
 
+// Function: RenderFooterUnlessHome
 function RenderFooterUnlessHome() {
   const location = useLocation()
   // hide the short copyright footer on the home page where we show a full company footer

@@ -1,3 +1,4 @@
+// Repo file header
 import { motion } from 'framer-motion'
 import {
   BanknotesIcon,
@@ -17,6 +18,7 @@ const features = [
   {title:'Download reports', desc:'Export transactions (PDF) for a module and date to share or archive.', icon: ArrowDownTrayIcon},
 ]
 
+// Function: Card
 function Card({f}){
   return (
     <motion.article whileHover={{ y: -6 }} transition={{ duration: 0.25 }} className="card-floating rounded-2xl p-5 transition-shadow hover:shadow-xl">

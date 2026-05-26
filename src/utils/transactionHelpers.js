@@ -1,3 +1,5 @@
+// Repo file header
+// Function: readJSON
 export function readJSON(key, fallback) {
   try {
     const value = localStorage.getItem(key)
@@ -7,6 +9,7 @@ export function readJSON(key, fallback) {
   }
 }
 
+// Function: formatMoney
 export function formatMoney(value, currency, locale = 'en-US') {
   try {
     return new Intl.NumberFormat(locale, {
@@ -19,14 +22,17 @@ export function formatMoney(value, currency, locale = 'en-US') {
   }
 }
 
+// Function: getTodayDate
 export function getTodayDate() {
   return new Date().toISOString().slice(0, 10)
 }
 
+// Function: isMongoObjectId
 export function isMongoObjectId(value) {
   return /^[a-f\d]{24}$/i.test(String(value || ''))
 }
 
+// Function: readFileAsDataUrl
 export function readFileAsDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -36,14 +42,17 @@ export function readFileAsDataUrl(file) {
   })
 }
 
+// Function: sanitizeAmountInput
 function sanitizeAmountInput(value) {
   return value.replace(/[^\d+\-*/().\s]/g, '')
 }
 
+// Function: tokenizeExpression
 export function tokenizeExpression(expression) {
   return expression.match(/\d+(?:\.\d+)?|[+\-*/()]/g) || []
 }
 
+// Function: getLastOperatorIndex
 function getLastOperatorIndex(expression) {
   return Math.max(
     expression.lastIndexOf('+'),
@@ -53,6 +62,7 @@ function getLastOperatorIndex(expression) {
   )
 }
 
+// Function: isValidExpression
 function isValidExpression(expression) {
   const sanitized = expression.replace(/\s+/g, '')
   if (!sanitized) {
@@ -82,6 +92,7 @@ function isValidExpression(expression) {
   }
 }
 
+// Function: evaluateExpression
 export function evaluateExpression(expression) {
   if (!isValidExpression(expression)) {
     return null
@@ -96,10 +107,12 @@ export function evaluateExpression(expression) {
   }
 }
 
+// Function: getPreviewExpression
 export function getPreviewExpression(expression) {
   return expression.replace(/\s+/g, '').replace(/[+\-*/]+$/, '')
 }
 
+// Function: getAmountInputDisplay
 export function getAmountInputDisplay(expression) {
   const sanitized = expression.replace(/\s+/g, '')
   if (!sanitized || /[+\-*/]$/.test(sanitized)) {
@@ -114,6 +127,7 @@ export function getAmountInputDisplay(expression) {
   return sanitized.slice(lastOperatorIndex + 1)
 }
 
+// Function: buildAmountExpression
 export function buildAmountExpression(currentExpression, nextValue) {
   const current = currentExpression.replace(/\s+/g, '')
   const sanitizedNext = sanitizeAmountInput(nextValue)
@@ -155,6 +169,7 @@ export function buildAmountExpression(currentExpression, nextValue) {
   return `${current.slice(0, lastOperatorIndex + 1)}${sanitizedNext}`
 }
 
+// Function: removeTokenFromExpression
 export function removeTokenFromExpression(expression, removeIndex) {
   const tokens = tokenizeExpression(expression)
   if (tokens.length === 0 || removeIndex < 0 || removeIndex >= tokens.length) {

@@ -1,6 +1,8 @@
+// Repo file header
 import { BuildingOffice2Icon, PlusIcon } from '@heroicons/react/24/outline'
 import { translateText } from '../../i18n/translations'
 
+// Function: selectGreetingKeyByHour
 function selectGreetingKeyByHour(hour) {
   if (hour >= 5 && hour < 12) return 'greetingMorning'
   if (hour >= 12 && hour < 17) return 'greetingAfternoon'

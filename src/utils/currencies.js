@@ -1,3 +1,4 @@
+// Repo file header
 export const CURRENCIES = [
   { code: 'USD', name: 'US Dollar', symbol: '$' },
   { code: 'EUR', name: 'Euro', symbol: '€' },
@@ -7,11 +8,13 @@ export const CURRENCIES = [
   { code: 'JPY', name: 'Japanese Yen', symbol: '¥' },
 ]
 
+// Function: getCurrencyByCode
 export function getCurrencyByCode(code) {
   const normalizedCode = String(code || 'USD').trim().toUpperCase()
   return CURRENCIES.find((currency) => currency.code === normalizedCode) || CURRENCIES[0]
 }
 
+// Function: normalizeCurrency
 export function normalizeCurrency(currency) {
   if (!currency || typeof currency !== 'object') {
     return getCurrencyByCode('USD')

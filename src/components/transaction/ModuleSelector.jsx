@@ -1,3 +1,4 @@
+// Repo file header
 import { useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowLeftIcon, PlusIcon } from '@heroicons/react/24/outline'
@@ -35,6 +36,7 @@ const LOWER_ROW_PALETTE = [
   { backgroundColor: '#e11d48', borderColor: '#e11d48', boxShadow: '0 10px 24px rgba(225, 29, 72, 0.22)' },
 ]
 
+// Function: getModuleCardStyle
 function getModuleCardStyle(module, index) {
   const category = module.category || 'revenue'
   const rowIndex = Math.floor(index / GRID_COLUMNS)
@@ -69,12 +71,14 @@ export default function ModuleSelector({
     return rowsDesktop > 3 || cellCount > 3
   }, [cellCount])
 
+  // Function: scrollList
   const scrollList = (direction) => {
     const container = listRef.current
     if (!container) return
     container.scrollBy({ top: direction === 'up' ? -SCROLL_STEP_PX : SCROLL_STEP_PX, behavior: 'smooth' })
   }
 
+  // Function: createCustomModule
   const createCustomModule = async (name) => {
     const nextOrgs = appendCustomModule(organizations, activeOrganization.id, name, customModuleType)
     setCustomModuleDraft('')

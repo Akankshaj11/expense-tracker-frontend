@@ -1,5 +1,7 @@
+// Repo file header
 import { apiRequest } from './api'
 
+// Function: readJSON
 function readJSON(key, fallback) {
   try {
     const value = localStorage.getItem(key)
@@ -9,6 +11,8 @@ function readJSON(key, fallback) {
   }
 }
 
+// Read cached organizations from storage
+// Function: readCachedOrganizations
 export function readCachedOrganizations() {
   const organizations = readJSON('organizations', [])
   if (organizations.length > 0) {
@@ -19,10 +23,12 @@ export function readCachedOrganizations() {
   return organization ? [{ ...organization, id: organization.id || Date.now().toString() }] : []
 }
 
+// Function: getStoredCurrentUser
 export function getStoredCurrentUser() {
   return readJSON('currentUser', null)
 }
 
+// Load organizations from backend API
 export async function loadOrganizationsFromBackend() {
   // const currentUser = getStoredCurrentUser()
   // const ownerId = currentUser?.id || currentUser?._id || currentUser?.email || ''

@@ -1,3 +1,4 @@
+// Repo file header
 import { useMemo, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowLeftIcon, PlusIcon, Squares2X2Icon } from '@heroicons/react/24/outline'
@@ -52,12 +53,14 @@ export default function SubmoduleSelector({
     return rowsDesktop > 3 || cellCount > 3
   }, [cellCount])
 
+  // Function: scrollList
   const scrollList = (direction) => {
     const container = listRef.current
     if (!container) return
     container.scrollBy({ top: direction === 'up' ? -SCROLL_STEP_PX : SCROLL_STEP_PX, behavior: 'smooth' })
   }
 
+  // Function: createCustomSubmodule
   const createCustomSubmodule = async (name) => {
     const nextOrgs = appendSubmoduleToModule(organizations, activeOrganization.id, selectedModule, name)
     setCustomSubmoduleDraft('')

@@ -1,9 +1,11 @@
+// Repo file header
 export const transactionTypeModules = {
   revenue: ['Salary', 'Business', 'Bonus', 'Commission', 'Incentives', 'Rental Income', 'Investment Returns'],
   expenses: ['Food', 'Travel', 'Shopping', 'Bills', 'Health', 'Entertainment', 'Education', 'Rent', 'Subscriptions', 'Loans', 'Taxes'],
   investments: ['Stocks', 'Mutual Funds', 'Fixed Deposit', 'Gold', 'Real Estate', 'PPF'],
 }
 
+// Function: getTransactionCategory
 export function getTransactionCategory(transaction) {
   const transactionType = String(transaction?.transactionType || transaction?.direction || transaction?.transactionDirection || '').toLowerCase()
 
@@ -22,6 +24,7 @@ export function getTransactionCategory(transaction) {
   return null
 }
 
+// Function: getModuleCategory
 export function getModuleCategory(module) {
   const transactionType = String(module?.transactionType || module?.type || '').toLowerCase()
   if (transactionType === 'revenue') {
@@ -68,10 +71,12 @@ export function getModuleCategory(module) {
   return null
 }
 
+// Function: getPersistedModuleTransactionType
 export function getPersistedModuleTransactionType(module) {
   return module?.transactionType || getModuleCategory(module) || 'revenue'
 }
 
+// Function: getModulesForCategory
 export function getModulesForCategory(category, modules) {
   const normalizedCategory = String(category || '').toLowerCase()
   return (modules || []).filter((module) => {
@@ -80,6 +85,7 @@ export function getModulesForCategory(category, modules) {
   })
 }
 
+// Function: getModuleSubmodules
 export function getModuleSubmodules(module, organization) {
   if (Array.isArray(module?.submodules)) {
     return module.submodules
@@ -92,6 +98,7 @@ export function getModuleSubmodules(module, organization) {
   return []
 }
 
+// Function: buildModuleOptions
 export function buildModuleOptions(organizationModules) {
   if (!organizationModules.length) {
     return [

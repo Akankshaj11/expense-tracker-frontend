@@ -1,3 +1,4 @@
+// Repo file header
 import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowLeftIcon, ArrowRightIcon, PlusIcon } from '@heroicons/react/24/outline'
@@ -13,10 +14,12 @@ const investmentModules = ['Mutual Funds', 'Stocks', 'Crypto', 'Fixed Deposits',
 const MODULE_LIST = ['Revenue', 'Expenses', 'Investments', 'Lend', 'Borrow', 'custom']
 const defaultSelectedModules = ['Revenue', 'Expenses', 'Investments', 'Lend', 'Borrow']
 
+// Function: createEmptyModuleState
 function createEmptyModuleState() {
   return Object.fromEntries(MODULE_LIST.map((module) => [module, []]))
 }
 
+// Function: createEmptyDraftState
 function createEmptyDraftState() {
   return Object.fromEntries(MODULE_LIST.map((module) => [module, '']))
 }
@@ -47,6 +50,7 @@ export default function CreateOrganization() {
   const moduleItems = useMemo(() => MODULE_LIST, [])
   const backPath = location.state?.from || '/select-language'
 
+  // Function: toggleModule
   const toggleModule = (module) => {
     setSelectedModules((current) => {
       if (current.includes(module)) {
@@ -58,6 +62,7 @@ export default function CreateOrganization() {
 
   const allSelected = MODULE_LIST.every((m) => selectedModules.includes(m))
 
+  // Function: toggleSelectAll
   const toggleSelectAll = () => {
     if (allSelected) {
       setSelectedModules([])
@@ -66,6 +71,7 @@ export default function CreateOrganization() {
     }
   }
 
+  // Function: addSubmodule
   const addSubmodule = (module) => {
     if (module === 'custom') {
       const draft = customSubmoduleDraft?.trim()
@@ -81,6 +87,7 @@ export default function CreateOrganization() {
     setSubmoduleDrafts((current) => ({ ...current, [module]: '' }))
   }
 
+  // Function: removeSubmodule
   const removeSubmodule = (module, value) => {
     setSubmodules((current) => ({
       ...current,
@@ -88,6 +95,7 @@ export default function CreateOrganization() {
     }))
   }
 
+  // Function: handleCreateOrganization
   const handleCreateOrganization = async (e) => {
     e.preventDefault()
     setError('')

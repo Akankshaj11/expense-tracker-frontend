@@ -1,3 +1,4 @@
+// Repo file header
 import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowRightIcon } from '@heroicons/react/24/outline'
@@ -11,6 +12,7 @@ export default function CurrencySelect() {
 
   const selectedCurrency = useMemo(() => CURRENCIES.find((item) => item.code === currency), [currency])
 
+  // Function: handleContinue
   const handleContinue = (e) => {
     e.preventDefault()
 

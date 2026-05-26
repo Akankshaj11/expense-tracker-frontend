@@ -1,3 +1,4 @@
+// Repo file header
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
@@ -11,6 +12,8 @@ import translations, {
   translateModuleLabel,
 } from '../../i18n/translations'
 
+// Read JSON from localStorage
+// Function: readJSON
 function readJSON(key, fallback) {
   try {
     const value = localStorage.getItem(key)
@@ -20,10 +23,12 @@ function readJSON(key, fallback) {
   }
 }
 
+// Function: capitalize
 function capitalize(value) {
   return value ? value.charAt(0).toUpperCase() + value.slice(1) : ''
 }
 
+// Function: formatMoney
 function formatMoney(value, currency, locale = 'en-US') {
   try {
     return new Intl.NumberFormat(locale, {
@@ -36,6 +41,7 @@ function formatMoney(value, currency, locale = 'en-US') {
   }
 }
 
+// Function: formatDateTime
 function formatDateTime(value, locale = 'en-US') {
   if (!value) {
     return translateText(locale === 'mr-IN' ? 'mr' : 'en', 'noDate')
@@ -55,6 +61,8 @@ function formatDateTime(value, locale = 'en-US') {
   }).format(date)
 }
 
+// Categorize transaction type
+// Function: getTransactionCategory
 function getTransactionCategory(transaction) {
   const transactionType = String(transaction?.transactionType || '').toLowerCase()
 
@@ -90,10 +98,12 @@ function getTransactionCategory(transaction) {
   return amount < 0 ? 'expenses' : 'revenue'
 }
 
+// Function: getTransactionDirection
 function getTransactionDirection(transaction) {
   return getTransactionCategory(transaction) === 'expenses' ? 'out' : 'in'
 }
 
+// Function: getSignedTransactionAmount
 function getSignedTransactionAmount(transaction) {
   const amount = Number(transaction?.amount || 0)
   if (!Number.isFinite(amount)) {
@@ -108,11 +118,14 @@ function getSignedTransactionAmount(transaction) {
   return Math.abs(amount)
 }
 
+// Build edit route path
+// Function: getTransactionEditPath
 function getTransactionEditPath(transaction) {
   const transactionId = String(transaction?.id || transaction?._id || '')
   return transactionId ? `/edit-transaction/${encodeURIComponent(transactionId)}` : '/add-transaction'
 }
 
+// All transactions listing
 export default function Transactions() {
   const navigate = useNavigate()
   const [organizations, setOrganizations] = useState(() => readCachedOrganizations())
@@ -133,11 +146,14 @@ export default function Transactions() {
   }, [])
 
   useEffect(() => {
+    // Function: handleLanguageChanged
     const handleLanguageChanged = (event) => {
+      // Function: newLanguage
       const newLanguage = (event && event.detail && event.detail.language) || localStorage.getItem('selectedLanguage') || 'en'
       setLanguage(newLanguage)
     }
 
+    // Function: handleStorage
     const handleStorage = (event) => {
       if (event.key === 'selectedLanguage') {
         setLanguage(event.newValue || 'en')
@@ -175,6 +191,7 @@ export default function Transactions() {
       .sort((left, right) => new Date(right.createdAt || right.date || 0) - new Date(left.createdAt || left.date || 0))
   }, [transactions, activeOrganization])
 
+  // Function: handleDownloadReport
   const handleDownloadReport = async () => {
     if (!activeOrganization) {
       return

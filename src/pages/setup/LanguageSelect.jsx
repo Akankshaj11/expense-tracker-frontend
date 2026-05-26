@@ -1,3 +1,4 @@
+// Repo file header
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowRightIcon, ArrowLeftIcon } from '@heroicons/react/24/outline'
@@ -14,6 +15,7 @@ export default function LanguageSelect() {
   const [language, setLanguage] = useState('en')
   const [error, setError] = useState('')
 
+  // Function: handleContinue
   const handleContinue = (e) => {
     e.preventDefault()
     if (!language) {

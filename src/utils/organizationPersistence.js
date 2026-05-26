@@ -1,3 +1,4 @@
+// Repo file header
 import { apiRequest } from './api'
 import { loadOrganizationsFromBackend } from './organizationSync'
 import { getPersistedModuleTransactionType } from './moduleUtils'
@@ -17,6 +18,7 @@ export async function persistOrganizationModules(activeOrganizationId, nextOrgs,
       return
     }
 
+    // Function: modulesForBackend
     const modulesForBackend = (active.modules || []).map((module) => ({
       name: module.name,
       transactionType: getPersistedModuleTransactionType(module),
@@ -82,6 +84,7 @@ export async function persistOrganizationCurrency(activeOrganizationId, nextCurr
   }
 }
 
+// Function: appendCustomModule
 export function appendCustomModule(organizations, activeOrganizationId, moduleName, transactionType = 'custom') {
   const name = moduleName.trim()
   if (!name) {
@@ -102,6 +105,7 @@ export function appendCustomModule(organizations, activeOrganizationId, moduleNa
   })
 }
 
+// Function: appendSubmoduleToModule
 export function appendSubmoduleToModule(organizations, activeOrganizationId, moduleName, submoduleName) {
   const name = submoduleName.trim()
   if (!name) {
@@ -113,6 +117,7 @@ export function appendSubmoduleToModule(organizations, activeOrganizationId, mod
       return org
     }
 
+    // Function: nextModules
     const nextModules = (org.modules || []).map((module) => {
       if (module.name !== moduleName) {
         return module

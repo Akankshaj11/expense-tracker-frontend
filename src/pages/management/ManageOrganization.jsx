@@ -1,3 +1,4 @@
+// Repo file header
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
@@ -13,6 +14,7 @@ import {
   translateSubmoduleLabel,
 } from '../../i18n/translations'
 
+// Function: readJSON
 function readJSON(key, fallback) {
   try {
     const value = localStorage.getItem(key)
@@ -22,6 +24,7 @@ function readJSON(key, fallback) {
   }
 }
 
+// Function: createModuleItem
 function createModuleItem(module, index, organizationSubmodules = {}) {
   const normalizedName = String(module?.name || '').toLowerCase()
   const isDefaultSystemModule = ['revenue', 'expenses', 'investments', 'lend', 'borrow'].includes(normalizedName)
@@ -39,10 +42,12 @@ function createModuleItem(module, index, organizationSubmodules = {}) {
   }
 }
 
+// Function: buildModuleItems
 function buildModuleItems(organization) {
   return (organization?.modules || []).map((module, index) => createModuleItem(module, index, organization?.submodules || {}))
 }
 
+// Function: createEmptyModuleDraft
 function createEmptyModuleDraft() {
   return {
     id: `module-${Date.now()}-${Math.random().toString(16).slice(2)}`,
@@ -111,10 +116,12 @@ export default function ManageOrganization() {
     )
   }
 
+  // Function: updateModule
   const updateModule = (moduleId, key, value) => {
     setModules((current) => current.map((module) => (module.id === moduleId ? { ...module, [key]: value } : module)))
   }
 
+  // Function: updateSubmodule
   const updateSubmodule = (moduleId, subIndex, value) => {
     setModules((current) =>
       current.map((module) => {
@@ -129,16 +136,19 @@ export default function ManageOrganization() {
     )
   }
 
+  // Function: addModule
   const addModule = () => {
     setError('')
     setSavedMessage('')
     setModuleDraft((currentDraft) => currentDraft || createEmptyModuleDraft())
   }
 
+  // Function: cancelModuleDraft
   const cancelModuleDraft = () => {
     setModuleDraft(null)
   }
 
+  // Function: updateModuleDraft
   const updateModuleDraft = (key, value) => {
     setModuleDraft((currentDraft) => {
       if (!currentDraft) {
@@ -149,12 +159,14 @@ export default function ManageOrganization() {
     })
   }
 
+  // Function: saveModuleDraft
   const saveModuleDraft = () => {
     if (!moduleDraft) {
       return
     }
 
     const name = moduleDraft.name.trim()
+    // Function: submodules
     const submodules = (moduleDraft.submodules || []).map((submodule) => submodule.trim()).filter(Boolean)
 
     if (!name) {
@@ -185,6 +197,7 @@ export default function ManageOrganization() {
     setError('')
   }
 
+  // Function: addModuleDraftSubmodule
   const addModuleDraftSubmodule = () => {
     setModuleDraft((currentDraft) => {
       if (!currentDraft) {
@@ -208,6 +221,7 @@ export default function ManageOrganization() {
     })
   }
 
+  // Function: removeModuleDraftSubmodule
   const removeModuleDraftSubmodule = (submoduleValue) => {
     setModuleDraft((currentDraft) => {
       if (!currentDraft) {
@@ -221,10 +235,12 @@ export default function ManageOrganization() {
     })
   }
 
+  // Function: removeModule
   const removeModule = (moduleId) => {
     setModules((current) => current.filter((module) => module.id !== moduleId))
   }
 
+  // Function: addSubmodule
   const addSubmodule = (moduleId) => {
     setModules((current) =>
       current.map((module) =>
@@ -233,6 +249,7 @@ export default function ManageOrganization() {
     )
   }
 
+  // Function: removeSubmodule
   const removeSubmodule = (moduleId, subIndex) => {
     setModules((current) =>
       current.map((module) => {
@@ -245,6 +262,7 @@ export default function ManageOrganization() {
     )
   }
 
+  // Function: handleSave
   const handleSave = async (event) => {
     event.preventDefault()
 
@@ -341,6 +359,7 @@ export default function ManageOrganization() {
     }
   }
 
+  // Function: handleDelete
   const handleDelete = async () => {
     setIsDeleting(true)
     const isMongoId = /^[a-f0-9]{24}$/.test(activeOrganization.id)

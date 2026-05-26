@@ -1410,6 +1410,7 @@ export const translations = {
   },
 };
 
+// Function: translateText
 export function translateText(language, key, values = {}) {
   const template = translations[language]?.[key] || translations.en[key] || key;
   return String(template).replace(/\{(\w+)\}/g, (_, valueKey) =>
@@ -1417,6 +1418,7 @@ export function translateText(language, key, values = {}) {
   );
 }
 
+// Function: getLocale
 export function getLocale(language) {
   if (language === "mr") return "mr-IN";
   if (language === "hi") return "hi-IN";
@@ -1428,6 +1430,7 @@ export function getLocale(language) {
 // raw module name provided by the application.
 export const TRANSLATE_MODULE_NAMES = true;
 
+// Function: translateModuleLabel
 export function translateModuleLabel(language, moduleName) {
   // If translation of module names is disabled, return the raw name
   // exactly as provided by the app (preserves user/organization labels).
@@ -1441,6 +1444,7 @@ export function translateModuleLabel(language, moduleName) {
   );
 }
 
+// Function: translateSubmoduleLabel
 export function translateSubmoduleLabel(language, submodule) {
   const raw = String(submodule || "").trim()
   if (!raw) return raw

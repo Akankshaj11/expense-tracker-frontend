@@ -1,3 +1,4 @@
+// Repo file header
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -39,6 +40,7 @@ import DashboardWorkspaceSummary from '../../components/dashboard/DashboardWorks
 import DashboardEmptyState from '../../components/dashboard/DashboardEmptyState'
 import { persistOrganizationCurrency } from '../../utils/organizationPersistence'
 
+// Function: readJSON
 function readJSON(key, fallback) {
   try {
     const value = localStorage.getItem(key)
@@ -48,15 +50,18 @@ function readJSON(key, fallback) {
   }
 }
 
+// Function: capitalize
 function capitalize(value) {
   return value ? value.charAt(0).toUpperCase() + value.slice(1) : ''
 }
 
+// Function: deriveFirstName
 function deriveFirstName(user) {
   const raw = user?.firstName || user?.name || user?.email?.split('@')[0] || 'there'
   return raw.split(/[._-]/)[0].replace(/^[a-z]/, (letter) => letter.toUpperCase())
 }
 
+// Function: formatMoney
 function formatMoney(value, currency, locale = 'en-US') {
   try {
     return new Intl.NumberFormat(locale, {
@@ -69,6 +74,7 @@ function formatMoney(value, currency, locale = 'en-US') {
   }
 }
 
+// Function: getTransactionCategory
 function getTransactionCategory(transaction) {
   const transactionType = String(transaction?.transactionType || '').toLowerCase()
   const moduleName = String(transaction?.module || transaction?.moduleName || '').toLowerCase()
@@ -113,6 +119,7 @@ function getTransactionCategory(transaction) {
   return amount < 0 ? 'expenses' : 'revenue'
 }
 
+// Function: normalizeModuleTransactionType
 function normalizeModuleTransactionType(value) {
   const normalized = String(value || '').toLowerCase()
 
@@ -131,6 +138,7 @@ function normalizeModuleTransactionType(value) {
   return null
 }
 
+// Function: getTransactionDirection
 function getTransactionDirection(transaction) {
   const category = getTransactionCategory(transaction)
   if (category === 'expenses' || category === 'lend') {
@@ -139,6 +147,7 @@ function getTransactionDirection(transaction) {
   return 'in'
 }
 
+// Function: getSignedTransactionAmount
 function getSignedTransactionAmount(transaction) {
   const amount = Number(transaction?.amount || 0)
   if (!Number.isFinite(amount)) {
@@ -171,6 +180,7 @@ const moduleThemes = {
   custom: { label: 'Custom', bg: '#F8FAFC', fg: '#0F172A', iconBg: '#E2E8F0', icon: Squares2X2Icon },
 }
 
+// Function: getModuleSubmodules
 function getModuleSubmodules(module, organization) {
   if (Array.isArray(module?.submodules)) {
     return module.submodules
@@ -183,6 +193,7 @@ function getModuleSubmodules(module, organization) {
   return []
 }
 
+// Function: buildModuleCards
 function buildModuleCards(activeOrganization, currency, transactions, language = 'en', locale = 'en-US') {
   if (!activeOrganization?.modules?.length) {
     return []
@@ -191,6 +202,7 @@ function buildModuleCards(activeOrganization, currency, transactions, language =
   const systemDefaultModuleNames = new Set(['revenue', 'expenses', 'investments', 'lend', 'borrow'])
 
   const moduleAmounts = activeOrganization.modules.map((module) => {
+    // Function: moduleTransactions
     const moduleTransactions = (transactions || []).filter((transaction) => transaction.module === module.name)
     const normalizedName = module.name.toLowerCase()
     const knownTheme = moduleThemes[normalizedName]
@@ -261,6 +273,7 @@ function buildModuleCards(activeOrganization, currency, transactions, language =
   })
 }
 
+// Function: buildRecentActivity
 function buildRecentActivity(transactions, currency, locale = 'en-US', text = {}) {
   return [...(transactions || [])]
     .filter((transaction) => Number.isFinite(Number(transaction?.amount)))
@@ -285,11 +298,13 @@ function buildRecentActivity(transactions, currency, locale = 'en-US', text = {}
     })
 }
 
+// Function: getTransactionEditPath
 function getTransactionEditPath(transaction) {
   const transactionId = String(transaction?.id || transaction?._id || '')
   return transactionId ? `/edit-transaction/${encodeURIComponent(transactionId)}` : '/add-transaction'
 }
 
+// Function: formatDateLabel
 function formatDateLabel(value) {
   if (!value) return ''
   const date = new Date(value)
@@ -339,6 +354,7 @@ export default function Dashboard() {
   }, [activeOrgId])
 
   useEffect(() => {
+    // Function: handleTransactionsUpdated
     const handleTransactionsUpdated = () => {
       setTransactionsRevision((current) => current + 1)
     }
@@ -384,6 +400,7 @@ export default function Dashboard() {
     return map
   }, [activeOrganization])
 
+  // Function: getDashboardCategory
   const getDashboardCategory = (transaction) => {
     const moduleName = String(transaction?.module || transaction?.moduleName || '').toLowerCase()
     const moduleBasedType = moduleTypeByName.get(moduleName)
@@ -422,17 +439,20 @@ export default function Dashboard() {
   const lendAmount = formatMoney(lendAmountValue, activeCurrency, locale)
   const borrowAmount = formatMoney(borrowAmountValue, activeCurrency, locale)
 
+  // Function: handleSwitchOrg
   const handleSwitchOrg = (organizationId) => {
     setActiveOrgId(organizationId)
     setOrgMenuOpen(false)
     setProfileOpen(false)
   }
 
+  // Function: handleCreateNewOrg
   const handleCreateNewOrg = () => {
     setOrgMenuOpen(false)
     navigate('/create-organization', { state: { from: '/dashboard' } })
   }
 
+  // Function: handleChangeCurrency
   const handleChangeCurrency = async (currency) => {
     if (!activeOrganization?.id) {
       return
@@ -441,11 +461,13 @@ export default function Dashboard() {
     await persistOrganizationCurrency(activeOrganization.id, currency, organizations, setOrganizations)
   }
 
+  // Function: handleManageOrg
   const handleManageOrg = () => {
     setOrgMenuOpen(false)
     navigate('/manage-organization')
   }
 
+  // Function: handleLogout
   const handleLogout = () => {
     (async () => {
       try {
@@ -464,6 +486,7 @@ export default function Dashboard() {
     })()
   }
 
+  // Function: handleDownloadWorkspacePDF
   const handleDownloadWorkspacePDF = async () => {
     try {
       const response = await authenticatedFetch(`/dashboard/report?organizationId=${encodeURIComponent(activeOrganization.id)}`, {

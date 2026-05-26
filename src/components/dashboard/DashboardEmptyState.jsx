@@ -1,3 +1,4 @@
+// Repo file header
 export default function DashboardEmptyState({ text, onCreateOrganization }) {
   return (
     <section className="mt-8 rounded-[2rem] border border-white/6 bg-[var(--card)] p-8 text-center shadow-sm">

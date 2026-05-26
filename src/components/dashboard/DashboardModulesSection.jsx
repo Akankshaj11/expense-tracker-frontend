@@ -1,3 +1,4 @@
+// Repo file header
 import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { EllipsisVerticalIcon, Squares2X2Icon } from '@heroicons/react/24/outline'
@@ -6,6 +7,7 @@ import { loadOrganizationsFromBackend } from '../../utils/organizationSync'
 import { readJSON } from '../../utils/transactionHelpers'
 import DashboardModuleEditor from './DashboardModuleEditor'
 
+// Function: getModuleTypeBadge
 function getModuleTypeBadge(module) {
   if (!module?.isCustom || !module?.transactionType) {
     return null
@@ -43,6 +45,7 @@ export default function DashboardModulesSection({ text, moduleCards, onModuleCli
       return undefined
     }
 
+    // Function: handlePointerDown
     const handlePointerDown = (event) => {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
         setOpenMenuId(null)
@@ -58,11 +61,13 @@ export default function DashboardModulesSection({ text, moduleCards, onModuleCli
     }
   }, [openMenuId])
 
+  // Function: handleView
   const handleView = (moduleLabel) => {
     if (onModuleClick) onModuleClick(moduleLabel)
     setOpenMenuId(null)
   }
 
+  // Function: openEditor
   const openEditor = (module) => {
     setEditingOriginalName(module.rawName || module.label || '')
     setModuleNameDraft(module.rawName || module.label || '')
@@ -72,6 +77,7 @@ export default function DashboardModulesSection({ text, moduleCards, onModuleCli
     setOpenMenuId(null)
   }
 
+  // Function: closeEditor
   const closeEditor = () => {
     setIsEditorOpen(false)
     setEditingOriginalName('')
@@ -81,18 +87,22 @@ export default function DashboardModulesSection({ text, moduleCards, onModuleCli
     setIsSaving(false)
   }
 
+  // Function: updateSubmoduleDraft
   const updateSubmoduleDraft = (index, value) => {
     setSubmoduleDrafts((current) => current.map((submodule, subIndex) => (subIndex === index ? value : submodule)))
   }
 
+  // Function: addSubmoduleDraft
   const addSubmoduleDraft = () => {
     setSubmoduleDrafts((current) => [...current, ''])
   }
 
+  // Function: removeSubmoduleDraft
   const removeSubmoduleDraft = (index) => {
     setSubmoduleDrafts((current) => current.filter((_, subIndex) => subIndex !== index))
   }
 
+  // Function: persistUpdatedOrganizations
   const persistUpdatedOrganizations = async (nextOrganizations) => {
     const activeOrgId = String(activeOrganization?.id || '')
     const activeOrg = nextOrganizations.find((org) => String(org.id) === activeOrgId)
@@ -100,6 +110,7 @@ export default function DashboardModulesSection({ text, moduleCards, onModuleCli
       return
     }
 
+    // Function: modulesForBackend
     const modulesForBackend = (activeOrg.modules || []).map((module) => ({
       name: module.name,
       transactionType: module.transactionType || 'revenue',
@@ -143,6 +154,7 @@ export default function DashboardModulesSection({ text, moduleCards, onModuleCli
     }
   }
 
+  // Function: handleSave
   const handleSave = async () => {
     if (!activeOrganization) {
       return
@@ -186,6 +198,7 @@ export default function DashboardModulesSection({ text, moduleCards, onModuleCli
       }
     })
 
+    // Function: nextOrganizations
     const nextOrganizations = (readJSON('organizations', []) || []).map((organization) => {
       if (organization.id !== activeOrganization.id) {
         return organization
@@ -246,6 +259,7 @@ export default function DashboardModulesSection({ text, moduleCards, onModuleCli
     }
   }
 
+  // Function: handleDelete
   const handleDelete = async (module, event) => {
     event?.stopPropagation()
 

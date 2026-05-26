@@ -1,3 +1,4 @@
+// Repo file header
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
@@ -10,6 +11,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { CURRENCIES, getCurrencyByCode } from '../../utils/currencies'
 
+// Function: LanguageRow
 function LanguageRow({ language, setLanguage, text }) {
   return (
     <div className="flex items-center gap-2 overflow-hidden">
@@ -41,12 +43,15 @@ function LanguageRow({ language, setLanguage, text }) {
   )
 }
 
+// Function: useIsDesktop
 function useIsDesktop() {
+  // Function: getMatch
   const getMatch = () => (typeof window !== 'undefined' ? window.matchMedia('(min-width: 768px)').matches : true)
   const [isDesktop, setIsDesktop] = useState(getMatch)
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(min-width: 768px)')
+    // Function: handleChange
     const handleChange = (event) => setIsDesktop(event.matches)
 
     setIsDesktop(mediaQuery.matches)
@@ -63,6 +68,7 @@ function useIsDesktop() {
   return isDesktop
 }
 
+// Function: OrganizationMenu
 function OrganizationMenu({ activeOrgId, activeOrganization, organizations, orgMenuOpen, setOrgMenuOpen, setProfileOpen, handleSwitchOrg, handleCreateNewOrg, text, mobile = false }) {
   const containerRef = useRef(null)
   const isDesktop = useIsDesktop()
@@ -73,6 +79,7 @@ function OrganizationMenu({ activeOrgId, activeOrganization, organizations, orgM
       return undefined
     }
 
+    // Function: handlePointerDown
     const handlePointerDown = (event) => {
       if (containerRef.current && !containerRef.current.contains(event.target)) {
         setOrgMenuOpen(false)
@@ -150,6 +157,7 @@ function OrganizationMenu({ activeOrgId, activeOrganization, organizations, orgM
   )
 }
 
+// Function: ProfileMenu
 function ProfileMenu({ currentUser, firstName, activeOrganization, activeCurrency, profileOpen, setProfileOpen, setOrgMenuOpen, language, setLanguage, handleLogout, handleChangeCurrency, text, mobile = false }) {
   const containerRef = useRef(null)
   const isDesktop = useIsDesktop()
@@ -171,6 +179,7 @@ function ProfileMenu({ currentUser, firstName, activeOrganization, activeCurrenc
       return undefined
     }
 
+    // Function: handlePointerDown
     const handlePointerDown = (event) => {
       if (containerRef.current && !containerRef.current.contains(event.target)) {
         setProfileOpen(false)
@@ -187,6 +196,7 @@ function ProfileMenu({ currentUser, firstName, activeOrganization, activeCurrenc
     }
   }, [profileOpen, isActiveView, setProfileOpen, setOrgMenuOpen])
 
+  // Function: onCurrencyChange
   const onCurrencyChange = async (currency) => {
     if (isUpdatingCurrency) {
       return

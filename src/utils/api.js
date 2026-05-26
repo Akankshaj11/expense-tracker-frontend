@@ -1,3 +1,4 @@
+// Repo file header
 const DEFAULT_API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'
 // Frontend always calls the backend API. To disable network calls explicitly,
 // set `VITE_NO_BACKEND=1` in your env (not recommended for permanent use).
@@ -13,6 +14,7 @@ if (typeof window !== 'undefined' && import.meta.env.MODE === 'development') {
   console.info('[api] NO_BACKEND=', NO_BACKEND)
 }
 
+// Function: readJSON
 function readJSON(key, fallback) {
   try {
     const value = localStorage.getItem(key)
@@ -22,6 +24,7 @@ function readJSON(key, fallback) {
   }
 }
 
+// Function: getCookie
 function getCookie(name) {
   if (typeof document === 'undefined') {
     return ''
@@ -39,6 +42,7 @@ function getCookie(name) {
   return ''
 }
 
+// Function: setCookie
 function setCookie(name, value, maxAgeSeconds) {
   if (typeof document === 'undefined') {
     return
@@ -61,10 +65,12 @@ function setCookie(name, value, maxAgeSeconds) {
   document.cookie = parts.join('; ')
 }
 
+// Function: clearCookie
 function clearCookie(name) {
   setCookie(name, '', 0)
 }
 
+// Function: getJwtExpirySeconds
 function getJwtExpirySeconds(token) {
   const parts = String(token || '').split('.')
   if (parts.length !== 3) {
@@ -88,12 +94,14 @@ function getJwtExpirySeconds(token) {
   }
 }
 
+// Function: base64UrlDecode
 function base64UrlDecode(value) {
   const normalized = value.replace(/-/g, '+').replace(/_/g, '/')
   const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4)
   return atob(padded)
 }
 
+// Function: isJwtExpired
 function isJwtExpired(token) {
   const parts = String(token || '').split('.')
   if (parts.length !== 3) {
@@ -112,6 +120,7 @@ function isJwtExpired(token) {
   }
 }
 
+// Function: clearStoredAuth
 export function clearStoredAuth() {
   clearCookie(ACCESS_TOKEN_COOKIE)
   localStorage.removeItem('accessToken')
@@ -119,6 +128,7 @@ export function clearStoredAuth() {
   localStorage.removeItem('currentUser')
 }
 
+// Function: notifySessionExpired
 function notifySessionExpired() {
   if (sessionExpiredNotified || typeof window === 'undefined') {
     return
@@ -132,24 +142,29 @@ function notifySessionExpired() {
   )
 }
 
+// Function: isPublicAuthPath
 function isPublicAuthPath(path) {
   return PUBLIC_AUTH_PATHS.some((publicPath) => path.startsWith(publicPath))
 }
 
+// Function: getApiBaseUrl
 export function getApiBaseUrl() {
   return DEFAULT_API_BASE_URL.replace(/\/$/, '')
 }
 
 // With server-managed HttpOnly cookies we don't expose tokens to JS.
 // Keep compatibility functions but make them no-ops.
+// Function: getStoredAccessToken
 export function getStoredAccessToken() {
   return ''
 }
 
+// Function: setStoredAccessToken
 export function setStoredAccessToken() {
   // no-op: tokens are set by the backend in HttpOnly cookies
 }
 
+// Perform authenticated fetch (cookies)
 export async function authenticatedFetch(path, options = {}) {
   const cleanPath = path.startsWith('/') ? path : `/${path}`
 
@@ -197,6 +212,7 @@ export async function authenticatedFetch(path, options = {}) {
   return response
 }
 
+// Wrapper for API requests
 export async function apiRequest(path, options = {}) {
   const cleanPath = path.startsWith('/') ? path : `/${path}`
   const response = await authenticatedFetch(cleanPath, options)

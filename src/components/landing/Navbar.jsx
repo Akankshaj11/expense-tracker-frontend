@@ -1,3 +1,4 @@
+// Repo file header
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -8,6 +9,7 @@ export default function Navbar(){
   const [mobileOpen, setMobileOpen] = useState(false)
 
   useEffect(()=>{
+    // Function: onScroll
     function onScroll(){ setScrolled(window.scrollY>20) }
     window.addEventListener('scroll', onScroll)
     return ()=>window.removeEventListener('scroll', onScroll)

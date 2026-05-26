@@ -1,3 +1,4 @@
+// Repo file header
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowRightIcon } from '@heroicons/react/24/outline'
@@ -23,11 +24,13 @@ export default function Login() {
     }
   }, [location.state])
 
+  // Function: deriveFirstName
   const deriveFirstName = (value) => {
     const localPart = value.split('@')[0] || 'user'
     return localPart.split(/[._-]/)[0].replace(/^[a-z]/, (letter) => letter.toUpperCase())
   }
 
+  // Function: handleLogin
   const handleLogin = async (e) => {
     e.preventDefault()
     setError('')

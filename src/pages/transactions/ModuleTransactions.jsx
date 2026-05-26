@@ -1,3 +1,4 @@
+// Repo file header
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
@@ -6,6 +7,8 @@ import { authenticatedFetch } from '../../utils/api'
 import { loadOrganizationsFromBackend, readCachedOrganizations } from '../../utils/organizationSync'
 import translations, { translateText, getLocale, translateModuleLabel } from '../../i18n/translations'
 
+// Read JSON from localStorage
+// Function: readJSON
 function readJSON(key, fallback) {
   try {
     const value = localStorage.getItem(key)
@@ -15,10 +18,14 @@ function readJSON(key, fallback) {
   }
 }
 
+// Today's date as YYYY-MM-DD
+// Function: getTodayDate
 function getTodayDate() {
   return new Date().toISOString().slice(0, 10)
 }
 
+// Format value as currency
+// Function: formatMoney
 function formatMoney(value, currency, locale = 'en-US') {
   try {
     return new Intl.NumberFormat(locale, {
@@ -31,6 +38,8 @@ function formatMoney(value, currency, locale = 'en-US') {
   }
 }
 
+// Format time for display
+// Function: formatTime
 function formatTime(value, locale = 'en-US') {
   if (!value) {
     return '--:--'
@@ -47,6 +56,8 @@ function formatTime(value, locale = 'en-US') {
   }).format(date)
 }
 
+// Format date label for UI
+// Function: formatDateLabel
 function formatDateLabel(value, locale = 'en-US') {
   if (!value) {
     return ''
@@ -64,6 +75,8 @@ function formatDateLabel(value, locale = 'en-US') {
   }).format(date)
 }
 
+// Determine transaction direction
+// Function: getTransactionDirection
 function getTransactionDirection(transaction) {
   if (transaction?.direction === 'in' || transaction?.direction === 'out') {
     return transaction.direction
@@ -85,6 +98,8 @@ function getTransactionDirection(transaction) {
   return amount < 0 ? 'out' : 'in'
 }
 
+// Signed amount (in/out)
+// Function: getSignedAmount
 function getSignedAmount(transaction) {
   const amount = Number(transaction?.amount || 0)
   if (!Number.isFinite(amount)) {
@@ -95,6 +110,8 @@ function getSignedAmount(transaction) {
 }
 
 
+// Convert base64 string to Blob
+// Function: base64ToBlob
 function base64ToBlob(base64, contentType = 'application/pdf') {
   const binary = atob(base64)
   const chunks = []
@@ -112,6 +129,7 @@ function base64ToBlob(base64, contentType = 'application/pdf') {
   return new Blob(chunks, { type: contentType })
 }
 
+// Module transactions page
 export default function ModuleTransactions() {
   const navigate = useNavigate()
   const { moduleName: encodedModuleName } = useParams()
@@ -138,11 +156,14 @@ export default function ModuleTransactions() {
     const [attachmentCache, setAttachmentCache] = useState(() => readJSON('attachments', []))
 
   useEffect(() => {
+    // Function: handleLanguageChanged
     const handleLanguageChanged = (event) => {
+      // Function: newLanguage
       const newLanguage = (event && event.detail && event.detail.language) || localStorage.getItem('selectedLanguage') || 'en'
       setLanguage(newLanguage)
     }
 
+    // Function: handleStorage
     const handleStorage = (event) => {
       if (event.key === 'selectedLanguage') {
         setLanguage(event.newValue || 'en')
@@ -157,6 +178,7 @@ export default function ModuleTransactions() {
     window.addEventListener('storage', handleStorage)
 
     // Listen for app-level transactions updates
+    // Function: updateTransactionsFromStorage
     const updateTransactionsFromStorage = () => {
       setTransactions(readJSON('transactions', []))
       setAttachmentCache(readJSON('attachments', []))
@@ -203,6 +225,7 @@ export default function ModuleTransactions() {
       .sort((left, right) => new Date(right.createdAt || right.date || 0) - new Date(left.createdAt || left.date || 0))
   }, [transactions, activeOrganization, resolvedModuleName, selectedDate, language])
 
+  // Function: resolveAttachmentPreview
   const resolveAttachmentPreview = (transaction) => {
     if (transaction.attachmentDataUrl) {
       return {
@@ -215,6 +238,7 @@ export default function ModuleTransactions() {
     return attachmentCache.find((item) => item.transactionId === transaction.id) || null
   }
 
+  // Function: handleDownloadPDF
   const handleDownloadPDF = async () => {
     try {
       const response = await authenticatedFetch(

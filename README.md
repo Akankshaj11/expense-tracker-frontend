@@ -1,3 +1,4 @@
+<!-- Repo file header -->
 # Expense Tracker Frontend
 
 A React + Vite frontend that now lives directly in the workspace root.

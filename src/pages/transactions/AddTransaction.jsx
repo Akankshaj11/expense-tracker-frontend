@@ -1,3 +1,4 @@
+// Repo file header
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
@@ -26,11 +27,14 @@ import translations, {
   translateSubmoduleLabel,
 } from '../../i18n/translations'
 
+// Return current HH:MM time
+// Function: getCurrentTimeValue
 function getCurrentTimeValue() {
   const now = new Date()
   return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
 }
 
+// Transaction add/edit page
 export default function AddTransaction() {
   const navigate = useNavigate()
   const { transactionId: encodedTransactionId } = useParams()
@@ -81,11 +85,14 @@ export default function AddTransaction() {
   const locale = getLocale(language)
 
   useEffect(() => {
+    // Function: handleLanguageChanged
     const handleLanguageChanged = (event) => {
+      // Function: newLang
       const newLang = (event && event.detail && event.detail.language) || localStorage.getItem('selectedLanguage') || 'en'
       setLanguage(newLang)
     }
 
+    // Function: handleStorage
     const handleStorage = (event) => {
       if (event.key === 'selectedLanguage') {
         setLanguage(event.newValue || 'en')
@@ -183,6 +190,8 @@ export default function AddTransaction() {
   const saveButtonLabel = isEditMode ? text.updateTransaction : text.save
   const secondaryButtonLabel = isEditMode ? '' : text.saveAndAddAnother
 
+  // Close selection modal or navigate back
+  // Function: closeSelectionModal
   const closeSelectionModal = () => {
     if (isEditMode) {
       setForceSubmoduleSelection(false)
@@ -209,6 +218,7 @@ export default function AddTransaction() {
     navigate(-1)
   }
 
+  // Function: navigateBackFromTransactionForm
   const navigateBackFromTransactionForm = () => {
     setError('')
     const visitedSubmoduleStep =
@@ -227,6 +237,7 @@ export default function AddTransaction() {
     setTransactionDirection('')
   }
 
+  // Function: handleModuleSelection
   const handleModuleSelection = (moduleName, submodules = [], forceSubmodule = false) => {
     setSelectedModule(moduleName)
     setSelectedSubmodule(submodules[0] || '')
@@ -235,10 +246,12 @@ export default function AddTransaction() {
     setStep(3)
   }
 
+  // Function: getSavedTransactionFromResponse
   const getSavedTransactionFromResponse = (responsePayload) => {
     return responsePayload?.data?.transaction || responsePayload?.data || null
   }
 
+  // Function: saveTransaction
   const saveTransaction = async (stayOnPage) => {
     if (!canSave) {
       setError(text.enterValidAmountChoose)

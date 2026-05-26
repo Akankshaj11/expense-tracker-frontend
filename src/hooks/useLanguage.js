@@ -1,6 +1,8 @@
+// Repo file header
 import { useEffect, useMemo, useState } from 'react'
 import translations from '../i18n/translations'
 
+// Function: getStoredLanguage
 function getStoredLanguage() {
   try {
     return localStorage.getItem('selectedLanguage') || 'en'
@@ -9,6 +11,7 @@ function getStoredLanguage() {
   }
 }
 
+// Function: applyLanguage
 function applyLanguage(language) {
   try {
     localStorage.setItem('selectedLanguage', language)
@@ -19,15 +22,18 @@ function applyLanguage(language) {
   }
 }
 
+// Function: useLanguage
 export function useLanguage() {
   const [language, setLanguageState] = useState(getStoredLanguage)
 
   useEffect(() => {
+    // Function: handleLanguageChanged
     const handleLanguageChanged = (event) => {
       const nextLanguage = event?.detail?.language || event?.newValue || getStoredLanguage()
       setLanguageState(nextLanguage || 'en')
     }
 
+    // Function: handleStorageChange
     const handleStorageChange = (event) => {
       if (event.key === 'selectedLanguage') {
         handleLanguageChanged(event)
@@ -51,6 +57,7 @@ export function useLanguage() {
     }
   }, [language])
 
+  // Function: setLanguage
   const setLanguage = (nextLanguage) => {
     const normalizedLanguage = nextLanguage || 'en'
     setLanguageState(normalizedLanguage)
