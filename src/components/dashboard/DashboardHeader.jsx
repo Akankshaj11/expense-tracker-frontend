@@ -8,6 +8,7 @@ import {
   UserCircleIcon,
   PlusIcon,
 } from '@heroicons/react/24/outline'
+import { CURRENCIES, getCurrencyByCode } from '../../utils/currencies'
 
 function LanguageRow({ language, setLanguage, text }) {
   return (
@@ -149,13 +150,21 @@ function OrganizationMenu({ activeOrgId, activeOrganization, organizations, orgM
   )
 }
 
-function ProfileMenu({ currentUser, firstName, activeOrganization, activeCurrency, profileOpen, setProfileOpen, setOrgMenuOpen, language, setLanguage, handleLogout, text, mobile = false }) {
+function ProfileMenu({ currentUser, firstName, activeOrganization, activeCurrency, profileOpen, setProfileOpen, setOrgMenuOpen, language, setLanguage, handleLogout, handleChangeCurrency, text, mobile = false }) {
   const containerRef = useRef(null)
   const isDesktop = useIsDesktop()
   const isActiveView = mobile ? !isDesktop : isDesktop
+  const [currencyMenuOpen, setCurrencyMenuOpen] = useState(false)
+  const [isUpdatingCurrency, setIsUpdatingCurrency] = useState(false)
   const panelClassName = mobile
     ? 'absolute right-0 mt-3 w-[calc(100vw-2rem)] max-w-sm rounded-2xl border border-white/6 bg-[var(--card)] p-4 shadow-2xl shadow-slate-200/80'
     : 'absolute right-0 mt-3 w-72 rounded-2xl border border-white/6 bg-[var(--card)] p-4 shadow-2xl shadow-slate-200/80'
+
+  useEffect(() => {
+    if (!profileOpen) {
+      setCurrencyMenuOpen(false)
+    }
+  }, [profileOpen])
 
   useEffect(() => {
     if (!profileOpen || !isActiveView) {
@@ -177,6 +186,20 @@ function ProfileMenu({ currentUser, firstName, activeOrganization, activeCurrenc
       document.removeEventListener('touchstart', handlePointerDown)
     }
   }, [profileOpen, isActiveView, setProfileOpen, setOrgMenuOpen])
+
+  const onCurrencyChange = async (currency) => {
+    if (isUpdatingCurrency) {
+      return
+    }
+
+    setIsUpdatingCurrency(true)
+    try {
+      await handleChangeCurrency(currency)
+      setCurrencyMenuOpen(false)
+    } finally {
+      setIsUpdatingCurrency(false)
+    }
+  }
 
   return (
     <div ref={containerRef} className="relative">
@@ -212,10 +235,6 @@ function ProfileMenu({ currentUser, firstName, activeOrganization, activeCurrenc
               </div>
             )}
             <div className="flex items-center justify-between gap-3">
-              <span>{text.currency}</span>
-              <span className="font-light text-[var(--text)]">{activeCurrency?.code || 'USD'}</span>
-            </div>
-            <div className="flex items-center justify-between gap-3">
               <span>{text.workspaceStatus}</span>
               <span className="inline-flex items-center gap-1 font-light text-emerald-600">
                 <ShieldCheckIcon className="h-4 w-4" />
@@ -224,7 +243,57 @@ function ProfileMenu({ currentUser, firstName, activeOrganization, activeCurrenc
             </div>
           </div>
 
-          <div className="mt-4 rounded-2xl border border-white/6 bg-[var(--card)] p-3">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-3">
+            <button
+              type="button"
+              onClick={() => setCurrencyMenuOpen((current) => !current)}
+              className="flex w-full items-center justify-between gap-3 text-left"
+            >
+              <span>{text.changeCurrency}</span>
+              <span className="inline-flex items-center gap-2 font-light text-[var(--text)]">
+                <span className="currency-symbol">{activeCurrency?.symbol || getCurrencyByCode(activeCurrency?.code || 'USD').symbol}</span>
+                <ChevronDownIcon className={`h-4 w-4 transition ${currencyMenuOpen ? 'rotate-180' : ''}`} />
+              </span>
+            </button>
+
+            {currencyMenuOpen ? (
+              <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {CURRENCIES.map((currency) => {
+                  const isSelected = activeCurrency?.code === currency.code
+
+                  return (
+                    <button
+                      key={currency.code}
+                      type="button"
+                      disabled={isUpdatingCurrency}
+                      onClick={() => onCurrencyChange(currency)}
+                      className={`relative flex items-center justify-between rounded-xl border px-3 py-2 text-left transition ${
+                        isSelected
+                          ? 'border-primary-300 bg-primary-50 text-primary-700'
+                          : 'border-slate-200 bg-white text-[var(--text)] hover:border-primary-200 hover:bg-slate-100'
+                      } ${isUpdatingCurrency ? 'cursor-not-allowed opacity-70' : ''}`}
+                    >
+                      <div>
+                        <p className="text-sm font-light">{currency.code}</p>
+                        <p className="text-xs text-slate-500"><span className="currency-symbol">{currency.symbol}</span></p>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm font-light">
+                        <span>{currency.symbol}</span>
+                      </div>
+                      {isSelected ? (
+                        <span
+                          aria-hidden="true"
+                          className="absolute top-2 right-3 h-2.5 w-2.5 rounded-full bg-primary-600 ring-2 ring-[var(--card)]"
+                        />
+                      ) : null}
+                    </button>
+                  )
+                })}
+              </div>
+            ) : null}
+          </div>
+
+          <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-3">
             <div className="mb-3 flex items-center gap-2">
               <GlobeAltIcon className="h-4 w-4 text-primary-600" />
               <p className="text-sm font-light text-[var(--text)]">{text.languageLabel}</p>
@@ -258,6 +327,7 @@ export default function DashboardHeader({
   handleSwitchOrg,
   handleCreateNewOrg,
   handleLogout,
+  handleChangeCurrency,
 }) {
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-white/6/80 bg-[var(--card)]/90 backdrop-blur-xl">
@@ -297,6 +367,7 @@ export default function DashboardHeader({
               language={language}
               setLanguage={setLanguage}
               handleLogout={handleLogout}
+              handleChangeCurrency={handleChangeCurrency}
               text={text}
             />
           </div>
@@ -326,6 +397,7 @@ export default function DashboardHeader({
               language={language}
               setLanguage={setLanguage}
               handleLogout={handleLogout}
+              handleChangeCurrency={handleChangeCurrency}
               text={text}
               mobile
             />

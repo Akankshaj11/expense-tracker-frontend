@@ -82,7 +82,7 @@ export default function TransactionForm({
             <label className="mb-1.5 block text-sm font-light text-slate-700">{text.enterAmount}</label>
             <div className="relative rounded-xl border border-primary-500 bg-[var(--card)] px-3 py-2.5 shadow-[0_0_0_1px_rgba(59,130,246,0.08)] focus-within:ring-2 focus-within:ring-primary-500/20">
               <div className="absolute left-3 top-1/2 -translate-y-1/2 text-base font-light text-[var(--text)]">
-                {selectedCurrency?.symbol || '$'}
+                <span className="currency-symbol">{selectedCurrency?.symbol || '$'}</span>
               </div>
               <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-light text-slate-500">
                 {previewAmount !== null ? formatMoney(previewAmount, selectedCurrency, locale) : ''}
@@ -105,21 +105,21 @@ export default function TransactionForm({
             <div className="flex flex-wrap items-center gap-2 text-sm font-light">
               {tokens.map((token, index) =>
                 /\d/.test(token) ? (
-                  <span
-                    key={`${token}-${index}`}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-primary-200 bg-primary-50 px-2.5 py-1 text-primary-700 shadow-sm"
-                  >
-                    {selectedCurrency?.symbol || '$'}
-                    {token}
-                    <button
-                      type="button"
-                      onClick={() => setAmountExpression(removeTokenFromExpression(amountExpression, index))}
-                      className="rounded-full p-0.5 text-primary-600 transition hover:bg-primary-100"
-                      aria-label={translateText(language, 'removeAmountToken', { token })}
+                    <span
+                      key={`${token}-${index}`}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-primary-200 bg-primary-50 px-2.5 py-1 text-primary-700 shadow-sm"
                     >
-                      <XMarkIcon className="h-3.5 w-3.5" />
-                    </button>
-                  </span>
+                      <span className="currency-symbol">{selectedCurrency?.symbol || '$'}</span>
+                      {token}
+                      <button
+                        type="button"
+                        onClick={() => setAmountExpression(removeTokenFromExpression(amountExpression, index))}
+                        className="rounded-full p-0.5 text-primary-600 transition hover:bg-primary-100"
+                        aria-label={translateText(language, 'removeAmountToken', { token })}
+                      >
+                        <XMarkIcon className="h-3.5 w-3.5" />
+                      </button>
+                    </span>
                 ) : (
                   <span key={`${token}-${index}`} className="px-1 text-slate-400">
                     {token}

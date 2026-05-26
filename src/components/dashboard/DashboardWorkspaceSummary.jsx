@@ -1,4 +1,5 @@
 import { BuildingOffice2Icon, PlusIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline'
+import { getCurrencyByCode } from '../../utils/currencies'
 
 export default function DashboardWorkspaceSummary({ text, activeOrganization, activeCurrency, moduleCards, onDownloadReport }) {
   return (
@@ -20,7 +21,9 @@ export default function DashboardWorkspaceSummary({ text, activeOrganization, ac
         </div>
         <div className="flex items-center justify-between gap-4">
           <span className="text-sm text-slate-500">{text.currency}</span>
-          <span className="font-light text-[var(--text)]">{activeCurrency?.code || 'USD'}</span>
+          <span className="font-light text-[var(--text)]">
+            <span className="currency-symbol">{activeCurrency?.symbol || getCurrencyByCode(activeCurrency?.code || 'USD').symbol}</span>
+          </span>
         </div>
         <div className="flex items-center justify-between gap-4">
           <span className="text-sm text-slate-500">{text.modules}</span>

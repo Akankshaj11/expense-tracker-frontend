@@ -2,22 +2,14 @@ import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowRightIcon } from '@heroicons/react/24/outline'
 import { useNavigate } from 'react-router-dom'
-
-const currencies = [
-  { code: 'USD', name: 'US Dollar', symbol: '$' },
-  { code: 'EUR', name: 'Euro', symbol: '€' },
-  { code: 'GBP', name: 'British Pound', symbol: '£' },
-  { code: 'INR', name: 'Indian Rupee', symbol: '₹' },
-  { code: 'AED', name: 'UAE Dirham', symbol: 'د.إ' },
-  { code: 'JPY', name: 'Japanese Yen', symbol: '¥' },
-]
+import { CURRENCIES } from '../utils/currencies'
 
 export default function CurrencySelect() {
   const navigate = useNavigate()
   const [currency, setCurrency] = useState('USD')
   const [error, setError] = useState('')
 
-  const selectedCurrency = useMemo(() => currencies.find((item) => item.code === currency), [currency])
+  const selectedCurrency = useMemo(() => CURRENCIES.find((item) => item.code === currency), [currency])
 
   const handleContinue = (e) => {
     e.preventDefault()
@@ -61,7 +53,7 @@ export default function CurrencySelect() {
 
           <form onSubmit={handleContinue} className="mt-8 space-y-6">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {currencies.map((item) => (
+              {CURRENCIES.map((item) => (
                 <button
                   key={item.code}
                   type="button"
@@ -72,13 +64,13 @@ export default function CurrencySelect() {
                       : 'border-slate-200 bg-white'
                   }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-lg font-light text-slate-900">{item.code}</p>
-                      <p className="text-sm text-slate-600">{item.name}</p>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-lg font-light text-slate-900">{item.code}</p>
+                        <p className="text-sm text-slate-600"><span className="currency-symbol">{item.symbol}</span></p>
+                      </div>
+                      <div className="text-2xl font-light text-primary-600"><span className="currency-symbol">{item.symbol}</span></div>
                     </div>
-                    <div className="text-2xl font-light text-primary-600">{item.symbol}</div>
-                  </div>
                 </button>
               ))}
             </div>

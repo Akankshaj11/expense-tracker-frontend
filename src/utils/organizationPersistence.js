@@ -1,6 +1,7 @@
 import { apiRequest } from './api'
 import { loadOrganizationsFromBackend } from './organizationSync'
 import { getPersistedModuleTransactionType } from './moduleUtils'
+import { normalizeCurrency } from './currencies'
 
 export async function persistOrganizationModules(activeOrganizationId, nextOrgs, setOrganizations) {
   setOrganizations(nextOrgs)
@@ -30,6 +31,46 @@ export async function persistOrganizationModules(activeOrganizationId, nextOrgs,
     await apiRequest(`/organizations/${encodeURIComponent(activeOrganizationId)}`, {
       method: 'PATCH',
       body: JSON.stringify({ modules: modulesForBackend, submodules: submodulesMap }),
+    })
+
+    const refreshed = await loadOrganizationsFromBackend()
+    if (Array.isArray(refreshed) && refreshed.length > 0) {
+      setOrganizations(refreshed)
+    }
+  } catch {
+    // ignore
+  }
+}
+
+export async function persistOrganizationCurrency(activeOrganizationId, nextCurrency, organizations, setOrganizations) {
+  const normalizedCurrency = normalizeCurrency(nextCurrency)
+  const nextOrgs = organizations.map((org) => (
+    org.id === activeOrganizationId
+      ? { ...org, currency: normalizedCurrency }
+      : org
+  ))
+
+  setOrganizations(nextOrgs)
+
+  try {
+    localStorage.setItem('organizations', JSON.stringify(nextOrgs))
+    const active = nextOrgs.find((org) => org.id === activeOrganizationId)
+    if (active) {
+      localStorage.setItem('organization', JSON.stringify(active))
+    }
+  } catch {
+    // ignore
+  }
+
+  const isMongoId = /^[a-f0-9]{24}$/.test(activeOrganizationId)
+  if (!isMongoId) {
+    return
+  }
+
+  try {
+    await apiRequest(`/organizations/${encodeURIComponent(activeOrganizationId)}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ currency: normalizedCurrency }),
     })
 
     const refreshed = await loadOrganizationsFromBackend()

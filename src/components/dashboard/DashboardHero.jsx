@@ -28,11 +28,11 @@ export default function DashboardHero({ text, firstName, activeOrganization, lan
           </p>
         </div>
 
-        <div className="flex flex-row gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
           <button
             type="button"
             onClick={onAddTransaction}
-            className="inline-flex items-center gap-2 rounded-full accent-cta px-5 py-3 text-sm font-light transition hover:-translate-y-0.5"
+            className="inline-flex items-center justify-center w-full sm:w-auto gap-2 rounded-full accent-cta px-5 py-3 text-sm font-light transition hover:-translate-y-0.5"
           >
             {text.addTransaction}
             <PlusIcon className="h-4 w-4" />
@@ -40,7 +40,7 @@ export default function DashboardHero({ text, firstName, activeOrganization, lan
           <button
             type="button"
             onClick={onManageOrganization}
-            className="inline-flex items-center gap-2 rounded-full border border-white/6 bg-[var(--card)] px-5 py-3 text-sm font-light text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+            className="inline-flex items-center justify-center w-full sm:w-auto gap-2 rounded-full border border-white/6 bg-[var(--card)] px-5 py-3 text-sm font-light text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
           >
             {text.manageOrganization}
             <BuildingOffice2Icon className="h-4 w-4" />

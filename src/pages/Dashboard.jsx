@@ -37,6 +37,7 @@ import DashboardModulesSection from '../components/dashboard/DashboardModulesSec
 import DashboardRecentActivity from '../components/dashboard/DashboardRecentActivity'
 import DashboardWorkspaceSummary from '../components/dashboard/DashboardWorkspaceSummary'
 import DashboardEmptyState from '../components/dashboard/DashboardEmptyState'
+import { persistOrganizationCurrency } from '../utils/organizationPersistence'
 
 function readJSON(key, fallback) {
   try {
@@ -432,6 +433,14 @@ export default function Dashboard() {
     navigate('/create-organization', { state: { from: '/dashboard' } })
   }
 
+  const handleChangeCurrency = async (currency) => {
+    if (!activeOrganization?.id) {
+      return
+    }
+
+    await persistOrganizationCurrency(activeOrganization.id, currency, organizations, setOrganizations)
+  }
+
   const handleManageOrg = () => {
     setOrgMenuOpen(false)
     navigate('/manage-organization')
@@ -526,6 +535,7 @@ export default function Dashboard() {
         handleSwitchOrg={handleSwitchOrg}
         handleCreateNewOrg={handleCreateNewOrg}
         handleLogout={handleLogout}
+        handleChangeCurrency={handleChangeCurrency}
       />
 
       <main className="mx-auto max-w-7xl px-10 pb-12 pt-28 sm:px-12 lg:px-16">

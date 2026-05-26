@@ -67,7 +67,7 @@ export default function App(){
       <SessionExpiryListener />
       <ScrollToTop />
       <div className="flex min-h-screen flex-col">
-        <main className="flex-1 overflow-hidden bg-white">
+        <main className="flex-1 overflow-hidden bg-slate-50">
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
