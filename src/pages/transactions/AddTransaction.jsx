@@ -8,7 +8,7 @@ import SubmoduleSelector from '../../components/transaction/SubmoduleSelector'
 import TransactionForm from '../../components/transaction/TransactionForm'
 import { apiRequest } from '../../utils/api'
 import { loadOrganizationsFromBackend, readCachedOrganizations } from '../../utils/organizationSync'
-import { buildModuleOptions, getModuleSubmodules } from '../../utils/moduleUtils'
+import { buildModuleOptions, getModuleSubmodules, getPersistedModuleTransactionType } from '../../utils/moduleUtils'
 import {
   evaluateExpression,
   getAmountInputDisplay,
@@ -60,13 +60,30 @@ export default function AddTransaction() {
   const organizationModules = Array.isArray(activeOrganization?.modules) ? activeOrganization.modules : []
   const selectedCurrency = activeOrganization?.currency || readJSON('selectedCurrency', { code: 'USD', symbol: '$' })
   const isEditMode = Boolean(transactionId)
-  const [step, setStep] = useState(isEditMode ? 4 : 1)
-  const [selectedModule, setSelectedModule] = useState('')
-  const [selectedSubmodule, setSelectedSubmodule] = useState('')
+  const [language, setLanguage] = useState(() => localStorage.getItem('selectedLanguage') || 'en')
+  const text = translations[language] || translations.en
+  const locale = getLocale(language)
+  const location = useLocation()
+  const preselectedModuleFromLocation = isEditMode ? '' : String(location?.state?.preselectedModule || '').trim()
+  const preselectedModuleData = preselectedModuleFromLocation
+    ? organizationModules.find((module) => String(module.name) === preselectedModuleFromLocation) ||
+      organizationModules.find((module) => translateModuleLabel(language, module.name) === preselectedModuleFromLocation) ||
+      null
+    : null
+  const initialSelectedModule = preselectedModuleData?.name || preselectedModuleFromLocation || ''
+  const initialSelectedSubmodule = preselectedModuleData
+    ? getModuleSubmodules(preselectedModuleData, activeOrganization)[0] || ''
+    : ''
+  const initialTransactionDirection = preselectedModuleData
+    ? getPersistedModuleTransactionType(preselectedModuleData)
+    : ''
+  const [step, setStep] = useState(() => (isEditMode ? 4 : initialSelectedModule ? 3 : 1))
+  const [selectedModule, setSelectedModule] = useState(() => initialSelectedModule)
+  const [selectedSubmodule, setSelectedSubmodule] = useState(() => initialSelectedSubmodule)
   const [customModuleDraft, setCustomModuleDraft] = useState('')
   const [creatingCustomSubmodule, setCreatingCustomSubmodule] = useState(false)
   const [customSubmoduleDraft, setCustomSubmoduleDraft] = useState('')
-  const [transactionDirection, setTransactionDirection] = useState('')
+  const [transactionDirection, setTransactionDirection] = useState(() => initialTransactionDirection)
   const [amountExpression, setAmountExpression] = useState('')
   const [note, setNote] = useState('')
   const [attachment, setAttachment] = useState(null)
@@ -78,11 +95,8 @@ export default function AddTransaction() {
   const [isHydrated, setIsHydrated] = useState(!isEditMode)
   const [loadedTransaction, setLoadedTransaction] = useState(null)
   const [forceSubmoduleSelection, setForceSubmoduleSelection] = useState(false)
-  const [preselectedFromModule, setPreselectedFromModule] = useState('')
-
-  const [language, setLanguage] = useState(() => localStorage.getItem('selectedLanguage') || 'en')
-  const text = translations[language] || translations.en
-  const locale = getLocale(language)
+  const [preselectedFromModule, setPreselectedFromModule] = useState(preselectedModuleFromLocation)
+  const [openedFromModule] = useState(() => Boolean(preselectedModuleFromLocation))
 
   useEffect(() => {
     // Function: handleLanguageChanged
@@ -145,31 +159,6 @@ export default function AddTransaction() {
     setIsHydrated(true)
   }, [isEditMode, transactionId, text.transactionNotFound])
 
-  // Preselect module when navigated from a module page (+ button)
-  const location = useLocation()
-  useEffect(() => {
-    if (isEditMode) return
-    const pre = location?.state?.preselectedModule || ''
-    if (!pre) return
-
-    const matched = organizationModules.find((m) => String(m.name) === String(pre)) ||
-      organizationModules.find((m) => translateModuleLabel(language, m.name) === String(pre)) || null
-    if (!matched) return
-
-    // Determine transaction direction from module type
-    const t = String(matched.transactionType || matched.moduleType || matched.type || '').toLowerCase()
-    if (['revenue', 'income', 'in', 'credit', 'incoming', 'plus', '+'].includes(t)) setTransactionDirection('revenue')
-    else if (['expense', 'expenses', 'out', 'debit', 'outgoing', 'minus', '-'].includes(t)) setTransactionDirection('expenses')
-    else if (['investment', 'investments'].includes(t)) setTransactionDirection('investments')
-
-    const subs = getModuleSubmodules(matched, activeOrganization)
-    setSelectedModule(matched.name)
-    setSelectedSubmodule(subs[0] || '')
-    setForceSubmoduleSelection(true)
-    setStep(3)
-    setPreselectedFromModule(pre)
-  }, [location, organizationModules, activeOrganization, isEditMode, language])
-
   useEffect(() => {
     const currentModule = organizationModules.find((module) => module.name === selectedModule)
     const currentSubmodules = getModuleSubmodules(currentModule, activeOrganization)
@@ -185,7 +174,12 @@ export default function AddTransaction() {
   const totalAmount = evaluateExpression(amountExpression)
   const previewAmount = evaluateExpression(getPreviewExpression(amountExpression))
   const amountDisplayValue = getAmountInputDisplay(amountExpression)
-  const canSave = totalAmount !== null && selectedModule && selectedSubmodule && transactionDirection
+  const selectedModuleRecord =
+    selectedModuleData ||
+    organizationModules.find((module) => translateModuleLabel(language, module.name) === selectedModule) ||
+    null
+  const derivedTransactionType = transactionDirection || getPersistedModuleTransactionType(selectedModuleRecord)
+  const canSave = totalAmount !== null && selectedModule && selectedSubmodule && derivedTransactionType
   const selectionModalOpen = step < 4
   const saveButtonLabel = isEditMode ? text.updateTransaction : text.save
   const secondaryButtonLabel = isEditMode ? '' : text.saveAndAddAnother
@@ -280,7 +274,7 @@ export default function AddTransaction() {
       organizationId: activeOrganization?.id || '',
       module: selectedModule,
       submodule: selectedSubmodule,
-      transactionType: transactionDirection,
+      transactionType: derivedTransactionType,
       // direction: transactionDirection,
       amountExpression,
       amount: totalAmount,
@@ -473,7 +467,11 @@ export default function AddTransaction() {
       return
     }
 
-    navigate('/dashboard')
+    if (openedFromModule) {
+      navigate(`/module/${encodeURIComponent(selectedModule)}`)
+    } else {
+      navigate('/dashboard')
+    }
   }
 
   if (!activeOrganization) {

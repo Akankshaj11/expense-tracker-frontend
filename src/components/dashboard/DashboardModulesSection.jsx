@@ -1,5 +1,6 @@
 // Repo file header
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { EllipsisVerticalIcon, Squares2X2Icon } from '@heroicons/react/24/outline'
 import { apiRequest } from '../../utils/api'
@@ -31,6 +32,7 @@ function getModuleTypeBadge(module) {
 }
 
 export default function DashboardModulesSection({ text, moduleCards, onModuleClick, activeOrganization, organizations, setOrganizations }) {
+  const navigate = useNavigate()
   const [openMenuId, setOpenMenuId] = useState(null)
   const [isEditorOpen, setIsEditorOpen] = useState(false)
   const [editingOriginalName, setEditingOriginalName] = useState('')
@@ -63,12 +65,32 @@ export default function DashboardModulesSection({ text, moduleCards, onModuleCli
 
   // Function: handleView
   const handleView = (moduleLabel) => {
-    if (onModuleClick) onModuleClick(moduleLabel)
+    try {
+      console.debug('DashboardModulesSection.handleView', moduleLabel)
+    } catch (e) {}
+
+    if (onModuleClick) {
+      try {
+        onModuleClick(moduleLabel)
+      } catch (e) {
+        console.error(e)
+      }
+    } else {
+      try {
+        navigate(`/module/${encodeURIComponent(moduleLabel)}`)
+      } catch (e) {
+        console.error(e)
+      }
+    }
+
     setOpenMenuId(null)
   }
 
   // Function: openEditor
   const openEditor = (module) => {
+    try {
+      console.debug('DashboardModulesSection.openEditor', module?.rawName || module?.label)
+    } catch (e) {}
     setEditingOriginalName(module.rawName || module.label || '')
     setModuleNameDraft(module.rawName || module.label || '')
     setSubmoduleDrafts(Array.isArray(module.rawSubmodules) ? [...module.rawSubmodules] : [])
@@ -263,6 +285,10 @@ export default function DashboardModulesSection({ text, moduleCards, onModuleCli
   const handleDelete = async (module, event) => {
     event?.stopPropagation()
 
+    try {
+      console.debug('DashboardModulesSection.handleDelete', module?.rawName || module?.label)
+    } catch (e) {}
+
     const moduleName = String(module.rawName || module.label || '').trim()
     if (!moduleName || !activeOrganization?.id) {
       setOpenMenuId(null)
@@ -350,19 +376,28 @@ export default function DashboardModulesSection({ text, moduleCards, onModuleCli
 
       <div className="mt-6 grid auto-rows-fr gap-4 md:grid-cols-2 xl:grid-cols-3">
         {moduleCards.map((module, index) => (
+          // debug: show render state for each module card
+          (console.debug && console.debug(`DashboardModulesSection.render module=${module.id} openMenuId=${openMenuId}`), null),
           <motion.article
             key={module.id}
             initial={{ opacity: 0, y: 14 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.25 }}
             transition={{ delay: index * 0.05, duration: 0.45 }}
-            onClick={() => onModuleClick(module.label)}
+            onClick={(e) => {
+              if (openMenuId === module.id) {
+                // if menu for this module is open, ignore article clicks
+                return
+              }
+              if (onModuleClick) onModuleClick(module.rawName)
+            }}
             role="button"
             tabIndex={0}
-            onKeyDown={(event) => {
+              onKeyDown={(event) => {
               if (event.key === 'Enter' || event.key === ' ') {
                 event.preventDefault()
-                onModuleClick(module.label)
+                if (openMenuId === module.id) return
+                if (onModuleClick) onModuleClick(module.rawName)
               }
             }}
             className="relative flex h-full cursor-pointer flex-col rounded-[1.5rem] border border-white/6 bg-[var(--card)] p-5 transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary-500/20"
@@ -397,6 +432,9 @@ export default function DashboardModulesSection({ text, moduleCards, onModuleCli
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation()
+                    try {
+                      console.debug('DashboardModulesSection.menuButtonClick', module.id, 'currentOpen', openMenuId)
+                    } catch (e) {}
                     setOpenMenuId(openMenuId === module.id ? null : module.id)
                   }}
                   className="rounded-full p-2 text-slate-400 transition hover:bg-[var(--card)] hover:text-[var(--muted)]"
@@ -412,7 +450,7 @@ export default function DashboardModulesSection({ text, moduleCards, onModuleCli
                   >
                     <button
                       type="button"
-                      onClick={() => handleView(module.label)}
+                      onClick={() => handleView(module.rawName)}
                       className="w-full px-3 py-2 text-left text-sm text-[var(--text)] hover:bg-white/5"
                     >
                       View
