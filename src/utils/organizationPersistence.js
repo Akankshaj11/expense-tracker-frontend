@@ -85,7 +85,7 @@ export async function persistOrganizationCurrency(activeOrganizationId, nextCurr
 }
 
 // Function: appendCustomModule
-export function appendCustomModule(organizations, activeOrganizationId, moduleName, transactionType = 'custom') {
+export function appendCustomModule(organizations, activeOrganizationId, moduleName, transactionType = 'in') {
   const name = moduleName.trim()
   if (!name) {
     return organizations

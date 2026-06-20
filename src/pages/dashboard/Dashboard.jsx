@@ -209,13 +209,13 @@ function buildModuleCards(activeOrganization, currency, transactions, language =
     const theme = knownTheme || moduleThemes.custom
     const transactionType = String(module?.transactionType || module?.moduleType || module?.type || '').toLowerCase()
     const normalizedTransactionType = ['revenue', 'income', 'in', 'credit', 'incoming', 'plus', '+'].includes(transactionType)
-      ? 'revenue'
+      ? 'in'
       : ['expense', 'expenses', 'out', 'debit', 'outgoing', 'minus', '-'].includes(transactionType)
-        ? 'expenses'
+        ? 'out'
         : ['investment', 'investments'].includes(transactionType)
           ? 'investments'
           : null
-    const moduleCategory = normalizedTransactionType || (['investment', 'investments'].includes(normalizedName) ? 'investments' : null)
+    const moduleCategory = normalizedTransactionType === 'in' ? 'revenue' : normalizedTransactionType === 'out' ? 'expenses' : (['investment', 'investments'].includes(normalizedName) ? 'investments' : null)
     const amount = moduleTransactions.reduce((sum, transaction) => sum + getSignedTransactionAmount(transaction), 0)
     const recentTransaction = [...moduleTransactions]
       .sort((left, right) => new Date(right.createdAt || right.date || 0) - new Date(left.createdAt || left.date || 0))[0] || null
@@ -411,33 +411,46 @@ export default function Dashboard() {
 
     return getTransactionCategory(transaction)
   }
+
+  // Function: getDashboardCardDirection
+  const getDashboardCardDirection = (transaction) => {
+    const moduleName = String(transaction?.module || transaction?.moduleName || '').toLowerCase()
+    const moduleBasedType = moduleTypeByName.get(moduleName)
+
+    if (moduleBasedType === 'revenue') {
+      return 'in'
+    }
+
+    if (['expenses', 'investments', 'lend'].includes(moduleName)) {
+      return 'out'
+    }
+
+    if (moduleBasedType === 'expenses' || moduleBasedType === 'investments') {
+      return 'out'
+    }
+
+    if (moduleName === 'borrow') {
+      return 'in'
+    }
+
+    return getTransactionDirection(transaction)
+  }
+
   const firstName = deriveFirstName(currentUser)
   const moduleCards = buildModuleCards(activeOrganization, activeCurrency, activeOrganizationTransactions, language, locale)
   const recentActivity = buildRecentActivity(activeOrganizationTransactions, activeCurrency, locale, text)
 
-  const revenueAmountValue = activeOrganizationTransactions.reduce((sum, transaction) => {
-    return getDashboardCategory(transaction) === 'revenue' ? sum + Math.abs(Number(transaction?.amount || 0)) : sum
+  const inAmountValue = activeOrganizationTransactions.reduce((sum, transaction) => {
+    return getDashboardCardDirection(transaction) === 'in' ? sum + Math.abs(Number(transaction?.amount || 0)) : sum
   }, 0)
-  const expensesAmountValue = activeOrganizationTransactions.reduce((sum, transaction) => {
-    return getDashboardCategory(transaction) === 'expenses' ? sum + Math.abs(Number(transaction?.amount || 0)) : sum
+  const outAmountValue = activeOrganizationTransactions.reduce((sum, transaction) => {
+    return getDashboardCardDirection(transaction) === 'out' ? sum + Math.abs(Number(transaction?.amount || 0)) : sum
   }, 0)
-  const investmentsAmountValue = activeOrganizationTransactions.reduce((sum, transaction) => {
-    return getDashboardCategory(transaction) === 'investments' ? sum + Math.abs(Number(transaction?.amount || 0)) : sum
-  }, 0)
-  const lendAmountValue = activeOrganizationTransactions.reduce((sum, transaction) => {
-    return (String(transaction?.module || '').toLowerCase() === 'lend') ? sum + Math.abs(Number(transaction?.amount || 0)) : sum
-  }, 0)
-  const borrowAmountValue = activeOrganizationTransactions.reduce((sum, transaction) => {
-    return (String(transaction?.module || '').toLowerCase() === 'borrow') ? sum + Math.abs(Number(transaction?.amount || 0)) : sum
-  }, 0)
-  const totalBalanceValue = revenueAmountValue - expensesAmountValue - investmentsAmountValue - lendAmountValue + borrowAmountValue
+  const totalBalanceValue = inAmountValue - outAmountValue
 
   const totalBalance = formatMoney(totalBalanceValue, activeCurrency, locale)
-  const revenueAmount = formatMoney(revenueAmountValue, activeCurrency, locale)
-  const expensesAmount = formatMoney(expensesAmountValue, activeCurrency, locale)
-  const investmentsAmount = formatMoney(investmentsAmountValue, activeCurrency, locale)
-  const lendAmount = formatMoney(lendAmountValue, activeCurrency, locale)
-  const borrowAmount = formatMoney(borrowAmountValue, activeCurrency, locale)
+  const inAmount = formatMoney(inAmountValue, activeCurrency, locale)
+  const outAmount = formatMoney(outAmountValue, activeCurrency, locale)
 
   // Function: handleSwitchOrg
   const handleSwitchOrg = (organizationId) => {
@@ -534,9 +547,9 @@ export default function Dashboard() {
   }
 
   const summaryCards = [
-    { kind: 'balance', label: text.totalBalance, value: totalBalance, accent: 'text-[var(--text)]' },
-    { kind: 'revenue', label: text.revenue, value: revenueAmount, accent: 'text-emerald-600' },
-    { kind: 'expenses', label: text.expenses, value: expensesAmount, accent: 'text-rose-600' },
+    { kind: 'balance', label: 'Balance', value: totalBalance, accent: 'text-[var(--text)]' },
+    { kind: 'revenue', label: 'In', value: inAmount, accent: 'text-emerald-600' },
+    { kind: 'expenses', label: 'Out', value: outAmount, accent: 'text-rose-600' },
   ]
 
   return (
@@ -577,22 +590,8 @@ export default function Dashboard() {
               className="-mb-4"
               cards={summaryCards}
               totalBalanceValue={totalBalanceValue}
-              revenueAmountValue={revenueAmountValue}
-              expensesAmountValue={expensesAmountValue}
-              activeCurrency={activeCurrency}
-              locale={locale}
-            />
-
-            <DashboardMetricCards
-              className="mt-4"
-              cards={[
-                { kind: 'investments', label: translateText(language, 'investments'), value: investmentsAmount, accent: 'text-violet-600' },
-                { kind: 'lend', label: translateModuleLabel(language, 'Lend'), value: lendAmount, accent: 'text-indigo-600' },
-                { kind: 'borrow', label: translateModuleLabel(language, 'Borrow'), value: borrowAmount, accent: 'text-orange-600' },
-              ]}
-              totalBalanceValue={totalBalanceValue}
-              revenueAmountValue={revenueAmountValue}
-              expensesAmountValue={expensesAmountValue}
+              revenueAmountValue={inAmountValue}
+              expensesAmountValue={outAmountValue}
               activeCurrency={activeCurrency}
               locale={locale}
             />

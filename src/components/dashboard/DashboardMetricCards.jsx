@@ -18,19 +18,25 @@ export default function DashboardMetricCards({ cards, totalBalanceValue, revenue
         const isBalanceCard = card.kind === 'balance'
         const isRevenueCard = card.kind === 'revenue'
         const isExpensesCard = card.kind === 'expenses'
+        const cardValueNumber = Number(card.value)
+        const isZeroValue = Number.isFinite(cardValueNumber) && cardValueNumber === 0
         const isNegativeBalance = isBalanceCard && totalBalanceValue < 0
         const isPositiveBalance = isBalanceCard && totalBalanceValue > 0
         const isZeroRevenue = isRevenueCard && revenueAmountValue === 0
         const isZeroExpenses = isExpensesCard && expensesAmountValue === 0
         const CardIcon = cardIconMap[card.kind] || CircleStackIcon
-        const displayAccent = isBalanceCard
+        const displayAccent = isZeroValue
+          ? 'text-blue-600'
+          : isBalanceCard
           ? isPositiveBalance
             ? 'text-emerald-600'
             : isNegativeBalance
               ? 'text-rose-600'
               : 'text-blue-600'
           : card.accent
-        const displaySign = isBalanceCard
+        const displaySign = isZeroValue
+          ? ''
+          : isBalanceCard
           ? isPositiveBalance
             ? '+'
             : isNegativeBalance

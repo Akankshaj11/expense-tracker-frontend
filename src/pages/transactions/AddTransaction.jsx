@@ -67,8 +67,8 @@ export default function AddTransaction() {
   const preselectedModuleFromLocation = isEditMode ? '' : String(location?.state?.preselectedModule || '').trim()
   const preselectedModuleData = preselectedModuleFromLocation
     ? organizationModules.find((module) => String(module.name) === preselectedModuleFromLocation) ||
-      organizationModules.find((module) => translateModuleLabel(language, module.name) === preselectedModuleFromLocation) ||
-      null
+    organizationModules.find((module) => translateModuleLabel(language, module.name) === preselectedModuleFromLocation) ||
+    null
     : null
   const initialSelectedModule = preselectedModuleData?.name || preselectedModuleFromLocation || ''
   const initialSelectedSubmodule = preselectedModuleData
@@ -318,10 +318,10 @@ export default function AddTransaction() {
         }
 
         localStorage.setItem('transactions', JSON.stringify(nextTransactions))
-        try { window.dispatchEvent(new Event('transactions:updated')); setTimeout(() => { try { window.dispatchEvent(new Event('transactions:updated')) } catch (e) {} }, 80) } catch (e) { /* ignore */ }
+        try { window.dispatchEvent(new Event('transactions:updated')); setTimeout(() => { try { window.dispatchEvent(new Event('transactions:updated')) } catch (e) { } }, 80) } catch (e) { /* ignore */ }
       } else {
         localStorage.setItem('transactions', JSON.stringify([nextTransaction, ...transactions]))
-        try { window.dispatchEvent(new Event('transactions:updated')); setTimeout(() => { try { window.dispatchEvent(new Event('transactions:updated')) } catch (e) {} }, 80) } catch (e) { /* ignore */ }
+        try { window.dispatchEvent(new Event('transactions:updated')); setTimeout(() => { try { window.dispatchEvent(new Event('transactions:updated')) } catch (e) { } }, 80) } catch (e) { /* ignore */ }
       }
 
       if (attachmentDataUrl) {
@@ -337,7 +337,7 @@ export default function AddTransaction() {
           'attachments',
           JSON.stringify([nextAttachment, ...attachments.filter((item) => item.transactionId !== nextTransaction.id)]),
         )
-        try { window.dispatchEvent(new Event('transactions:updated')); setTimeout(() => { try { window.dispatchEvent(new Event('transactions:updated')) } catch (e) {} }, 80) } catch (e) { /* ignore */ }
+        try { window.dispatchEvent(new Event('transactions:updated')); setTimeout(() => { try { window.dispatchEvent(new Event('transactions:updated')) } catch (e) { } }, 80) } catch (e) { /* ignore */ }
       }
 
       setSavedMessage(isEditMode ? text.transactionUpdated : text.transactionSaved)
@@ -397,7 +397,7 @@ export default function AddTransaction() {
           )
           try {
             localStorage.setItem('transactions', JSON.stringify(replaced))
-            try { window.dispatchEvent(new Event('transactions:updated')); setTimeout(() => { try { window.dispatchEvent(new Event('transactions:updated')) } catch (e) {} }, 80) } catch (e) { /* ignore */ }
+            try { window.dispatchEvent(new Event('transactions:updated')); setTimeout(() => { try { window.dispatchEvent(new Event('transactions:updated')) } catch (e) { } }, 80) } catch (e) { /* ignore */ }
           } catch {
             // ignore
           }
@@ -415,7 +415,7 @@ export default function AddTransaction() {
           )
           try {
             localStorage.setItem('transactions', JSON.stringify(replaced))
-            try { window.dispatchEvent(new Event('transactions:updated')); setTimeout(() => { try { window.dispatchEvent(new Event('transactions:updated')) } catch (e) {} }, 80) } catch (e) { /* ignore */ }
+            try { window.dispatchEvent(new Event('transactions:updated')); setTimeout(() => { try { window.dispatchEvent(new Event('transactions:updated')) } catch (e) { } }, 80) } catch (e) { /* ignore */ }
           } catch {
             // ignore
           }
@@ -590,6 +590,9 @@ export default function AddTransaction() {
                 text={text}
                 onSubmoduleSelect={(submodule) => {
                   setSelectedSubmodule(submodule)
+                  setTransactionDirection(
+                    getPersistedModuleTransactionType(selectedModuleData)
+                  )
                   setForceSubmoduleSelection(false)
                   setStep(4)
                 }}

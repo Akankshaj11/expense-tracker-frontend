@@ -52,7 +52,7 @@ function createEmptyModuleDraft() {
   return {
     id: `module-${Date.now()}-${Math.random().toString(16).slice(2)}`,
     name: '',
-    transactionType: 'revenue',
+    transactionType: 'in',
     submodules: [],
     submoduleDraft: '',
   }
@@ -187,7 +187,7 @@ export default function ManageOrganization() {
     const nextModule = {
       id: `module-${Date.now()}-${Math.random().toString(16).slice(2)}`,
       name,
-      transactionType: moduleDraft.transactionType || 'revenue',
+      transactionType: moduleDraft.transactionType || 'in',
       isCustom: true,
       submodules,
     }
@@ -269,7 +269,7 @@ export default function ManageOrganization() {
     const normalizedModules = modules
       .map((module) => ({
         name: module.name.trim(),
-        transactionType: module.transactionType || 'revenue',
+        transactionType: module.transactionType || 'in',
         isCustom: module?.isCustom === true,
         submodules: module.submodules.map((submodule) => submodule.trim()).filter(Boolean),
       }))

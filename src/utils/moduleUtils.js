@@ -30,7 +30,13 @@ export function getModuleCategory(module) {
   if (transactionType === 'revenue') {
     return 'revenue'
   }
+  if (transactionType === 'in') {
+    return 'revenue'
+  }
   if (transactionType === 'expenses' || transactionType === 'expense') {
+    return 'expenses'
+  }
+  if (transactionType === 'out') {
     return 'expenses'
   }
   if (transactionType === 'investments' || transactionType === 'investment') {
@@ -46,7 +52,15 @@ export function getModuleCategory(module) {
     return 'revenue'
   }
 
+  if (moduleName === 'in') {
+    return 'revenue'
+  }
+
   if (moduleName === 'expense' || moduleName === 'expenses') {
+    return 'expenses'
+  }
+
+  if (moduleName === 'out') {
     return 'expenses'
   }
 
@@ -73,7 +87,12 @@ export function getModuleCategory(module) {
 
 // Function: getPersistedModuleTransactionType
 export function getPersistedModuleTransactionType(module) {
-  return module?.transactionType || getModuleCategory(module) || 'revenue'
+  const raw = module?.transactionType || getModuleCategory(module) || 'revenue'
+  const normalized = String(raw || '').toLowerCase()
+  if (['in', 'income', 'revenue', 'credit', 'incoming', 'plus', '+'].includes(normalized)) return 'in'
+  if (['out', 'expense', 'expenses', 'debit', 'outgoing', 'minus', '-'].includes(normalized)) return 'out'
+  if (['investment', 'investments'].includes(normalized)) return 'investments'
+  return 'in'
 }
 
 // Function: getModulesForCategory

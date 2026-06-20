@@ -4,7 +4,8 @@ const DEFAULT_API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localh
 // set `VITE_NO_BACKEND=1` in your env (not recommended for permanent use).
 const NO_BACKEND = false
 const PUBLIC_AUTH_PATHS = ['/auth/login', '/auth/register']
-const ACCESS_TOKEN_COOKIE = 'accessToken'
+const ACCESS_TOKEN_KEY = 'accessToken'
+const REFRESH_TOKEN_KEY = 'refreshToken'
 
 let sessionExpiredNotified = false
 
@@ -22,52 +23,6 @@ function readJSON(key, fallback) {
   } catch {
     return fallback
   }
-}
-
-// Function: getCookie
-function getCookie(name) {
-  if (typeof document === 'undefined') {
-    return ''
-  }
-
-  const encodedName = `${encodeURIComponent(name)}=`
-  const cookies = document.cookie ? document.cookie.split('; ') : []
-
-  for (const cookie of cookies) {
-    if (cookie.startsWith(encodedName)) {
-      return decodeURIComponent(cookie.slice(encodedName.length))
-    }
-  }
-
-  return ''
-}
-
-// Function: setCookie
-function setCookie(name, value, maxAgeSeconds) {
-  if (typeof document === 'undefined') {
-    return
-  }
-
-  const parts = [
-    `${encodeURIComponent(name)}=${encodeURIComponent(value)}`,
-    'path=/',
-    'SameSite=Lax',
-  ]
-
-  if (typeof maxAgeSeconds === 'number') {
-    parts.push(`Max-Age=${Math.max(0, Math.floor(maxAgeSeconds))}`)
-  }
-
-  if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
-    parts.push('Secure')
-  }
-
-  document.cookie = parts.join('; ')
-}
-
-// Function: clearCookie
-function clearCookie(name) {
-  setCookie(name, '', 0)
 }
 
 // Function: getJwtExpirySeconds
@@ -122,8 +77,8 @@ function isJwtExpired(token) {
 
 // Function: clearStoredAuth
 export function clearStoredAuth() {
-  clearCookie(ACCESS_TOKEN_COOKIE)
-  localStorage.removeItem('accessToken')
+  localStorage.removeItem(ACCESS_TOKEN_KEY)
+  localStorage.removeItem(REFRESH_TOKEN_KEY)
   localStorage.removeItem('authToken')
   localStorage.removeItem('currentUser')
 }
@@ -152,62 +107,113 @@ export function getApiBaseUrl() {
   return DEFAULT_API_BASE_URL.replace(/\/$/, '')
 }
 
-// With server-managed HttpOnly cookies we don't expose tokens to JS.
-// Keep compatibility functions but make them no-ops.
+// Keep compatibility helpers for the rest of the app.
 // Function: getStoredAccessToken
 export function getStoredAccessToken() {
-  return ''
+  if (typeof localStorage === 'undefined') {
+    return ''
+  }
+
+  return localStorage.getItem(ACCESS_TOKEN_KEY) || localStorage.getItem('authToken') || ''
 }
 
 // Function: setStoredAccessToken
-export function setStoredAccessToken() {
-  // no-op: tokens are set by the backend in HttpOnly cookies
+export function setStoredAccessToken(token) {
+  if (typeof localStorage === 'undefined') {
+    return
+  }
+
+  if (token) {
+    localStorage.setItem(ACCESS_TOKEN_KEY, token)
+    localStorage.setItem('authToken', token)
+  } else {
+    localStorage.removeItem(ACCESS_TOKEN_KEY)
+    localStorage.removeItem('authToken')
+  }
 }
 
-// Perform authenticated fetch (cookies)
+// Function: getStoredRefreshToken
+export function getStoredRefreshToken() {
+  if (typeof localStorage === 'undefined') {
+    return ''
+  }
+
+  return localStorage.getItem(REFRESH_TOKEN_KEY) || ''
+}
+
+// Function: setStoredRefreshToken
+export function setStoredRefreshToken(token) {
+  if (typeof localStorage === 'undefined') {
+    return
+  }
+
+  if (token) {
+    localStorage.setItem(REFRESH_TOKEN_KEY, token)
+  } else {
+    localStorage.removeItem(REFRESH_TOKEN_KEY)
+  }
+}
+
+// Perform authenticated fetch (bearer headers)
 export async function authenticatedFetch(path, options = {}) {
   const cleanPath = path.startsWith('/') ? path : `/${path}`
+  const accessToken = getStoredAccessToken()
+  const requestHeaders = {
+    'Content-Type': 'application/json',
+    ...(options.headers || {}),
+  }
+
+  if (accessToken && !requestHeaders.Authorization) {
+    requestHeaders.Authorization = `Bearer ${accessToken}`
+  }
 
   const response = await fetch(`${getApiBaseUrl()}${cleanPath}`, {
     ...options,
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.headers || {}),
-    },
+    headers: requestHeaders,
   })
 
- if (response.status === 401) {
+  if (response.status === 401) {
 
-  // Do NOT refresh for login/register routes
-  if (isPublicAuthPath(cleanPath)) {
-    return response
-  }
-
-  try {
-    // Attempt silent refresh
-    const refreshResponse = await fetch(
-      `${getApiBaseUrl()}/auth/refresh`,
-      {
-        method: 'POST',
-        credentials: 'include',
-      },
-    )
-
-    // Refresh successful → retry original request
-    if (refreshResponse.ok) {
-      return authenticatedFetch(cleanPath, options)
+    // Do NOT refresh for login/register routes
+    if (isPublicAuthPath(cleanPath)) {
+      return response
     }
 
-    // Refresh failed
-    notifySessionExpired()
+    const refreshToken = getStoredRefreshToken()
+    if (!refreshToken) {
+      notifySessionExpired()
+      sessionExpiredNotified = false
+      return response
+    }
 
-  } catch {
-    notifySessionExpired()
+    try {
+      // Attempt silent refresh
+      const refreshResponse = await fetch(`${getApiBaseUrl()}/auth/refresh`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${refreshToken}`,
+        },
+      })
+
+      const refreshPayload = await refreshResponse.json().catch(() => null)
+      const newAccessToken = refreshPayload?.data?.accessToken || ''
+
+      // Refresh successful → retry original request
+      if (refreshResponse.ok && newAccessToken) {
+        setStoredAccessToken(newAccessToken)
+        return authenticatedFetch(cleanPath, options)
+      }
+
+      // Refresh failed
+      notifySessionExpired()
+
+    } catch {
+      notifySessionExpired()
+    }
+
+    sessionExpiredNotified = false
   }
-
-  sessionExpiredNotified = false
-}
 
   return response
 }

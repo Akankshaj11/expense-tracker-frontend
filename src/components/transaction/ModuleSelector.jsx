@@ -86,7 +86,7 @@ export default function ModuleSelector({
     await persistOrganizationModules(activeOrganization.id, nextOrgs, setOrganizations)
   }
 
-  const [customModuleType, setCustomModuleType] = useState('revenue')
+  const [customModuleType, setCustomModuleType] = useState('in')
 
   return (
     <>
@@ -196,8 +196,8 @@ export default function ModuleSelector({
               <p className="text-xs font-light uppercase tracking-[0.14em] text-slate-500">{text.chooseTypeLabel}</p>
               <div className="mt-2 flex items-center gap-2">
                 {[
-                  { value: 'revenue', label: 'Revenue', title: 'Revenue', selectedClass: 'border-emerald-500 bg-emerald-500 text-white' },
-                  { value: 'expense', label: 'Expense', title: 'Expense', selectedClass: 'border-red-500 bg-red-500 text-white' },
+                  { value: 'in', label: 'In', title: 'In', selectedClass: 'border-emerald-500 bg-emerald-500 text-white' },
+                  { value: 'out', label: 'Out', title: 'Out', selectedClass: 'border-red-500 bg-red-500 text-white' },
                 ].map((item) => {
                   const isActive = customModuleType === item.value
                   return (

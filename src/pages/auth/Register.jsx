@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowRightIcon, CheckCircleIcon } from '@heroicons/react/24/outline'
 import { Link, useNavigate } from 'react-router-dom'
-import { apiRequest } from '../../utils/api'
+import { apiRequest, setStoredAccessToken, setStoredRefreshToken } from '../../utils/api'
 
 export default function Register() {
   const navigate = useNavigate()
@@ -61,7 +61,11 @@ export default function Register() {
       })
 
       const user = payload?.data?.user
-      // Backend sets HttpOnly cookie; no client-side token handling needed
+      const accessToken = payload?.data?.accessToken || ''
+      const refreshToken = payload?.data?.refreshToken || ''
+
+      setStoredAccessToken(accessToken)
+      setStoredRefreshToken(refreshToken)
 
       if (user) {
         localStorage.setItem('currentUser', JSON.stringify(user))
@@ -73,7 +77,7 @@ export default function Register() {
         navigate('/select-currency')
       }, 1200)
     } catch (err) {
-      setError('Registration failed. Please try again.')
+      setError(err?.message || 'Registration failed. Please try again.')
     } finally {
       setLoading(false)
     }

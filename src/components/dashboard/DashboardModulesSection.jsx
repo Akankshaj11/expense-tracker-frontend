@@ -10,21 +10,33 @@ import DashboardModuleEditor from './DashboardModuleEditor'
 
 // Function: getModuleTypeBadge
 function getModuleTypeBadge(module) {
+  // Do not show badges for the predefined 'Investment Returns' module
+  const name = String(module?.name || module?.label || module?.rawName || '').trim().toLowerCase()
+  if (name === 'investment returns') {
+    return null
+  }
+
   if (!module?.isCustom || !module?.transactionType) {
     return null
   }
 
-  if (module.transactionType === 'revenue') {
+  const transactionType = String(module.transactionType || '').toLowerCase()
+
+  if (['revenue', 'in', 'income', 'credit'].includes(transactionType)) {
     return {
-      label: 'R',
+      label: 'I',
       className: 'bg-emerald-500 text-white',
+      ariaLabel: 'In module',
+      title: 'In module',
     }
   }
 
-  if (module.transactionType === 'expenses') {
+  if (['expenses', 'out', 'expense', 'debit'].includes(transactionType)) {
     return {
-      label: 'E',
+      label: 'O',
       className: 'bg-rose-500 text-white',
+      ariaLabel: 'Out module',
+      title: 'Out module',
     }
   }
 
@@ -40,7 +52,7 @@ export default function DashboardModulesSection({ text, moduleCards, onModuleCli
   const [submoduleDrafts, setSubmoduleDrafts] = useState([])
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
-  const menuRef = useRef(null)
+  const menuRefs = useRef(new Map())
 
   useEffect(() => {
     if (!openMenuId) {
@@ -49,7 +61,8 @@ export default function DashboardModulesSection({ text, moduleCards, onModuleCli
 
     // Function: handlePointerDown
     const handlePointerDown = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
+      const activeMenu = menuRefs.current.get(openMenuId)
+      if (activeMenu && !activeMenu.contains(event.target)) {
         setOpenMenuId(null)
       }
     }
@@ -65,23 +78,12 @@ export default function DashboardModulesSection({ text, moduleCards, onModuleCli
 
   // Function: handleView
   const handleView = (moduleLabel) => {
-    try {
-      console.debug('DashboardModulesSection.handleView', moduleLabel)
-    } catch (e) {}
-
-    if (onModuleClick) {
-      try {
-        onModuleClick(moduleLabel)
-      } catch (e) {
-        console.error(e)
-      }
-    } else {
-      try {
-        navigate(`/module/${encodeURIComponent(moduleLabel)}`)
-      } catch (e) {
-        console.error(e)
-      }
+    const resolvedModuleName = String(moduleLabel || '').trim()
+    if (!resolvedModuleName) {
+      return
     }
+
+    navigate(`/module/${encodeURIComponent(resolvedModuleName)}`)
 
     setOpenMenuId(null)
   }
@@ -90,7 +92,7 @@ export default function DashboardModulesSection({ text, moduleCards, onModuleCli
   const openEditor = (module) => {
     try {
       console.debug('DashboardModulesSection.openEditor', module?.rawName || module?.label)
-    } catch (e) {}
+    } catch (e) { }
     setEditingOriginalName(module.rawName || module.label || '')
     setModuleNameDraft(module.rawName || module.label || '')
     setSubmoduleDrafts(Array.isArray(module.rawSubmodules) ? [...module.rawSubmodules] : [])
@@ -135,7 +137,7 @@ export default function DashboardModulesSection({ text, moduleCards, onModuleCli
     // Function: modulesForBackend
     const modulesForBackend = (activeOrg.modules || []).map((module) => ({
       name: module.name,
-      transactionType: module.transactionType || 'revenue',
+      transactionType: module.transactionType || 'in',
       isCustom: module?.isCustom === true,
       submodules: Array.isArray(module.submodules) ? module.submodules : [],
     }))
@@ -215,7 +217,7 @@ export default function DashboardModulesSection({ text, moduleCards, onModuleCli
       return {
         ...module,
         name: nextName,
-        transactionType: module.transactionType || 'revenue',
+        transactionType: module.transactionType || 'in',
         submodules: nextSubmodules,
       }
     })
@@ -287,7 +289,7 @@ export default function DashboardModulesSection({ text, moduleCards, onModuleCli
 
     try {
       console.debug('DashboardModulesSection.handleDelete', module?.rawName || module?.label)
-    } catch (e) {}
+    } catch (e) { }
 
     const moduleName = String(module.rawName || module.label || '').trim()
     if (!moduleName || !activeOrganization?.id) {
@@ -376,28 +378,26 @@ export default function DashboardModulesSection({ text, moduleCards, onModuleCli
 
       <div className="mt-6 grid auto-rows-fr gap-4 md:grid-cols-2 xl:grid-cols-3">
         {moduleCards.map((module, index) => (
-          // debug: show render state for each module card
-          (console.debug && console.debug(`DashboardModulesSection.render module=${module.id} openMenuId=${openMenuId}`), null),
-          <motion.article
+          <motion.div
             key={module.id}
             initial={{ opacity: 0, y: 14 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.25 }}
             transition={{ delay: index * 0.05, duration: 0.45 }}
-            onClick={(e) => {
-              if (openMenuId === module.id) {
-                // if menu for this module is open, ignore article clicks
-                return
-              }
-              if (onModuleClick) onModuleClick(module.rawName)
-            }}
+            // onClick={(e) => {
+            //   if (openMenuId === module.id) {
+            //     // if menu for this module is open, ignore article clicks
+            //     return
+            //   }
+            //   navigate(`/module/${encodeURIComponent(module.rawName || module.label || '')}`)
+            // }}
             role="button"
             tabIndex={0}
-              onKeyDown={(event) => {
+            onKeyDown={(event) => {
               if (event.key === 'Enter' || event.key === ' ') {
                 event.preventDefault()
                 if (openMenuId === module.id) return
-                if (onModuleClick) onModuleClick(module.rawName)
+                navigate(`/module/${encodeURIComponent(module.rawName || module.label || '')}`)
               }
             }}
             className="relative flex h-full cursor-pointer flex-col rounded-[1.5rem] border border-white/6 bg-[var(--card)] p-5 transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary-500/20"
@@ -406,89 +406,114 @@ export default function DashboardModulesSection({ text, moduleCards, onModuleCli
               const typeBadge = getModuleTypeBadge(module)
 
               return (
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="rounded-2xl p-3" style={{ backgroundColor: module.theme.iconBg, color: module.theme.fg }}>
-                  <module.theme.icon className="h-5 w-5" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="text-base font-light capitalize text-[var(--text)]">{module.label}</p>
-                    {typeBadge ? (
-                      <span
-                        className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-medium ${typeBadge.className}`}
-                        aria-label={module.transactionType === 'revenue' ? 'Revenue module' : 'Expense module'}
-                        title={module.transactionType === 'revenue' ? 'Revenue module' : 'Expense module'}
-                      >
-                        {typeBadge.label}
-                      </span>
-                    ) : null}
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-2xl p-3" style={{ backgroundColor: module.theme.iconBg, color: module.theme.fg }}>
+                      <module.theme.icon className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="text-base font-light capitalize text-[var(--text)]">{module.label}</p>
+                        {typeBadge ? (
+                          <span
+                            className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-medium ${typeBadge.className}`}
+                            aria-label={typeBadge.ariaLabel}
+                            title={typeBadge.title}
+                          >
+                            {typeBadge.label}
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="text-sm text-slate-500">{module.submodules.length} {text.submodules.toLowerCase()}</p>
+                    </div>
                   </div>
-                  <p className="text-sm text-slate-500">{module.submodules.length} {text.submodules.toLowerCase()}</p>
-                </div>
-              </div>
-              <div ref={menuRef} className="relative">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    try {
-                      console.debug('DashboardModulesSection.menuButtonClick', module.id, 'currentOpen', openMenuId)
-                    } catch (e) {}
-                    setOpenMenuId(openMenuId === module.id ? null : module.id)
-                  }}
-                  className="rounded-full p-2 text-slate-400 transition hover:bg-[var(--card)] hover:text-[var(--muted)]"
-                  aria-label="Module actions"
-                >
-                  <EllipsisVerticalIcon className="h-5 w-5" />
-                </button>
-
-                {openMenuId === module.id ? (
                   <div
-                    onClick={(e) => e.stopPropagation()}
-                    className="absolute right-0 top-10 z-20 w-40 rounded-lg border border-white/6 bg-[var(--card)] py-1 shadow-lg"
+                    ref={(node) => {
+                      if (node) {
+                        menuRefs.current.set(module.id, node)
+                      } else {
+                        menuRefs.current.delete(module.id)
+                      }
+                    }}
+                    className="relative"
                   >
                     <button
                       type="button"
-                      onClick={() => handleView(module.rawName)}
-                      className="w-full px-3 py-2 text-left text-sm text-[var(--text)] hover:bg-white/5"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        e.preventDefault()
+                        setOpenMenuId(openMenuId === module.id ? null : module.id)
+                      }}
+                      className="rounded-full p-2 text-slate-400 transition hover:bg-[var(--card)] hover:text-[var(--muted)]"
+                      aria-label="Module actions"
                     >
-                      View
+                      <EllipsisVerticalIcon className="h-5 w-5" />
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => openEditor(module)}
-                      className="w-full px-3 py-2 text-left text-sm text-[var(--text)] hover:bg-white/5"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(event) => handleDelete(module, event)}
-                      className="w-full px-3 py-2 text-left text-sm text-rose-600 hover:bg-white/5"
-                    >
-                      Delete
-                    </button>
+
+                    {openMenuId === module.id ? (
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="absolute right-0 top-10 z-20 w-40 rounded-lg border border-white/6 bg-[var(--card)] py-1 shadow-lg"
+                      >
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            event.preventDefault()
+                            handleView(module.rawName)
+                          }}
+                          className="w-full px-3 py-2 text-left text-sm text-[var(--text)] hover:bg-white/5"
+                        >
+                          View
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            event.preventDefault()
+                            openEditor(module)
+                          }}
+                          className="w-full px-3 py-2 text-left text-sm text-[var(--text)] hover:bg-white/5"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(event) => handleDelete(module, event)}
+                          className="w-full px-3 py-2 text-left text-sm text-rose-600 hover:bg-white/5"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    ) : null}
                   </div>
-                ) : null}
-              </div>
-            </div>
+                </div>
               )
             })()}
 
-            <div className="mt-5 flex items-end justify-between gap-4">
-              <div>
-                <p className="text-xs font-light uppercase tracking-[0.2em] text-slate-500">{text.amount}</p>
-                <p className={`mt-2 inline-flex items-center gap-1 text-2xl font-light tracking-tight ${module.amountValue < 0 ? 'text-rose-600' : 'text-blue-600'}`}>
-                  <span>{module.amountValue < 0 ? '-' : module.amountValue > 0 ? '+' : ''}</span>
-                  <span>{module.amount}</span>
-                </p>
-              </div>
-              <div className="text-right text-xs font-light text-slate-500">{text.allocated}</div>
-            </div>
 
-            <div className="mt-4 h-2 rounded-full bg-[var(--card)]">
-              <div className="h-full rounded-full" style={{ width: `${module.fill}%`, backgroundColor: module.theme.fg }} />
+            <div
+              onClick={() =>
+                navigate(`/module/${encodeURIComponent(module.rawName || module.label || '')}`)
+              }
+              className="mt-5 cursor-pointer"
+            >
+              <div className="flex items-end justify-between gap-4">
+                <div>
+                  <p className="text-xs font-light uppercase tracking-[0.2em] text-slate-500">{text.amount}</p>
+                  <p className={`mt-2 inline-flex items-center gap-1 text-2xl font-light tracking-tight ${module.amountValue < 0 ? 'text-rose-600' : 'text-blue-600'}`}>
+                    <span>{module.amountValue < 0 ? '-' : module.amountValue > 0 ? '+' : ''}</span>
+                    <span>{module.amount}</span>
+                  </p>
+                </div>
+                <div className="text-right text-xs font-light text-slate-500">{text.allocated}</div>
+              </div>
+
+              <div className="mt-4 h-2 rounded-full bg-[var(--card)]">
+                <div className="h-full rounded-full" style={{ width: `${module.fill}%`, backgroundColor: module.theme.fg }} />
+              </div>
+
+
             </div>
 
             {module.recentTransaction ? (
@@ -502,7 +527,7 @@ export default function DashboardModulesSection({ text, moduleCards, onModuleCli
               </div>
             ) : null}
 
-          </motion.article>
+          </motion.div>
         ))}
       </div>
 
