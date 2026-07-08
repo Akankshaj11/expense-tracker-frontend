@@ -27,13 +27,13 @@ function readJSON(key, fallback) {
 // Function: createModuleItem
 function createModuleItem(module, index, organizationSubmodules = {}) {
   const normalizedName = String(module?.name || '').toLowerCase()
-  const isDefaultSystemModule = ['revenue', 'expenses', 'investments', 'lend', 'borrow'].includes(normalizedName)
+  const isDefaultSystemModule = ['revenue', 'expenses', 'investments', 'investment returns', 'lend', 'borrow'].includes(normalizedName)
 
   return {
     id: `${module.name}-${index}-${Date.now()}`,
     name: module.name || '',
-    transactionType: getPersistedModuleTransactionType(module),
-    isCustom: module?.isCustom === true || (!isDefaultSystemModule && Boolean(module?.transactionType)),
+    direction: getPersistedModuleTransactionType(module),
+    isCustom: module?.isCustom === true || (!isDefaultSystemModule && Boolean(module?.direction || module?.transactionType)),
     submodules: Array.isArray(module.submodules)
       ? module.submodules
       : Array.isArray(organizationSubmodules?.[module.name])
@@ -53,6 +53,7 @@ function createEmptyModuleDraft() {
     id: `module-${Date.now()}-${Math.random().toString(16).slice(2)}`,
     name: '',
     transactionType: 'in',
+    direction: 'in',
     submodules: [],
     submoduleDraft: '',
   }
@@ -188,6 +189,7 @@ export default function ManageOrganization() {
       id: `module-${Date.now()}-${Math.random().toString(16).slice(2)}`,
       name,
       transactionType: moduleDraft.transactionType || 'in',
+      direction: moduleDraft.direction || 'in',
       isCustom: true,
       submodules,
     }
@@ -270,6 +272,7 @@ export default function ManageOrganization() {
       .map((module) => ({
         name: module.name.trim(),
         transactionType: module.transactionType || 'in',
+        direction: module.direction || 'in',
         isCustom: module?.isCustom === true,
         submodules: module.submodules.map((submodule) => submodule.trim()).filter(Boolean),
       }))
@@ -293,8 +296,7 @@ export default function ManageOrganization() {
     // Transform modules structure: separate module names from submodules dict
     const modulesForBackend = normalizedModules.map((module) => ({
       name: module.name,
-      transactionType: module.transactionType,
-      moduleType: module.transactionType,
+      direction: module.direction,
       isCustom: module.isCustom,
     }))
     const submodulesForBackend = {}
@@ -510,13 +512,13 @@ export default function ManageOrganization() {
                             { value: 'revenue', label: text.revenue, activeClass: 'border-emerald-500 bg-emerald-500 text-white shadow-sm' },
                             { value: 'expense', label: text.expenses, activeClass: 'border-red-500 bg-red-500 text-white shadow-sm' },
                           ].map((item) => {
-                            const isActive = moduleDraft.transactionType === item.value
+                            const isActive = moduleDraft.direction === item.value
 
                             return (
                               <button
                                 key={item.value}
                                 type="button"
-                                onClick={() => updateModuleDraft('transactionType', item.value)}
+                                onClick={() => updateModuleDraft('direction', item.value)}
                                 className={`inline-flex items-center justify-center rounded-full border px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.14em] transition ${isActive ? item.activeClass : 'border-white/70 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'}`}
                               >
                                 {item.label}

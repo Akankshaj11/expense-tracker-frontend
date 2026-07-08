@@ -185,7 +185,7 @@ export default function TransactionForm({
               onClick={() => onSave(false)}
               className="inline-flex items-center justify-center gap-2 rounded-full accent-cta px-5 py-3 text-sm font-light transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {isSaving ? (
+              {isSaving === 'save' || isSaving === true ? (
                 <>
                   <ClockIcon className="h-4 w-4 animate-spin" />
                   <span>{text.saving || saveButtonLabel}</span>
@@ -204,7 +204,7 @@ export default function TransactionForm({
                 onClick={() => onSaveAndAddAnother(true)}
                 className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-primary-500 to-primary-600 px-5 py-3 text-sm font-light text-white shadow-lg shadow-primary-500/25 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {isSaving ? (
+                {isSaving === 'saveAndAdd' ? (
                   <>
                     <ClockIcon className="h-4 w-4 animate-spin" />
                     <span>{text.saving || secondaryButtonLabel}</span>

@@ -11,16 +11,16 @@ import DashboardModuleEditor from './DashboardModuleEditor'
 // Function: getModuleTypeBadge
 function getModuleTypeBadge(module) {
   // Do not show badges for the predefined 'Investment Returns' module
-  const name = String(module?.name || module?.label || module?.rawName || '').trim().toLowerCase()
-  if (name === 'investment returns') {
+  const name = String(module?.rawName || module?.name || module?.label || '').trim().toLowerCase()
+  if (name === 'investment returns' || name === 'investmentreturns') {
     return null
   }
 
-  if (!module?.isCustom || !module?.transactionType) {
+  if (!module?.isCustom || !(module?.transactionType || module?.direction)) {
     return null
   }
 
-  const transactionType = String(module.transactionType || '').toLowerCase()
+  const transactionType = String(module.transactionType || module.direction || '').toLowerCase()
 
   if (['revenue', 'in', 'income', 'credit'].includes(transactionType)) {
     return {

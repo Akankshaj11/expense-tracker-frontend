@@ -199,7 +199,7 @@ function buildModuleCards(activeOrganization, currency, transactions, language =
     return []
   }
 
-  const systemDefaultModuleNames = new Set(['revenue', 'expenses', 'investments', 'lend', 'borrow'])
+  const systemDefaultModuleNames = new Set(['revenue', 'expenses', 'investments', 'investment returns', 'lend', 'borrow'])
 
   const moduleAmounts = activeOrganization.modules.map((module) => {
     // Function: moduleTransactions
@@ -227,6 +227,7 @@ function buildModuleCards(activeOrganization, currency, transactions, language =
 
     return {
       label: module.name,
+      rawName: module.name,
       submodules: getModuleSubmodules(module, activeOrganization),
       amount,
       theme,

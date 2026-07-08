@@ -26,7 +26,7 @@ export function getTransactionCategory(transaction) {
 
 // Function: getModuleCategory
 export function getModuleCategory(module) {
-  const transactionType = String(module?.transactionType || module?.type || '').toLowerCase()
+  const transactionType = String(module?.direction || module?.transactionType || module?.type || '').toLowerCase()
   if (transactionType === 'revenue') {
     return 'revenue'
   }
@@ -87,7 +87,7 @@ export function getModuleCategory(module) {
 
 // Function: getPersistedModuleTransactionType
 export function getPersistedModuleTransactionType(module) {
-  const raw = module?.transactionType || getModuleCategory(module) || 'revenue'
+  const raw = module?.direction || module?.transactionType || getModuleCategory(module) || 'revenue'
   const normalized = String(raw || '').toLowerCase()
   if (['in', 'income', 'revenue', 'credit', 'incoming', 'plus', '+'].includes(normalized)) return 'in'
   if (['out', 'expense', 'expenses', 'debit', 'outgoing', 'minus', '-'].includes(normalized)) return 'out'

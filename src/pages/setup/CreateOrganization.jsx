@@ -207,13 +207,23 @@ export default function CreateOrganization() {
           name: module,
           transactionType: 'in',
           moduleType: 'in',
+          direction: 'in',
           isCustom: false,
           submodules: submodules[module] || [],
         }
       }
+      
+      let direction = 'in'
+      if (['Expenses', 'Investments', 'Lend'].includes(module)) {
+        direction = 'out'
+      }
 
       return {
         name: module,
+        direction,
+        transactionType: direction,
+        moduleType: direction,
+        isCustom: false,
         submodules: submodules[module] || [],
       }
     })
@@ -222,6 +232,7 @@ export default function CreateOrganization() {
       name: card.name.trim(),
       transactionType: card.transactionType,
       moduleType: card.transactionType,
+      direction: card.transactionType,
       isCustom: true,
       submodules: card.submodules,
     }))

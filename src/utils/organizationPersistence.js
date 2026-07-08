@@ -21,7 +21,7 @@ export async function persistOrganizationModules(activeOrganizationId, nextOrgs,
     // Function: modulesForBackend
     const modulesForBackend = (active.modules || []).map((module) => ({
       name: module.name,
-      transactionType: getPersistedModuleTransactionType(module),
+      direction: getPersistedModuleTransactionType(module),
       isCustom: module?.isCustom === true,
       submodules: Array.isArray(module.submodules) ? module.submodules : [],
     }))
@@ -85,7 +85,7 @@ export async function persistOrganizationCurrency(activeOrganizationId, nextCurr
 }
 
 // Function: appendCustomModule
-export function appendCustomModule(organizations, activeOrganizationId, moduleName, transactionType = 'in') {
+export function appendCustomModule(organizations, activeOrganizationId, moduleName, direction = 'in') {
   const name = moduleName.trim()
   if (!name) {
     return organizations
@@ -98,7 +98,7 @@ export function appendCustomModule(organizations, activeOrganizationId, moduleNa
 
     const nextModules = Array.isArray(org.modules) ? [...org.modules] : []
     if (!nextModules.find((module) => module.name === name)) {
-      nextModules.push({ name, submodules: [], transactionType, isCustom: true })
+      nextModules.push({ name, submodules: [], direction, transactionType: direction, moduleType: direction, isCustom: true })
     }
 
     return { ...org, modules: nextModules }

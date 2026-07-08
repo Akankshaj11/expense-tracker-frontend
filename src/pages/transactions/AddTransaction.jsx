@@ -143,8 +143,8 @@ export default function AddTransaction() {
     setSelectedModule(existingTransaction.module || '')
     setSelectedSubmodule(existingTransaction.submodule || '')
     setTransactionDirection(
-      existingTransaction.transactionType ||
       existingTransaction.direction ||
+      existingTransaction.transactionType ||
       existingTransaction.transactionDirection ||
       '',
     )
@@ -251,7 +251,7 @@ export default function AddTransaction() {
       setError(text.enterValidAmountChoose)
       return
     }
-    setIsSaving(true)
+    setIsSaving(stayOnPage ? 'saveAndAdd' : 'save')
     setError('')
 
     const transactions = readJSON('transactions', [])
@@ -274,8 +274,7 @@ export default function AddTransaction() {
       organizationId: activeOrganization?.id || '',
       module: selectedModule,
       submodule: selectedSubmodule,
-      transactionType: derivedTransactionType,
-      // direction: transactionDirection,
+      direction: derivedTransactionType,
       amountExpression,
       amount: totalAmount,
       note: note.trim(),
