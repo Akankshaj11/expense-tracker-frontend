@@ -70,7 +70,7 @@ export default function DashboardModuleEditor({
 
             <div className="mt-3 space-y-2">
               {submoduleDrafts.map((submodule, index) => (
-                <div key={`${index}-${submodule}`} className="flex items-center gap-2">
+                <div key={index} className="flex items-center gap-2">
                   <input
                     type="text"
                     value={submodule}

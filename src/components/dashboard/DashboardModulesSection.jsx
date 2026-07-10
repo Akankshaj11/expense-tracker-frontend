@@ -93,9 +93,9 @@ export default function DashboardModulesSection({ text, moduleCards, onModuleCli
     try {
       console.debug('DashboardModulesSection.openEditor', module?.rawName || module?.label)
     } catch (e) { }
-    setEditingOriginalName(module.rawName || module.label || '')
-    setModuleNameDraft(module.rawName || module.label || '')
-    setSubmoduleDrafts(Array.isArray(module.rawSubmodules) ? [...module.rawSubmodules] : [])
+    setEditingOriginalName(module.rawName || '')
+    setModuleNameDraft(module.label || module.rawName || '')
+    setSubmoduleDrafts(Array.isArray(module.submodules) ? [...module.submodules] : [])
     setError('')
     setIsEditorOpen(true)
     setOpenMenuId(null)

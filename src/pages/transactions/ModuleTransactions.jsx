@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import { ArrowLeftIcon, PaperClipIcon, TagIcon, XMarkIcon, ArrowDownTrayIcon, PlusIcon } from '@heroicons/react/24/outline'
 import { authenticatedFetch } from '../../utils/api'
 import { loadOrganizationsFromBackend, readCachedOrganizations } from '../../utils/organizationSync'
-import translations, { translateText, getLocale, translateModuleLabel } from '../../i18n/translations'
+import translations, { translateText, getLocale, translateModuleLabel, translateSubmoduleLabel } from '../../i18n/translations'
 
 // Read JSON from localStorage
 // Function: readJSON
@@ -363,7 +363,7 @@ export default function ModuleTransactions() {
                   >
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                       <div className="min-w-0 flex-1">
-                        <p className="text-lg font-light text-[var(--text)]">{transaction.submodule ? translateModuleLabel(language, transaction.submodule) : text.unnamedSubmodule}</p>
+                        <p className="text-lg font-light text-[var(--text)]">{transaction.submodule ? translateSubmoduleLabel(language, transaction.submodule) : text.unnamedSubmodule}</p>
                         <p className="mt-1 text-sm text-slate-500">{text.moduleLabelPrefix} {translateModuleLabel(language, transaction.module)}</p>
                       </div>
 

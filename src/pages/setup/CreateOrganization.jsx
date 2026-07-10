@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import { ArrowLeftIcon, ArrowRightIcon, PlusIcon } from '@heroicons/react/24/outline'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { apiRequest } from '../../utils/api'
-import { translateModuleLabel, translateText } from '../../i18n/translations'
+import { translateModuleLabel, translateSubmoduleLabel, translateText } from '../../i18n/translations'
 import useLanguage from '../../hooks/useLanguage'
 
 const revenueModules = ['Salary', 'Freelance', 'Bonus', 'Interest', 'Commission']
@@ -441,7 +441,7 @@ export default function CreateOrganization() {
                               <div className="flex w-max gap-2 pr-2">
                                 {moduleSubmodules.map((item) => (
                                   <span key={item} className="inline-flex shrink-0 items-center gap-2 rounded-full bg-[var(--card)] px-3 py-1.5 text-xs font-light text-slate-700 shadow-sm ring-1 ring-slate-200">
-                                    {item}
+                                    {translateSubmoduleLabel(language, item)}
                                     <button
                                       type="button"
                                       onClick={(event) => {
@@ -568,7 +568,7 @@ export default function CreateOrganization() {
                               <div className="flex w-max gap-2 pr-2">
                                 {card.submodules.map((item) => (
                                   <span key={item} className="inline-flex shrink-0 items-center gap-2 rounded-full bg-[var(--card)] px-3 py-1.5 text-xs font-light text-slate-700 shadow-sm ring-1 ring-slate-200">
-                                    {item}
+                                    {translateSubmoduleLabel(language, item)}
                                     <button
                                       type="button"
                                       onClick={(event) => {

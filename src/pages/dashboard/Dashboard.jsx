@@ -29,7 +29,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { apiRequest, authenticatedFetch, clearStoredAuth } from '../../utils/api'
 import { loadOrganizationsFromBackend, readCachedOrganizations } from '../../utils/organizationSync'
-import { translateText, getLocale, translateModuleLabel } from '../../i18n/translations'
+import { translateText, getLocale, translateModuleLabel, translateSubmoduleLabel } from '../../i18n/translations'
 import useLanguage from '../../hooks/useLanguage'
 import DashboardHeader from '../../components/dashboard/DashboardHeader'
 import DashboardHero from '../../components/dashboard/DashboardHero'
@@ -255,7 +255,7 @@ function buildModuleCards(activeOrganization, currency, transactions, language =
       label: translateModuleLabel(language, item.label),
       rawName: item.label,
       rawSubmodules: [...item.submodules],
-      submodules: item.submodules.map((submodule) => translateModuleLabel(language, submodule)),
+      submodules: item.submodules.map((submodule) => translateSubmoduleLabel(language, submodule)),
       amountValue: displayAmountValue,
       amount: formatMoney(Math.abs(displayAmountValue), currency, locale),
       isCustom: item.isCustom,
@@ -263,7 +263,7 @@ function buildModuleCards(activeOrganization, currency, transactions, language =
       transactionType: item.transactionType,
       recentTransaction: item.recentTransaction
         ? {
-            submodule: translateModuleLabel(language, item.recentTransaction.submodule),
+            submodule: translateSubmoduleLabel(language, item.recentTransaction.submodule),
             amountValue: item.recentTransaction.amountValue,
             amount: item.recentTransaction.amount,
           }
@@ -275,7 +275,7 @@ function buildModuleCards(activeOrganization, currency, transactions, language =
 }
 
 // Function: buildRecentActivity
-function buildRecentActivity(transactions, currency, locale = 'en-US', text = {}) {
+function buildRecentActivity(transactions, currency, locale = 'en-US', text = {}, language = 'en') {
   return [...(transactions || [])]
     .filter((transaction) => Number.isFinite(Number(transaction?.amount)))
     .sort((left, right) => new Date(right.createdAt || right.date || 0) - new Date(left.createdAt || left.date || 0))
@@ -287,12 +287,19 @@ function buildRecentActivity(transactions, currency, locale = 'en-US', text = {}
         ? new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(activityTime))
         : text.noDate || 'No date'
 
+      const displaySubmodule = transaction.submodule ? translateSubmoduleLabel(language, transaction.submodule) : ''
+      const displayModule = translateModuleLabel(language, transaction.module)
+
+      const fallbackTitle = displaySubmodule
+        ? `${capitalize(displaySubmodule)}`
+        : `${capitalize(displayModule || (text.transaction || 'Transaction'))} ${text.update || 'update'}`
+
       return {
         id: transaction.id || `${transaction.module || 'txn'}-${idx}`,
         transaction,
         editPath: getTransactionEditPath(transaction),
-        title: transaction.note?.trim() || `${capitalize(transaction.module || (text.transaction || 'Transaction'))} ${text.update || 'update'}`,
-        meta: `${capitalize(transaction.module || (text.dashboard || 'Dashboard'))} · ${metaDate}`,
+        title: transaction.note?.trim() || fallbackTitle,
+        meta: `${capitalize(displayModule || (text.dashboard || 'Dashboard'))} · ${metaDate}`,
         amount: amount >= 0 ? formatMoney(amount, currency, locale) : `-${formatMoney(Math.abs(amount), currency, locale)}`,
         tone: amount >= 0 ? 'text-emerald-600' : 'text-rose-600',
       }
@@ -439,7 +446,7 @@ export default function Dashboard() {
 
   const firstName = deriveFirstName(currentUser)
   const moduleCards = buildModuleCards(activeOrganization, activeCurrency, activeOrganizationTransactions, language, locale)
-  const recentActivity = buildRecentActivity(activeOrganizationTransactions, activeCurrency, locale, text)
+  const recentActivity = buildRecentActivity(activeOrganizationTransactions, activeCurrency, locale, text, language)
 
   const inAmountValue = activeOrganizationTransactions.reduce((sum, transaction) => {
     return getDashboardCardDirection(transaction) === 'in' ? sum + Math.abs(Number(transaction?.amount || 0)) : sum
@@ -548,9 +555,9 @@ export default function Dashboard() {
   }
 
   const summaryCards = [
-    { kind: 'balance', label: 'Balance', value: totalBalance, accent: 'text-[var(--text)]' },
-    { kind: 'revenue', label: 'In', value: inAmount, accent: 'text-emerald-600' },
-    { kind: 'expenses', label: 'Out', value: outAmount, accent: 'text-rose-600' },
+    { kind: 'balance', label: text.balance, value: totalBalance, accent: 'text-[var(--text)]' },
+    { kind: 'revenue', label: text.in, value: inAmount, accent: 'text-emerald-600' },
+    { kind: 'expenses', label: text.out, value: outAmount, accent: 'text-rose-600' },
   ]
 
   return (

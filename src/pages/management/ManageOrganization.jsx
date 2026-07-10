@@ -497,11 +497,7 @@ export default function ManageOrganization() {
                           value={moduleDraft.name}
                           onChange={(event) => updateModuleDraft('name', event.target.value)}
                           className="w-full rounded-xl border border-dashed border-primary-300 bg-primary-50/70 px-3 py-2.5 text-sm font-light text-[var(--text)] outline-none transition focus:border-primary-500 focus:bg-[var(--card)] focus:ring-2 focus:ring-primary-500/20 input-glass"
-                          placeholder={
-                            module.isCustom
-                              ? text.moduleNamePlaceholder
-                              : translateModuleLabel(language, module.name)
-                          }
+                          placeholder={text.moduleNamePlaceholder}
                         />
                       </div>
 
@@ -601,17 +597,9 @@ export default function ManageOrganization() {
                   <div className="flex items-center justify-between gap-3 border-b border-white/6 pb-4">
                     <div className="flex-1">
                       <label className="mb-2 block text-xs font-light uppercase tracking-[0.18em] text-slate-500">{translateText(language, 'moduleLabelWithNumber', { number: moduleIndex + 1 })}</label>
-                      {
-                        (() => {
-                          const translatedModule = translateModuleLabel(language, module.name)
-                          return translatedModule && translatedModule !== module.name ? (
-                            <p className="mb-2 text-sm font-light text-primary-600">{module.name} <span className="text-xs text-primary-600">({translatedModule})</span></p>
-                          ) : null
-                        })()
-                      }
                       <input
                         type="text"
-                        value={module.name}
+                        value={translateModuleLabel(language, module.name)}
                         onChange={(event) => updateModule(module.id, 'name', event.target.value)}
                         className="w-full rounded-xl border border-white/6 bg-[var(--card)] px-4 py-3 text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 input-glass"
                         placeholder={
@@ -655,7 +643,7 @@ export default function ManageOrganization() {
                           <span className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-primary-500" />
                               <input
                                 type="text"
-                                value={submodule}
+                                value={translateSubmoduleLabel(language, submodule)}
                                 onChange={(event) => updateSubmodule(module.id, subIndex, event.target.value)}
                                 className="min-w-0 flex-1 rounded-xl text-slate-400 border border-white/6 bg-[var(--card)] px-3 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
                                 placeholder={
@@ -665,14 +653,6 @@ export default function ManageOrganization() {
                                   })
                                 }
                               />
-                              {
-                                (() => {
-                                  const translatedSub = translateSubmoduleLabel(language, submodule)
-                                  return translatedSub && translatedSub !== submodule ? (
-                                    <span className="ml-2 text-xs font-light text-primary-600">({translatedSub})</span>
-                                  ) : null
-                                })()
-                              }
                           <button
                             type="button"
                             onClick={() => removeSubmodule(module.id, subIndex)}
