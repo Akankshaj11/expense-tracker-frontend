@@ -10,8 +10,6 @@ export default function Register() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [otp, setOtp] = useState('')
-  const [showOtpInput, setShowOtpInput] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
@@ -56,28 +54,10 @@ export default function Register() {
         return
       }
 
-      if (!showOtpInput) {
-        // Step 1: Send OTP
-        await apiRequest('/auth/register/send-otp', {
-          method: 'POST',
-          body: JSON.stringify({ email }),
-        })
-        setShowOtpInput(true)
-        setLoading(false)
-        return
-      }
-
-      // Step 2: Verify OTP
-      if (!otp) {
-        setError('Please enter the OTP sent to your email')
-        setLoading(false)
-        return
-      }
-
-      // Call backend register with OTP
+      // Call backend register directly
       const payload = await apiRequest('/auth/register', {
         method: 'POST',
-        body: JSON.stringify({ email, password, otp }),
+        body: JSON.stringify({ email, password }),
       })
 
       const user = payload?.data?.user
@@ -146,12 +126,10 @@ export default function Register() {
               FT
             </div>
             <h1 className="text-3xl font-light text-[var(--text)]">
-              {showOtpInput ? 'Verify Your Email' : 'Get Started'}
+              Get Started
             </h1>
             <p className="mt-2 text-[var(--primary-600)]">
-              {showOtpInput
-                ? 'We\'ve sent a verification code to your email'
-                : 'Create your FinTrack account'}
+              Create your FinTrack account
             </p>
           </div>
 
@@ -168,86 +146,55 @@ export default function Register() {
 
           {/* Form */}
           <form onSubmit={handleRegister} className="space-y-4">
-            {!showOtpInput ? (
-              <>
-                <div>
-                  <label htmlFor="email" className="block text-sm font-light text-[var(--text)] mb-2">
-                    Email Address
-                  </label>
-                  <input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    className="w-full px-4 py-2.5 rounded-lg border border-white/6 bg-[var(--card)] text-[var(--text)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition input-glass"
-                  />
-                </div>
+            <div>
+              <label htmlFor="email" className="block text-sm font-light text-[var(--text)] mb-2">
+                Email Address
+              </label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                className="w-full px-4 py-2.5 rounded-lg border border-white/6 bg-[var(--card)] text-[var(--text)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition input-glass"
+              />
+            </div>
 
-                <div>
-                  <label htmlFor="password" className="block text-sm font-light text-[var(--text)] mb-2">
-                    Password
-                  </label>
-                  <input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full px-4 py-2.5 rounded-lg border border-white/6 bg-[var(--card)] text-[var(--text)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition input-glass"
-                  />
-                  <p className="mt-1 text-xs text-slate-500">At least 6 characters</p>
-                </div>
+            <div>
+              <label htmlFor="password" className="block text-sm font-light text-[var(--text)] mb-2">
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full px-4 py-2.5 rounded-lg border border-white/6 bg-[var(--card)] text-[var(--text)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition input-glass"
+              />
+              <p className="mt-1 text-xs text-slate-500">At least 6 characters</p>
+            </div>
 
-                <div>
-                  <label htmlFor="confirmPassword" className="block text-sm font-light text-[var(--text)] mb-2">
-                    Confirm Password
-                  </label>
-                  <input
-                    id="confirmPassword"
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full px-4 py-2.5 rounded-lg border border-white/6 bg-[var(--card)] text-[var(--text)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition input-glass"
-                  />
-                </div>
-              </>
-            ) : (
-              <>
-                <div>
-                  <label htmlFor="otp" className="block text-sm font-light text-[var(--text)] mb-2">
-                    Verification Code
-                  </label>
-                  <input
-                    id="otp"
-                    type="text"
-                    maxLength={6}
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                    placeholder="Enter 6-digit OTP"
-                    className="w-full px-4 py-2.5 rounded-lg border border-white/6 bg-[var(--card)] text-[var(--text)] text-center tracking-widest text-lg placeholder:text-slate-400 placeholder:tracking-normal focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition input-glass"
-                  />
-                </div>
-
-                <div className="flex items-center justify-between text-sm">
-                  <button
-                    type="button"
-                    onClick={() => setShowOtpInput(false)}
-                    className="text-primary-600 hover:text-primary-700 font-light"
-                  >
-                    ← Back to Details
-                  </button>
-                </div>
-              </>
-            )}
+            <div>
+              <label htmlFor="confirmPassword" className="block text-sm font-light text-[var(--text)] mb-2">
+                Confirm Password
+              </label>
+              <input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full px-4 py-2.5 rounded-lg border border-white/6 bg-[var(--card)] text-[var(--text)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition input-glass"
+              />
+            </div>
 
             <button
               type="submit"
               disabled={loading}
               className="w-full mt-4 px-4 py-2.5 rounded-lg accent-cta font-light shadow-glass hover:shadow-primary-500/40 transition hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              {loading ? (showOtpInput ? 'Creating account...' : 'Sending OTP...') : (showOtpInput ? 'Verify & Create Account' : 'Send OTP & Create Account')}
+              {loading ? 'Creating Account...' : 'Create Account'}
               {!loading && <ArrowRightIcon className="h-4 w-4" />}
             </button>
           </form>
