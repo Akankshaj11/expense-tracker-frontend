@@ -3,7 +3,7 @@ const DEFAULT_API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localh
 // Frontend always calls the backend API. To disable network calls explicitly,
 // set `VITE_NO_BACKEND=1` in your env (not recommended for permanent use).
 const NO_BACKEND = false
-const PUBLIC_AUTH_PATHS = ['/auth/login', '/auth/register']
+const PUBLIC_AUTH_PATHS = ['/auth/login', '/auth/register', '/auth/login/send-otp', '/auth/register/send-otp']
 const ACCESS_TOKEN_KEY = 'accessToken'
 const REFRESH_TOKEN_KEY = 'refreshToken'
 

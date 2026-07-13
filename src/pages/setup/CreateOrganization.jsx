@@ -7,7 +7,7 @@ import { apiRequest } from '../../utils/api'
 import { translateModuleLabel, translateSubmoduleLabel, translateText } from '../../i18n/translations'
 import useLanguage from '../../hooks/useLanguage'
 
-const revenueModules = ['Salary', 'Freelance', 'Bonus', 'Interest', 'Commission']
+const revenueModules = ['Salary', 'Freelance', 'Bonus', 'Interest', 'Commission', 'Pocket Money']
 const expenseModules = ['Food', 'Travel', 'Shopping', 'Bills', 'Health', 'Entertainment', 'Education', 'Rent', 'Subscriptions', 'Loans', 'Taxes']
 const investmentModules = ['Mutual Funds', 'Stocks', 'Crypto', 'Fixed Deposits', 'Gold']
 

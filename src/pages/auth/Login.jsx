@@ -10,6 +10,8 @@ export default function Login() {
   const location = useLocation()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [otp, setOtp] = useState('')
+  const [showOtpInput, setShowOtpInput] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -43,10 +45,29 @@ export default function Login() {
         setLoading(false)
         return
       }
-      // Call backend login
+
+      if (!showOtpInput) {
+        // Step 1: Send OTP
+        await apiRequest('/auth/login/send-otp', {
+          method: 'POST',
+          body: JSON.stringify({ email, password }),
+        })
+        setShowOtpInput(true)
+        setLoading(false)
+        return
+      }
+
+      // Step 2: Verify OTP
+      if (!otp) {
+        setError('Please enter the OTP sent to your email')
+        setLoading(false)
+        return
+      }
+
+      // Call backend login with OTP
       const payload = await apiRequest('/auth/login', {
         method: 'POST',
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, otp }),
       })
 
       const user = payload?.data?.user
@@ -88,8 +109,14 @@ export default function Login() {
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 text-white font-light text-lg mx-auto mb-4">
               FT
             </div>
-            <h1 className="text-3xl font-light text-[var(--text)]">Welcome Back</h1>
-            <p className="mt-2 text-[var(--muted)]">Sign in to your FinTrack account</p>
+            <h1 className="text-3xl font-light text-[var(--text)]">
+              {showOtpInput ? 'Two-Step Verification' : 'Welcome Back'}
+            </h1>
+            <p className="mt-2 text-[var(--muted)]">
+              {showOtpInput
+                ? 'We\'ve sent a verification code to your email'
+                : 'Sign in to your FinTrack account'}
+            </p>
           </div>
 
           {/* Error message */}
@@ -105,50 +132,78 @@ export default function Login() {
 
           {/* Form */}
           <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label htmlFor="email" className="block text-sm font-light text-slate-700 mb-2">
-                Email Address
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="w-full px-4 py-2.5 rounded-lg border border-white/6 bg-[var(--card)] text-[var(--text)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
-              />
-            </div>
+            {!showOtpInput ? (
+              <>
+                <div>
+                  <label htmlFor="email" className="block text-sm font-light text-slate-700 mb-2">
+                    Email Address
+                  </label>
+                  <input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    className="w-full px-4 py-2.5 rounded-lg border border-white/6 bg-[var(--card)] text-[var(--text)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+                  />
+                </div>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-light text-slate-700 mb-2">
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full px-4 py-2.5 rounded-lg border border-white/6 bg-[var(--card)] text-[var(--text)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
-              />
-            </div>
+                <div>
+                  <label htmlFor="password" className="block text-sm font-light text-slate-700 mb-2">
+                    Password
+                  </label>
+                  <input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full px-4 py-2.5 rounded-lg border border-white/6 bg-[var(--card)] text-[var(--text)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+                  />
+                </div>
 
-            <div className="flex items-center justify-between text-sm">
-              <label className="flex items-center gap-2 cursor-pointer">
-                {/* <input type="checkbox" className="rounded border-slate-300" /> */}
-                {/* <span className="text-[var(--muted)]">Remember me</span> */}
-              </label>
-              <a href="#" className="text-primary-600 hover:text-primary-700 font-light">
-                Forgot password?
-              </a>
-            </div>
+                <div className="flex items-center justify-between text-sm">
+                  <label className="flex items-center gap-2 cursor-pointer"></label>
+                  <a href="#" className="text-primary-600 hover:text-primary-700 font-light">
+                    Forgot password?
+                  </a>
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <label htmlFor="otp" className="block text-sm font-light text-slate-700 mb-2">
+                    Verification Code
+                  </label>
+                  <input
+                    id="otp"
+                    type="text"
+                    maxLength={6}
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                    placeholder="Enter 6-digit OTP"
+                    className="w-full px-4 py-2.5 rounded-lg border border-white/6 bg-[var(--card)] text-[var(--text)] text-center tracking-widest text-lg placeholder:text-slate-400 placeholder:tracking-normal focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between text-sm">
+                  <button
+                    type="button"
+                    onClick={() => setShowOtpInput(false)}
+                    className="text-primary-600 hover:text-primary-700 font-light"
+                  >
+                    ← Back to Login
+                  </button>
+                </div>
+              </>
+            )}
 
             <button
               type="submit"
               disabled={loading}
               className="w-full mt-4 px-4 py-2.5 rounded-lg accent-cta font-light shadow-glass hover:shadow-primary-500/40 transition hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              {loading ? 'Signing in...' : 'Sign In'}
+              {loading ? (showOtpInput ? 'Verifying...' : 'Sending OTP...') : (showOtpInput ? 'Verify & Sign In' : 'Send OTP & Sign In')}
               {!loading && <ArrowRightIcon className="h-4 w-4" />}
             </button>
           </form>
