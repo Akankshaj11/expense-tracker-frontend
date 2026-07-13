@@ -28,7 +28,7 @@ export default function Navbar(){
           <Link to="/" className="flex items-center gap-3">
             <img src={logo} alt="PocketFlow Logo" className="h-11 w-11 object-contain" />
             <div>
-              <div className="text-[13px]">PocketFlow</div>
+              <div className="text-[18px] pt-1">PocketFlow</div>
             </div>
           </Link>
 
