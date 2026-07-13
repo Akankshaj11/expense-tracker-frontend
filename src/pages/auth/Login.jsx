@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { ArrowRightIcon } from '@heroicons/react/24/outline'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { apiRequest, setStoredAccessToken, setStoredRefreshToken } from '../../utils/api'
+import logo from '../../assets/logo.png'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -86,14 +87,12 @@ export default function Login() {
         <div className="inner-card-accent bg-[var(--card)] rounded-2xl shadow-glass p-6 sm:p-8">
           {/* Header */}
           <div className="text-center mb-6">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 text-white font-light text-lg mx-auto mb-4">
-              FT
-            </div>
+            <img src={logo} alt="PocketFlow Logo" className="mx-auto h-20 w-auto object-contain mb-4" />
             <h1 className="text-3xl font-light text-[var(--text)]">
               Welcome Back
             </h1>
             <p className="mt-2 text-[var(--muted)]">
-              Sign in to your FinTrack account
+              Sign in to your PocketFlow account
             </p>
           </div>
 

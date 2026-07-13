@@ -10,6 +10,7 @@ import {
   PlusIcon,
 } from '@heroicons/react/24/outline'
 import { CURRENCIES, getCurrencyByCode } from '../../utils/currencies'
+import logo from '../../assets/logo.png'
 
 // Function: LanguageRow
 function LanguageRow({ language, setLanguage, text }) {
@@ -344,12 +345,9 @@ export default function DashboardHeader({
       <div className="mx-auto max-w-7xl px-10 sm:px-12 lg:px-16">
         <div className="flex h-20 items-center justify-between gap-4">
           <Link to="/" className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 font-light text-white shadow-lg shadow-primary-500/20">
-              FT
-            </div>
+            <img src={logo} alt="PocketFlow Logo" className="h-11 w-11 object-contain" />
             <div>
-              <p className="text-[11px] uppercase tracking-[0.28em] text-slate-500">FinTrack</p>
-              <p className="text-lg font-light text-[var(--text)]">Wallet App</p>
+              <p className="text-[13px] uppercase tracking-[0.28em] text-slate-500">PocketFlow</p>
             </div>
           </Link>
 

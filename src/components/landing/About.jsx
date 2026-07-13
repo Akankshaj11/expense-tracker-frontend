@@ -41,9 +41,9 @@ export default function About(){
 
         <div className="max-w-lg lg:pl-4">
           <p className="text-sm font-light uppercase tracking-[0.22em] text-primary-600">About</p>
-          <h3 className="mt-3 text-3xl font-light tracking-wide text-[var(--text)] sm:text-4xl">About FinTrack</h3>
+          <h3 className="mt-3 text-3xl font-light tracking-wide text-[var(--text)] sm:text-4xl">About PocketFlow</h3>
           <p className="prose-justified mt-4 text-base">
-            FinTrack is a lightweight finance workspace for teams. It separates organization modules from accounting categories (revenue/expenses) so you can compose workflows, attach receipts, and export print-ready transaction reports. Built for clarity, collaboration, and simple reporting.
+            PocketFlow is a lightweight finance workspace for teams. It separates organization modules from accounting categories (revenue/expenses) so you can compose workflows, attach receipts, and export print-ready transaction reports. Built for clarity, collaboration, and simple reporting.
           </p>
         </div>
       </div>

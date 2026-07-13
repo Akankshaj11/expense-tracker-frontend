@@ -19,7 +19,7 @@ export default function PrivacyPolicy() {
         <p className="text-sm font-light uppercase tracking-[0.22em] text-primary-600">Legal</p>
         <h1 className="mt-3 text-3xl font-light tracking-tight sm:text-4xl">Privacy Policy</h1>
         <p className="mt-4 text-base leading-7 text-[var(--muted)]">
-          This policy explains how FinTrack handles your information. We collect the data you enter to provide account, organization, and reporting features.
+          This policy explains how PocketFlow handles your information. We collect the data you enter to provide account, organization, and reporting features.
         </p>
         <div className="mt-8 space-y-5 text-sm leading-7 text-[var(--text)]">
           <section>

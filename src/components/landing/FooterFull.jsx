@@ -1,5 +1,6 @@
 // Repo file header
 import { Link } from 'react-router-dom'
+import logo from '../../assets/logo.png'
 
 export default function FooterFull() {
   return (
@@ -9,9 +10,9 @@ export default function FooterFull() {
           {/* Branding */}
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-full bg-white/10 flex items-center justify-center text-white font-bold">FT</div>
+              <img src={logo} alt="PocketFlow Logo" className="h-12 w-12 object-contain bg-white/10 p-1 rounded-full" />
               <div>
-                <div className="text-lg font-bold">FinTrack</div>
+                <div className="text-lg font-bold">PocketFlow</div>
                 <div className="text-sm text-white/90">Expert finance workspace for teams</div>
               </div>
             </div>
@@ -43,7 +44,7 @@ export default function FooterFull() {
         </div>
 
         <div className="mt-8 border-t border-white/20 pt-6 text-center text-white text-sm">
-          <div>© {new Date().getFullYear()} FinTrack. All rights reserved.</div>
+          <div>© {new Date().getFullYear()} PocketFlow. All rights reserved.</div>
           <div className="mt-2">Designed by : Softtrades Technology Pvt. Ltd.</div>
         </div>
       </div>

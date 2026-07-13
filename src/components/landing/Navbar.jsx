@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ChevronDownIcon, Bars3Icon, XMarkIcon, UserCircleIcon } from '@heroicons/react/24/outline'
+import logo from '../../assets/logo.png'
 
 export default function Navbar(){
   const [scrolled, setScrolled] = useState(false)
@@ -25,10 +26,9 @@ export default function Navbar(){
       <div className="container-max mx-auto px-4 sm:px-6">
         <div className="flex h-20 items-center justify-between">
           <Link to="/" className="flex items-center gap-3">
-            <div className="h-11 w-11 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-lg shadow-primary-500/20 flex items-center justify-center font-light">FT</div>
+            <img src={logo} alt="PocketFlow Logo" className="h-11 w-11 object-contain" />
             <div>
-              <div className="text-[11px] uppercase tracking-[0.24em] text-[var(--muted)]">FinTrack</div>
-              <div className="font-light text-[var(--text)]">Wallet App</div>
+              <div className="text-[13px]">PocketFlow</div>
             </div>
           </Link>
 
