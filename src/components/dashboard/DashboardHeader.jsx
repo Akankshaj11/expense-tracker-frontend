@@ -8,9 +8,12 @@ import {
   ShieldCheckIcon,
   UserCircleIcon,
   PlusIcon,
+  SunIcon,
+  MoonIcon,
 } from '@heroicons/react/24/outline'
 import { CURRENCIES, getCurrencyByCode } from '../../utils/currencies'
 import logo from '../../assets/logo.png'
+import { apiRequest } from '../../utils/api'
 
 // Function: LanguageRow
 function LanguageRow({ language, setLanguage, text }) {
@@ -159,12 +162,64 @@ function OrganizationMenu({ activeOrgId, activeOrganization, organizations, orgM
 }
 
 // Function: ProfileMenu
-function ProfileMenu({ currentUser, firstName, activeOrganization, activeCurrency, profileOpen, setProfileOpen, setOrgMenuOpen, language, setLanguage, handleLogout, handleChangeCurrency, text, mobile = false }) {
+function ProfileMenu({ currentUser, firstName, activeOrganization, activeCurrency, profileOpen, setProfileOpen, setOrgMenuOpen, language, setLanguage, handleLogout, handleChangeCurrency, text, mobile = false, onUpdateProfilePic }) {
   const containerRef = useRef(null)
   const isDesktop = useIsDesktop()
   const isActiveView = mobile ? !isDesktop : isDesktop
   const [currencyMenuOpen, setCurrencyMenuOpen] = useState(false)
   const [isUpdatingCurrency, setIsUpdatingCurrency] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+
+  const getThemeForCurrentUser = () => {
+    if (currentUser && currentUser.email) {
+      return localStorage.getItem(`selectedTheme_${currentUser.email}`) || 'light'
+    }
+    return 'light'
+  }
+
+  const [theme, setTheme] = useState(() => getThemeForCurrentUser())
+
+  const handleThemeChange = (newTheme) => {
+    setTheme(newTheme)
+    if (currentUser && currentUser.email) {
+      localStorage.setItem(`selectedTheme_${currentUser.email}`, newTheme)
+    }
+    const body = document.body
+    if (newTheme === 'dark') {
+      body.classList.remove('theme-light-violet')
+      body.classList.add('dark')
+    } else {
+      body.classList.add('theme-light-violet')
+      body.classList.remove('dark')
+    }
+  }
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setIsUploading(true)
+    const reader = new FileReader()
+    reader.onloadend = async () => {
+      const base64String = reader.result
+      try {
+        const payload = await apiRequest('/auth/profile', {
+          method: 'PATCH',
+          body: JSON.stringify({ profile_pic: base64String }),
+        })
+        const updatedUser = payload?.data?.user
+        if (updatedUser && onUpdateProfilePic) {
+          onUpdateProfilePic(updatedUser.profile_pic)
+        }
+      } catch (err) {
+        console.error('Failed to update profile pic:', err)
+        alert('Failed to update profile picture')
+      } finally {
+        setIsUploading(false)
+      }
+    }
+    reader.readAsDataURL(file)
+  }
   const panelClassName = mobile
     ? 'absolute right-0 mt-3 w-[calc(100vw-2rem)] max-w-sm rounded-2xl border border-white/6 bg-[var(--card)] p-4 shadow-2xl shadow-slate-200/80'
     : 'absolute right-0 mt-3 w-72 rounded-2xl border border-white/6 bg-[var(--card)] p-4 shadow-2xl shadow-slate-200/80'
@@ -220,19 +275,39 @@ function ProfileMenu({ currentUser, firstName, activeOrganization, activeCurrenc
           setProfileOpen((current) => !current)
           setOrgMenuOpen(false)
         }}
-        className="flex h-11 w-11 items-center justify-center rounded-full border border-white/6 bg-[var(--card)] text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+        className="flex h-11 w-11 items-center justify-center rounded-full border border-white/6 bg-[var(--card)] overflow-hidden text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
         aria-label="Open profile details"
       >
-        <UserCircleIcon className="h-6 w-6 text-[var(--muted)]" />
+        {currentUser?.profile_pic ? (
+          <img src={currentUser.profile_pic} alt="Profile" className="h-full w-full object-cover" />
+        ) : (
+          <UserCircleIcon className="h-6 w-6 text-[var(--muted)]" />
+        )}
       </button>
 
       {profileOpen ? (
         <div className={panelClassName}>
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 text-lg font-light text-white">
-              {firstName.charAt(0)}
+            <div className="relative group h-12 w-12 flex-shrink-0">
+              {currentUser?.profile_pic ? (
+                <img src={currentUser.profile_pic} alt="Profile" className="h-12 w-12 rounded-2xl object-cover" />
+              ) : (
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 text-lg font-light text-white">
+                  {firstName.charAt(0)}
+                </div>
+              )}
+              <label className="absolute inset-0 flex items-center justify-center bg-black/45 text-white rounded-2xl opacity-0 group-hover:opacity-100 transition cursor-pointer text-[10px] font-light">
+                {isUploading ? '...' : 'Edit'}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  disabled={isUploading}
+                  className="hidden"
+                />
+              </label>
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className={`font-light text-[var(--text)] ${mobile ? 'truncate text-sm' : 'text-sm'}`}>{firstName}</p>
               <p className="truncate text-xs text-slate-500">{currentUser?.email || text.noEmailFound}</p>
             </div>
@@ -312,6 +387,41 @@ function ProfileMenu({ currentUser, firstName, activeOrganization, activeCurrenc
             <LanguageRow language={language} setLanguage={setLanguage} text={text} />
           </div>
 
+          <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/80 dark:border-white/6 dark:bg-white/4 p-3">
+            <div className="mb-3 flex items-center gap-2">
+              {theme === 'light' ? (
+                <SunIcon className="h-4 w-4 text-amber-500" />
+              ) : (
+                <MoonIcon className="h-4 w-4 text-indigo-400" />
+              )}
+              <p className="text-sm font-light text-[var(--text)]">Theme</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => handleThemeChange('light')}
+                className={`flex-1 rounded-xl px-2 py-2 text-center text-xs font-light border transition ${
+                  theme === 'light'
+                    ? 'bg-primary-50 border-primary-200 text-primary-700 font-normal shadow-sm'
+                    : 'bg-[var(--bg-2)] border-slate-200 dark:border-white/8 text-[var(--text)] hover:opacity-85'
+                }`}
+              >
+                Light
+              </button>
+              <button
+                type="button"
+                onClick={() => handleThemeChange('dark')}
+                className={`flex-1 rounded-xl px-2 py-2 text-center text-xs font-light border transition ${
+                  theme === 'dark'
+                    ? 'bg-primary-50 border-primary-200 text-primary-700 font-normal shadow-sm'
+                    : 'bg-[var(--bg-2)] border-slate-200 dark:border-white/8 text-[var(--text)] hover:opacity-85'
+                }`}
+              >
+                Dark
+              </button>
+            </div>
+          </div>
+
           <button type="button" onClick={handleLogout} className="mt-4 w-full rounded-xl px-3 py-3 text-left text-sm font-light text-rose-600 transition hover:bg-rose-50">
             {text.logout}
           </button>
@@ -339,6 +449,7 @@ export default function DashboardHeader({
   handleCreateNewOrg,
   handleLogout,
   handleChangeCurrency,
+  onUpdateProfilePic,
 }) {
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-white/6/80 bg-[var(--card)]/90 backdrop-blur-xl">
@@ -347,7 +458,7 @@ export default function DashboardHeader({
           <Link to="/" className="flex items-center gap-3">
             <img src={logo} alt="PocketFlow Logo" className="h-11 w-11 object-contain" />
             <div>
-              <p className="text-[13px] uppercase tracking-[0.28em] text-slate-500">PocketFlow</p>
+              <div className="text-[18px] pt-1 text-blue-600 font-semibold">PocketFlow</div>
             </div>
           </Link>
 
@@ -377,6 +488,7 @@ export default function DashboardHeader({
               handleLogout={handleLogout}
               handleChangeCurrency={handleChangeCurrency}
               text={text}
+              onUpdateProfilePic={onUpdateProfilePic}
             />
           </div>
 
@@ -408,6 +520,7 @@ export default function DashboardHeader({
               handleChangeCurrency={handleChangeCurrency}
               text={text}
               mobile
+              onUpdateProfilePic={onUpdateProfilePic}
             />
           </div>
         </div>

@@ -1,5 +1,5 @@
 // Repo file header
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import Landing from './pages/landing/Landing'
 import Login from './pages/auth/Login'
@@ -20,6 +20,21 @@ import Footer from './components/Footer'
 function syncDocumentLanguage() {
   const language = localStorage.getItem('selectedLanguage') || 'en'
   document.documentElement.lang = language
+}
+
+// Function: getThemeForCurrentUser
+function getThemeForCurrentUser() {
+  const currentUserStr = localStorage.getItem('currentUser')
+  if (!currentUserStr) return 'light'
+  try {
+    const currentUser = JSON.parse(currentUserStr)
+    if (currentUser && currentUser.email) {
+      return localStorage.getItem(`selectedTheme_${currentUser.email}`) || 'light'
+    }
+  } catch {
+    return 'light'
+  }
+  return 'light'
 }
 
 // Function: SessionExpiryListener
@@ -53,12 +68,71 @@ function ScrollToTop() {
   return null
 }
 
+// Function: GlobalApiLoader
+function GlobalApiLoader() {
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    // Function: handleApiLoading
+    const handleApiLoading = (event) => {
+      setLoading(!!event?.detail?.loading)
+    }
+
+    window.addEventListener('api:loading', handleApiLoading)
+    return () => window.removeEventListener('api:loading', handleApiLoading)
+  }, [])
+
+  if (!loading) return null
+
+  return (
+    <>
+      <style>{`
+        @keyframes global-loading-bar {
+          0% { left: -35%; right: 100%; }
+          60% { left: 100%; right: -90%; }
+          100% { left: 100%; right: -90%; }
+        }
+        .global-loader-progress {
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          background: linear-gradient(90deg, transparent, #8B5CF6, #EC4899, #8B5CF6, transparent);
+          animation: global-loading-bar 1.6s infinite ease-in-out;
+        }
+      `}</style>
+      <div className="fixed inset-x-0 top-0 z-[9999] h-1 bg-violet-100/40">
+        <div className="global-loader-progress" style={{ left: 0, right: 0 }} />
+      </div>
+    </>
+  )
+}
+
 export default function App(){
   useEffect(() => {
     syncDocumentLanguage()
 
     // Function: handleStorageChange
-    const handleStorageChange = () => syncDocumentLanguage()
+    const handleStorageChange = () => {
+      syncDocumentLanguage()
+      const currentTheme = getThemeForCurrentUser()
+      const path = window.location.pathname
+      const isInnerRoute =
+        path === '/dashboard' ||
+        path === '/transactions' ||
+        path.startsWith('/module/') ||
+        path === '/manage-organization' ||
+        path.startsWith('/edit-transaction/') ||
+        path === '/add-transaction'
+      
+      const body = document.body
+      if (isInnerRoute && currentTheme === 'dark') {
+        body.classList.remove('theme-light-violet')
+        body.classList.add('dark')
+      } else {
+        body.classList.add('theme-light-violet')
+        body.classList.remove('dark')
+      }
+    }
     // Function: handleLanguageChanged
     const handleLanguageChanged = () => syncDocumentLanguage()
     window.addEventListener('storage', handleStorageChange)
@@ -71,6 +145,8 @@ export default function App(){
 
   return (
     <BrowserRouter>
+      <ThemeRouterSync />
+      <GlobalApiLoader />
       <SessionExpiryListener />
       <ScrollToTop />
       <div className="flex min-h-screen flex-col">
@@ -97,6 +173,36 @@ export default function App(){
       </div>
     </BrowserRouter>
   )
+}
+
+// Function: ThemeRouterSync
+function ThemeRouterSync() {
+  const location = useLocation()
+
+  useEffect(() => {
+    const path = location.pathname
+    const body = document.body
+    const savedTheme = getThemeForCurrentUser()
+
+    const isInnerRoute =
+      path === '/dashboard' ||
+      path === '/transactions' ||
+      path.startsWith('/module/') ||
+      path === '/manage-organization' ||
+      path.startsWith('/edit-transaction/') ||
+      path === '/add-transaction' ||
+      (path === '/create-organization' && location.state?.from === '/dashboard')
+
+    if (isInnerRoute && savedTheme === 'dark') {
+      body.classList.remove('theme-light-violet')
+      body.classList.add('dark')
+    } else {
+      body.classList.add('theme-light-violet')
+      body.classList.remove('dark')
+    }
+  }, [location])
+
+  return null
 }
 
 // Function: RenderFooterUnlessHome

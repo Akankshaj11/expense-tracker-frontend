@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ArrowLeftIcon, BuildingOffice2Icon, CalendarDaysIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline'
 import { authenticatedFetch } from '../../utils/api'
-import { loadOrganizationsFromBackend, readCachedOrganizations } from '../../utils/organizationSync'
+import { loadOrganizationsFromBackend, readCachedOrganizations, loadTransactionsFromBackend } from '../../utils/organizationSync'
 
 import translations, {
   getLocale,
@@ -130,6 +130,7 @@ export default function Transactions() {
   const navigate = useNavigate()
   const [organizations, setOrganizations] = useState(() => readCachedOrganizations())
   const [language, setLanguage] = useState(() => localStorage.getItem('selectedLanguage') || 'en')
+  const [transactionsRevision, setTransactionsRevision] = useState(0)
 
   useEffect(() => {
     let cancelled = false
@@ -169,9 +170,28 @@ export default function Transactions() {
   }, [])
 
   const activeOrgId = localStorage.getItem('activeOrgId') || organizations[0]?.id || ''
+
+  useEffect(() => {
+    if (activeOrgId) {
+      loadTransactionsFromBackend(activeOrgId)
+    }
+  }, [activeOrgId])
+
+  useEffect(() => {
+    // Function: handleTransactionsUpdated
+    const handleTransactionsUpdated = () => {
+      setTransactionsRevision((current) => current + 1)
+    }
+
+    window.addEventListener('transactions:updated', handleTransactionsUpdated)
+    return () => {
+      window.removeEventListener('transactions:updated', handleTransactionsUpdated)
+    }
+  }, [])
+
   const activeOrganization = organizations.find((item) => item.id === activeOrgId) || organizations[0] || null
   const selectedCurrency = activeOrganization?.currency || readJSON('selectedCurrency', { code: 'USD', symbol: '$' })
-  const transactions = useMemo(() => readJSON('transactions', []), [])
+  const transactions = useMemo(() => readJSON('transactions', []), [transactionsRevision])
   const text = translations[language] || translations.en
   const locale = getLocale(language)
 
@@ -283,14 +303,6 @@ export default function Transactions() {
                 className="inline-flex items-center justify-center gap-2 rounded-full accent-cta px-5 py-3 text-sm font-light transition hover:-translate-y-0.5"
               >
                 {text.addTransaction}
-              </button>
-              <button
-                type="button"
-                onClick={handleDownloadReport}
-                className="inline-flex items-center justify-center gap-2 rounded-full border border-white/6 bg-[var(--card)] px-5 py-3 text-sm font-light text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-              >
-                <ArrowDownTrayIcon className="h-4 w-4" />
-                {text.downloadReport}
               </button>
             </div>
           </div>

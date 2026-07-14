@@ -1,9 +1,9 @@
 // Repo file header
 import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowRightIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { apiRequest, setStoredAccessToken, setStoredRefreshToken } from '../../utils/api'
+import { apiRequest, setStoredAccessToken, setStoredRefreshToken, getStoredAccessToken } from '../../utils/api'
 import logo from '../../assets/logo.png'
 
 export default function Login() {
@@ -15,7 +15,50 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  const [showOtp, setShowOtp] = useState(false)
+  const [otp, setOtp] = useState('')
+
+  const [showForgotModal, setShowForgotModal] = useState(false)
+  const [forgotEmail, setForgotEmail] = useState('')
+  const [forgotLoading, setForgotLoading] = useState(false)
+  const [forgotSuccess, setForgotSuccess] = useState('')
+  const [forgotError, setForgotError] = useState('')
+
+  const handleSendResetLink = async (e) => {
+    e.preventDefault()
+    setForgotError('')
+    setForgotSuccess('')
+
+    if (!forgotEmail) {
+      setForgotError('Please enter your email address')
+      return
+    }
+
+    setForgotLoading(true)
+
+    try {
+      const payload = await apiRequest('/auth/forgot-password', {
+        method: 'POST',
+        body: JSON.stringify({ email: forgotEmail.trim() }),
+      })
+
+      setForgotSuccess(
+        payload?.message || 'If your email is registered, we have sent you a password reset link.'
+      )
+      setForgotEmail('')
+    } catch (err) {
+      setForgotError(err?.message || 'Failed to send password reset link. Please try again.')
+    } finally {
+      setForgotLoading(false)
+    }
+  }
+
   useEffect(() => {
+    if (getStoredAccessToken()) {
+      navigate('/dashboard', { replace: true })
+      return
+    }
+
     const storedNotice = sessionStorage.getItem('authNotice')
     const routeNotice = location.state?.message
     const notice = routeNotice || storedNotice
@@ -24,7 +67,7 @@ export default function Login() {
       setError(notice)
       sessionStorage.removeItem('authNotice')
     }
-  }, [location.state])
+  }, [location.state, navigate])
 
   // Function: deriveFirstName
   const deriveFirstName = (value) => {
@@ -39,31 +82,45 @@ export default function Login() {
     setLoading(true)
 
     try {
-      // Client-side validation
       if (!email || !password) {
         setError('Please fill in all fields')
         setLoading(false)
         return
       }
 
-      // Call backend login directly
-      const payload = await apiRequest('/auth/login', {
-        method: 'POST',
-        body: JSON.stringify({ email, password }),
-      })
+      if (!showOtp) {
+        // Step 1: Send OTP
+        await apiRequest('/auth/login/send-otp', {
+          method: 'POST',
+          body: JSON.stringify({ email, password }),
+        })
+        setShowOtp(true)
+      } else {
+        // Step 2: Complete Login
+        if (!otp) {
+          setError('Please enter the verification code')
+          setLoading(false)
+          return
+        }
 
-      const user = payload?.data?.user
-      const accessToken = payload?.data?.accessToken || ''
-      const refreshToken = payload?.data?.refreshToken || ''
+        const payload = await apiRequest('/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({ email, password, otp }),
+        })
 
-      setStoredAccessToken(accessToken)
-      setStoredRefreshToken(refreshToken)
+        const user = payload?.data?.user
+        const accessToken = payload?.data?.accessToken || ''
+        const refreshToken = payload?.data?.refreshToken || ''
 
-      if (user) {
-        localStorage.setItem('currentUser', JSON.stringify(user))
+        setStoredAccessToken(accessToken)
+        setStoredRefreshToken(refreshToken)
+
+        if (user) {
+          localStorage.setItem('currentUser', JSON.stringify(user))
+        }
+
+        navigate('/dashboard')
       }
-
-      navigate('/dashboard')
     } catch (err) {
       setError(err?.message || 'Login failed. Please try again.')
     } finally {
@@ -110,60 +167,100 @@ export default function Login() {
 
           {/* Form */}
           <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label htmlFor="email" className="block text-sm font-light text-slate-700 mb-2">
-                Email Address
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="w-full px-4 py-2.5 rounded-lg border border-white/6 bg-[var(--card)] text-[var(--text)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
-              />
-            </div>
+            {!showOtp ? (
+              <>
+                <div>
+                  <label htmlFor="email" className="block text-sm font-light text-slate-700 mb-2">
+                    Email Address
+                  </label>
+                  <input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    className="w-full px-4 py-2.5 rounded-lg border border-white/6 bg-[var(--card)] text-[var(--text)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+                  />
+                </div>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-light text-slate-700 mb-2">
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full px-4 pr-10 py-2.5 rounded-lg border border-white/6 bg-[var(--card)] text-[var(--text)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600"
-                >
-                  {showPassword ? (
-                    <EyeSlashIcon className="h-5 w-5" aria-hidden="true" />
-                  ) : (
-                    <EyeIcon className="h-5 w-5" aria-hidden="true" />
-                  )}
-                </button>
-              </div>
-            </div>
+                <div>
+                  <label htmlFor="password" className="block text-sm font-light text-slate-700 mb-2">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full px-4 pr-10 py-2.5 rounded-lg border border-white/6 bg-[var(--card)] text-[var(--text)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600"
+                    >
+                      {showPassword ? (
+                        <EyeSlashIcon className="h-5 w-5" aria-hidden="true" />
+                      ) : (
+                        <EyeIcon className="h-5 w-5" aria-hidden="true" />
+                      )}
+                    </button>
+                  </div>
+                </div>
 
-            <div className="flex items-center justify-between text-sm">
-              <label className="flex items-center gap-2 cursor-pointer"></label>
-              <a href="#" className="text-primary-600 hover:text-primary-700 font-light">
-                Forgot password?
-              </a>
-            </div>
+                <div className="flex items-center justify-between text-sm">
+                  <label className="flex items-center gap-2 cursor-pointer"></label>
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotModal(true)}
+                    className="text-primary-600 hover:text-primary-700 font-light focus:outline-none"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <label htmlFor="otp" className="block text-sm font-light text-slate-700 mb-2">
+                    Verification Code
+                  </label>
+                  <input
+                    id="otp"
+                    type="text"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value)}
+                    placeholder="000000"
+                    maxLength={6}
+                    className="w-full px-4 py-2.5 rounded-lg border border-white/6 bg-[var(--card)] text-[var(--text)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition text-center tracking-widest text-lg font-bold"
+                  />
+                  <p className="mt-2 text-xs text-[var(--muted)] text-center">
+                    Enter the 6-digit verification code sent to your email.
+                  </p>
+                </div>
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowOtp(false)
+                      setError('')
+                    }}
+                    className="text-primary-600 hover:text-primary-700 font-light text-sm focus:outline-none"
+                  >
+                    &larr; Back to login details
+                  </button>
+                </div>
+              </>
+            )}
 
             <button
               type="submit"
               disabled={loading}
               className="w-full mt-4 px-4 py-2.5 rounded-lg accent-cta font-light shadow-glass hover:shadow-primary-500/40 transition hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              {loading ? 'Signing In...' : 'Sign In'}
+              {loading ? 'Processing...' : showOtp ? 'Verify & Sign In' : 'Sign In'}
               {!loading && <ArrowRightIcon className="h-4 w-4" />}
             </button>
           </form>
@@ -187,6 +284,77 @@ export default function Login() {
           </p>
         </div>
       </motion.div>
+
+      {/* Forgot Password Modal */}
+      <AnimatePresence>
+        {showForgotModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative w-full max-w-md bg-[var(--card)] rounded-2xl shadow-glass p-6 sm:p-8 border border-white/10"
+            >
+              <div className="text-center mb-6">
+                <h2 className="text-2xl font-light text-[var(--text)]">Forgot Password</h2>
+                <p className="mt-2 text-sm text-[var(--muted)]">
+                  Enter your email address and we'll send you a link to reset your password.
+                </p>
+              </div>
+
+              {forgotError && (
+                <div className="mb-4 p-3 rounded-lg bg-red-900/10 border border-red-200 text-rose-400 text-sm">
+                  {forgotError}
+                </div>
+              )}
+
+              {forgotSuccess && (
+                <div className="mb-4 p-3 rounded-lg bg-emerald-900/10 border border-emerald-200 text-emerald-400 text-sm">
+                  {forgotSuccess}
+                </div>
+              )}
+
+              <form onSubmit={handleSendResetLink} className="space-y-4">
+                <div>
+                  <label htmlFor="forgot-email" className="block text-sm font-light text-slate-700 mb-2">
+                    Email Address
+                  </label>
+                  <input
+                    id="forgot-email"
+                    type="email"
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    className="w-full px-4 py-2.5 rounded-lg border border-white/6 bg-[var(--card)] text-[var(--text)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+                    required
+                  />
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowForgotModal(false)
+                      setForgotError('')
+                      setForgotSuccess('')
+                    }}
+                    className="flex-1 px-4 py-2.5 rounded-lg border border-slate-300 text-[var(--text)] font-light hover:bg-slate-50 transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={forgotLoading}
+                    className="flex-1 px-4 py-2.5 rounded-lg accent-cta font-light shadow-glass hover:shadow-primary-500/40 transition disabled:opacity-70 disabled:cursor-not-allowed"
+                  >
+                    {forgotLoading ? 'Sending...' : 'Send Link'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

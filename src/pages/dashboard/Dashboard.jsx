@@ -1,6 +1,7 @@
 // Repo file header
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { AnimatePresence, motion } from 'framer-motion'
 import {
   ArrowTrendingDownIcon,
   ArrowTrendingUpIcon,
@@ -28,7 +29,7 @@ import {
   TruckIcon,
 } from '@heroicons/react/24/outline'
 import { apiRequest, authenticatedFetch, clearStoredAuth } from '../../utils/api'
-import { loadOrganizationsFromBackend, readCachedOrganizations } from '../../utils/organizationSync'
+import { loadOrganizationsFromBackend, readCachedOrganizations, loadTransactionsFromBackend } from '../../utils/organizationSync'
 import { translateText, getLocale, translateModuleLabel, translateSubmoduleLabel } from '../../i18n/translations'
 import useLanguage from '../../hooks/useLanguage'
 import DashboardHeader from '../../components/dashboard/DashboardHeader'
@@ -329,10 +330,14 @@ export default function Dashboard() {
   const [orgMenuOpen, setOrgMenuOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const { language, setLanguage, text } = useLanguage()
-  const currentUser = readJSON('currentUser', null)
+  const [currentUser, setCurrentUser] = useState(() => readJSON('currentUser', null))
   const selectedCurrency = readJSON('selectedCurrency', { code: 'USD', symbol: '$' })
   const locale = getLocale(language)
   const [transactionsRevision, setTransactionsRevision] = useState(0)
+
+  const [showDownloadModal, setShowDownloadModal] = useState(false)
+  const [selectedReportModule, setSelectedReportModule] = useState('all')
+  const [downloadingReport, setDownloadingReport] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -358,6 +363,7 @@ export default function Dashboard() {
   useEffect(() => {
     if (activeOrgId) {
       localStorage.setItem('activeOrgId', activeOrgId)
+      loadTransactionsFromBackend(activeOrgId)
     }
   }, [activeOrgId])
 
@@ -554,6 +560,69 @@ export default function Dashboard() {
     }
   }
 
+  const handleDownloadReportSubmit = async (e) => {
+    e.preventDefault()
+    setDownloadingReport(true)
+    try {
+      let response
+      let filename = ''
+      
+      if (selectedReportModule === 'all') {
+        response = await authenticatedFetch(`/dashboard/report?organizationId=${encodeURIComponent(activeOrganization.id)}`, {
+          method: 'GET',
+        })
+        filename = `workspace-report-${activeOrganization?.organizationName || 'report'}.pdf`
+      } else {
+        response = await authenticatedFetch(
+          `/transactions/report?organizationId=${encodeURIComponent(activeOrganization.id)}&module=${encodeURIComponent(selectedReportModule)}`,
+          { method: 'GET' }
+        )
+        filename = `${selectedReportModule.toLowerCase()}-report-${activeOrganization?.organizationName || 'report'}.pdf`
+      }
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          return
+        }
+        const payload = await response.json().catch(() => null)
+        throw new Error(payload?.message || 'Failed to download report')
+      }
+
+      const payload = await response.json()
+      const reportData = payload?.data || {}
+      const base64Pdf = reportData.base64 || ''
+
+      if (!base64Pdf) {
+        throw new Error('Failed to download report')
+      }
+
+      const binaryString = atob(base64Pdf)
+      const bytes = new Uint8Array(binaryString.length)
+      for (let index = 0; index < binaryString.length; index += 1) {
+        bytes[index] = binaryString.charCodeAt(index)
+      }
+
+      const pdfBlob = new Blob([bytes], { type: reportData.contentType || 'application/pdf' })
+      const downloadUrl = URL.createObjectURL(pdfBlob)
+      const anchor = document.createElement('a')
+      anchor.href = downloadUrl
+      anchor.download = reportData.filename || filename
+      document.body.appendChild(anchor)
+      anchor.click()
+      anchor.remove()
+      URL.revokeObjectURL(downloadUrl)
+      
+      setShowDownloadModal(false)
+    } catch (err) {
+      console.error(err)
+      if (err?.message !== 'Your session has expired. Please login again.') {
+        alert(text.downloadReportFailed)
+      }
+    } finally {
+      setDownloadingReport(false)
+    }
+  }
+
   const summaryCards = [
     { kind: 'balance', label: text.balance, value: totalBalance, accent: 'text-[var(--text)]' },
     { kind: 'revenue', label: text.in, value: inAmount, accent: 'text-emerald-600' },
@@ -580,6 +649,11 @@ export default function Dashboard() {
         handleCreateNewOrg={handleCreateNewOrg}
         handleLogout={handleLogout}
         handleChangeCurrency={handleChangeCurrency}
+        onUpdateProfilePic={(newPic) => {
+          const updatedUser = { ...currentUser, profile_pic: newPic }
+          localStorage.setItem('currentUser', JSON.stringify(updatedUser))
+          setCurrentUser(updatedUser)
+        }}
       />
 
       <main className="mx-auto max-w-7xl px-10 pb-12 pt-28 sm:px-12 lg:px-16">
@@ -620,17 +694,80 @@ export default function Dashboard() {
                 activeOrganization={activeOrganization}
                 activeCurrency={activeCurrency}
                 moduleCards={moduleCards}
-                onDownloadReport={handleDownloadWorkspacePDF}
+                onDownloadReport={() => setShowDownloadModal(true)}
               />
             </section>
           </>
         ) : (
           <DashboardEmptyState
             text={text}
-            onCreateOrganization={() => navigate('/create-organization', { state: { from: '/dashboard' } })}
+            firstName={firstName}
+            onAddOrganization={() => setOrgMenuOpen(true)}
           />
         )}
       </main>
+
+      {/* Download Report Modal */}
+      <AnimatePresence>
+        {showDownloadModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative w-full max-w-md bg-[var(--card)] rounded-3xl shadow-glass p-6 sm:p-8 border border-white/10"
+            >
+              <div className="text-center mb-6">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-rose-50 text-rose-600 mb-4">
+                  <ArrowDownTrayIcon className="h-6 w-6" />
+                </div>
+                <h2 className="text-2xl font-light text-[var(--text)]">Download Report</h2>
+                <p className="mt-2 text-sm text-[var(--muted)]">
+                  Select which report you want to download for {activeOrganization?.organizationName}.
+                </p>
+              </div>
+
+              <form onSubmit={handleDownloadReportSubmit} className="space-y-4">
+                <div>
+                  <label htmlFor="report-module" className="block text-sm font-light text-slate-700 mb-2">
+                    Report Type
+                  </label>
+                  <select
+                    id="report-module"
+                    value={selectedReportModule}
+                    onChange={(e) => setSelectedReportModule(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl border border-white/6 bg-[var(--card)] text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+                  >
+                    <option value="all">All Modules (Workspace Summary)</option>
+                    {activeOrganization?.modules?.map((module) => (
+                      <option key={module.name} value={module.name}>
+                        {module.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowDownloadModal(false)}
+                    className="flex-1 px-4 py-2.5 rounded-xl border border-slate-300 text-[var(--text)] font-light hover:bg-slate-50 transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={downloadingReport}
+                    className="flex-1 px-4 py-2.5 rounded-xl bg-rose-600 font-light text-white shadow-sm hover:bg-rose-700 transition disabled:opacity-70 disabled:cursor-not-allowed"
+                  >
+                    {downloadingReport ? 'Downloading...' : 'Download'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

@@ -4,7 +4,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ArrowLeftIcon, PaperClipIcon, TagIcon, XMarkIcon, ArrowDownTrayIcon, PlusIcon } from '@heroicons/react/24/outline'
 import { authenticatedFetch } from '../../utils/api'
-import { loadOrganizationsFromBackend, readCachedOrganizations } from '../../utils/organizationSync'
+import { loadOrganizationsFromBackend, readCachedOrganizations, loadTransactionsFromBackend } from '../../utils/organizationSync'
 import translations, { translateText, getLocale, translateModuleLabel, translateSubmoduleLabel } from '../../i18n/translations'
 
 // Read JSON from localStorage
@@ -129,7 +129,7 @@ function base64ToBlob(base64, contentType = 'application/pdf') {
   return new Blob(chunks, { type: contentType })
 }
 
-// Module transactions page
+// All transactions listing
 export default function ModuleTransactions() {
   const navigate = useNavigate()
   const { moduleName: encodedModuleName } = useParams()
@@ -194,6 +194,13 @@ export default function ModuleTransactions() {
   }, [])
   
   const activeOrgId = localStorage.getItem('activeOrgId') || organizations[0]?.id || ''
+
+  useEffect(() => {
+    if (activeOrgId) {
+      loadTransactionsFromBackend(activeOrgId)
+    }
+  }, [activeOrgId])
+
   const activeOrganization = organizations.find((item) => item.id === activeOrgId) || organizations[0] || null
   const selectedCurrency = activeOrganization?.currency || readJSON('selectedCurrency', { code: 'USD', symbol: '$' })
   const text = translations[language] || translations.en
@@ -330,14 +337,6 @@ export default function ModuleTransactions() {
                   onChange={(event) => setSelectedDate(event.target.value)}
                   className="w-full rounded-xl border border-white/6 bg-[var(--card)] px-4 py-3 text-sm font-light text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 sm:w-[220px]"
                 />
-                <button
-                  type="button"
-                  onClick={handleDownloadPDF}
-                  className="inline-flex items-center gap-2 rounded-full border border-white/6 bg-[var(--card)] px-4 py-2.5 text-sm font-light text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-                >
-                  <ArrowDownTrayIcon className="h-4 w-4" />
-                  {text.downloadPdf}
-                </button>
               </div>
             </div>
           </div>

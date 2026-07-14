@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowRightIcon, CheckCircleIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
 import { Link, useNavigate } from 'react-router-dom'
-import { apiRequest, setStoredAccessToken, setStoredRefreshToken } from '../../utils/api'
+import { apiRequest, setStoredAccessToken, setStoredRefreshToken, getStoredAccessToken } from '../../utils/api'
 import logo from '../../assets/logo.png'
 
 export default function Register() {
@@ -16,6 +16,9 @@ export default function Register() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+
+  const [showOtp, setShowOtp] = useState(false)
+  const [otp, setOtp] = useState('')
 
   // Function: isPasswordValid
   const isPasswordValid = (val) => {
@@ -36,12 +39,17 @@ export default function Register() {
   }
 
   useEffect(() => {
+    if (getStoredAccessToken()) {
+      navigate('/dashboard', { replace: true })
+      return
+    }
+
     const seededEmail = sessionStorage.getItem('signupEmail')
     if (seededEmail) {
       setEmail(seededEmail)
       sessionStorage.removeItem('signupEmail')
     }
-  }, [])
+  }, [navigate])
 
   // Function: handleRegister
   const handleRegister = async (e) => {
@@ -50,7 +58,6 @@ export default function Register() {
     setLoading(true)
 
     try {
-      // Client-side validation
       if (!email || !password || !confirmPassword) {
         setError('Please fill in all fields')
         setLoading(false)
@@ -89,28 +96,43 @@ export default function Register() {
         return
       }
 
-      // Call backend register directly
-      const payload = await apiRequest('/auth/register', {
-        method: 'POST',
-        body: JSON.stringify({ email, password }),
-      })
+      if (!showOtp) {
+        // Step 1: Send OTP
+        await apiRequest('/auth/register/send-otp', {
+          method: 'POST',
+          body: JSON.stringify({ email }),
+        })
+        setShowOtp(true)
+      } else {
+        // Step 2: Complete registration
+        if (!otp) {
+          setError('Please enter the verification code')
+          setLoading(false)
+          return
+        }
 
-      const user = payload?.data?.user
-      const accessToken = payload?.data?.accessToken || ''
-      const refreshToken = payload?.data?.refreshToken || ''
+        const payload = await apiRequest('/auth/register', {
+          method: 'POST',
+          body: JSON.stringify({ email, password, otp }),
+        })
 
-      setStoredAccessToken(accessToken)
-      setStoredRefreshToken(refreshToken)
+        const user = payload?.data?.user
+        const accessToken = payload?.data?.accessToken || ''
+        const refreshToken = payload?.data?.refreshToken || ''
 
-      if (user) {
-        localStorage.setItem('currentUser', JSON.stringify(user))
-        sessionStorage.setItem('onboardingUser', JSON.stringify(user))
+        setStoredAccessToken(accessToken)
+        setStoredRefreshToken(refreshToken)
+
+        if (user) {
+          localStorage.setItem('currentUser', JSON.stringify(user))
+          sessionStorage.setItem('onboardingUser', JSON.stringify(user))
+        }
+
+        setSuccess(true)
+        setTimeout(() => {
+          navigate('/select-currency')
+        }, 1200)
       }
-
-      setSuccess(true)
-      setTimeout(() => {
-        navigate('/select-currency')
-      }, 1200)
     } catch (err) {
       setError(err?.message || 'Registration failed. Please try again.')
     } finally {
@@ -179,85 +201,121 @@ export default function Register() {
 
           {/* Form */}
           <form onSubmit={handleRegister} className="space-y-4">
-            <div>
-              <label htmlFor="email" className="block text-sm font-light text-[var(--text)] mb-2">
-                Email Address
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="w-full px-4 py-2.5 rounded-lg border border-white/6 bg-[var(--card)] text-[var(--text)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition input-glass"
-              />
-            </div>
+            {!showOtp ? (
+              <>
+                <div>
+                  <label htmlFor="email" className="block text-sm font-light text-[var(--text)] mb-2">
+                    Email Address
+                  </label>
+                  <input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    className="w-full px-4 py-2.5 rounded-lg border border-white/6 bg-[var(--card)] text-[var(--text)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition input-glass"
+                  />
+                </div>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-light text-[var(--text)] mb-2">
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full px-4 pr-10 py-2.5 rounded-lg border border-white/6 bg-[var(--card)] text-[var(--text)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition input-glass"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600"
-                >
-                  {showPassword ? (
-                    <EyeSlashIcon className="h-5 w-5" aria-hidden="true" />
-                  ) : (
-                    <EyeIcon className="h-5 w-5" aria-hidden="true" />
+                <div>
+                  <label htmlFor="password" className="block text-sm font-light text-[var(--text)] mb-2">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full px-4 pr-10 py-2.5 rounded-lg border border-white/6 bg-[var(--card)] text-[var(--text)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition input-glass"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600"
+                    >
+                      {showPassword ? (
+                        <EyeSlashIcon className="h-5 w-5" aria-hidden="true" />
+                      ) : (
+                        <EyeIcon className="h-5 w-5" aria-hidden="true" />
+                      )}
+                    </button>
+                  </div>
+                  {password && !isPasswordValid(password) && (
+                    <p className="mt-1 text-xs text-rose-500">
+                      Password must be at least 6 characters, including 1 uppercase, 1 lowercase, 1 number, and 1 special character.
+                    </p>
                   )}
-                </button>
-              </div>
-              {password && !isPasswordValid(password) && (
-                <p className="mt-1 text-xs text-rose-500">
-                  Password must be at least 6 characters, including 1 uppercase, 1 lowercase, 1 number, and 1 special character.
-                </p>
-              )}
-            </div>
+                </div>
 
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-light text-[var(--text)] mb-2">
-                Confirm Password
-              </label>
-              <div className="relative">
-                <input
-                  id="confirmPassword"
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full px-4 pr-10 py-2.5 rounded-lg border border-white/6 bg-[var(--card)] text-[var(--text)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition input-glass"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600"
-                >
-                  {showConfirmPassword ? (
-                    <EyeSlashIcon className="h-5 w-5" aria-hidden="true" />
-                  ) : (
-                    <EyeIcon className="h-5 w-5" aria-hidden="true" />
-                  )}
-                </button>
-              </div>
-            </div>
+                <div>
+                  <label htmlFor="confirmPassword" className="block text-sm font-light text-[var(--text)] mb-2">
+                    Confirm Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="confirmPassword"
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full px-4 pr-10 py-2.5 rounded-lg border border-white/6 bg-[var(--card)] text-[var(--text)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition input-glass"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600"
+                    >
+                      {showConfirmPassword ? (
+                        <EyeSlashIcon className="h-5 w-5" aria-hidden="true" />
+                      ) : (
+                        <EyeIcon className="h-5 w-5" aria-hidden="true" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <label htmlFor="otp" className="block text-sm font-light text-[var(--text)] mb-2">
+                    Verification Code
+                  </label>
+                  <input
+                    id="otp"
+                    type="text"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value)}
+                    placeholder="000000"
+                    maxLength={6}
+                    className="w-full px-4 py-2.5 rounded-lg border border-white/6 bg-[var(--card)] text-[var(--text)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition text-center tracking-widest text-lg font-bold"
+                  />
+                  <p className="mt-2 text-xs text-[var(--muted)] text-center">
+                    Enter the 6-digit verification code sent to your email.
+                  </p>
+                </div>
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowOtp(false)
+                      setError('')
+                    }}
+                    className="text-primary-600 hover:text-primary-700 font-light text-sm focus:outline-none"
+                  >
+                    &larr; Back to account details
+                  </button>
+                </div>
+              </>
+            )}
 
             <button
               type="submit"
               disabled={loading}
               className="w-full mt-4 px-4 py-2.5 rounded-lg accent-cta font-light shadow-glass hover:shadow-primary-500/40 transition hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              {loading ? 'Creating Account...' : 'Create Account'}
+              {loading ? 'Processing...' : showOtp ? 'Verify & Create Account' : 'Create Account'}
               {!loading && <ArrowRightIcon className="h-4 w-4" />}
             </button>
           </form>

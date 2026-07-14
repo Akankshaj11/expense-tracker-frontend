@@ -90,6 +90,7 @@ function notifySessionExpired() {
   }
 
   sessionExpiredNotified = true
+  clearStoredAuth()
   window.dispatchEvent(
     new CustomEvent('auth:session-expired', {
       detail: { message: 'Your session has expired. Please login again.' },
@@ -154,6 +155,26 @@ export function setStoredRefreshToken(token) {
   }
 }
 
+let activeRequestsCount = 0
+
+function incrementLoading() {
+  if (typeof window !== 'undefined') {
+    activeRequestsCount += 1
+    if (activeRequestsCount === 1) {
+      window.dispatchEvent(new CustomEvent('api:loading', { detail: { loading: true } }))
+    }
+  }
+}
+
+function decrementLoading() {
+  if (typeof window !== 'undefined') {
+    activeRequestsCount = Math.max(0, activeRequestsCount - 1)
+    if (activeRequestsCount === 0) {
+      window.dispatchEvent(new CustomEvent('api:loading', { detail: { loading: false } }))
+    }
+  }
+}
+
 // Perform authenticated fetch (bearer headers)
 export async function authenticatedFetch(path, options = {}) {
   const cleanPath = path.startsWith('/') ? path : `/${path}`
@@ -167,55 +188,58 @@ export async function authenticatedFetch(path, options = {}) {
     requestHeaders.Authorization = `Bearer ${accessToken}`
   }
 
-  const response = await fetch(`${getApiBaseUrl()}${cleanPath}`, {
-    ...options,
-    headers: requestHeaders,
-  })
+  incrementLoading()
+  try {
+    const response = await fetch(`${getApiBaseUrl()}${cleanPath}`, {
+      ...options,
+      headers: requestHeaders,
+    })
 
-  if (response.status === 401) {
-
-    // Do NOT refresh for login/register routes
-    if (isPublicAuthPath(cleanPath)) {
-      return response
-    }
-
-    const refreshToken = getStoredRefreshToken()
-    if (!refreshToken) {
-      notifySessionExpired()
-      sessionExpiredNotified = false
-      return response
-    }
-
-    try {
-      // Attempt silent refresh
-      const refreshResponse = await fetch(`${getApiBaseUrl()}/auth/refresh`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${refreshToken}`,
-        },
-      })
-
-      const refreshPayload = await refreshResponse.json().catch(() => null)
-      const newAccessToken = refreshPayload?.data?.accessToken || ''
-
-      // Refresh successful → retry original request
-      if (refreshResponse.ok && newAccessToken) {
-        setStoredAccessToken(newAccessToken)
-        return authenticatedFetch(cleanPath, options)
+    if (response.status === 401) {
+      // Do NOT refresh for login/register routes
+      if (isPublicAuthPath(cleanPath)) {
+        return response
       }
 
-      // Refresh failed
-      notifySessionExpired()
+      const refreshToken = getStoredRefreshToken()
+      if (!refreshToken) {
+        notifySessionExpired()
+        sessionExpiredNotified = false
+        return response
+      }
 
-    } catch {
-      notifySessionExpired()
+      try {
+        // Attempt silent refresh
+        const refreshResponse = await fetch(`${getApiBaseUrl()}/auth/refresh`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${refreshToken}`,
+          },
+        })
+
+        const refreshPayload = await refreshResponse.json().catch(() => null)
+        const newAccessToken = refreshPayload?.data?.accessToken || ''
+
+        // Refresh successful → retry original request
+        if (refreshResponse.ok && newAccessToken) {
+          setStoredAccessToken(newAccessToken)
+          return await authenticatedFetch(cleanPath, options)
+        }
+
+        // Refresh failed
+        notifySessionExpired()
+      } catch {
+        notifySessionExpired()
+      }
+
+      sessionExpiredNotified = false
     }
 
-    sessionExpiredNotified = false
+    return response
+  } finally {
+    decrementLoading()
   }
-
-  return response
 }
 
 // Wrapper for API requests

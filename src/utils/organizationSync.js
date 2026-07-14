@@ -56,3 +56,31 @@ export async function loadOrganizationsFromBackend() {
     return readCachedOrganizations()
   }
 }
+
+// Load transactions from backend API for a specific organization
+export async function loadTransactionsFromBackend(organizationId) {
+  if (!organizationId) {
+    return []
+  }
+
+  try {
+    const response = await apiRequest(`/transactions?organizationId=${encodeURIComponent(organizationId)}`)
+    const transactions = Array.isArray(response?.data?.items) ? response.data.items : []
+
+    const localTxns = readJSON('transactions', [])
+    const otherOrgTxns = localTxns.filter((txn) => txn.organizationId !== organizationId)
+    const updatedTxns = [...transactions, ...otherOrgTxns]
+
+    localStorage.setItem('transactions', JSON.stringify(updatedTxns))
+
+    try {
+      window.dispatchEvent(new Event('transactions:updated'))
+    } catch {
+      // ignore
+    }
+
+    return transactions
+  } catch {
+    return readJSON('transactions', []).filter((txn) => txn.organizationId === organizationId)
+  }
+}
