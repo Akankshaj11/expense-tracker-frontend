@@ -1,7 +1,7 @@
 // Repo file header
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowRightIcon, CheckCircleIcon } from '@heroicons/react/24/outline'
+import { ArrowRightIcon, CheckCircleIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
 import { Link, useNavigate } from 'react-router-dom'
 import { apiRequest, setStoredAccessToken, setStoredRefreshToken } from '../../utils/api'
 import logo from '../../assets/logo.png'
@@ -11,9 +11,23 @@ export default function Register() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+
+  // Function: isPasswordValid
+  const isPasswordValid = (val) => {
+    if (!val) return true
+    return (
+      val.length >= 6 &&
+      /[A-Z]/.test(val) &&
+      /[a-z]/.test(val) &&
+      /\d/.test(val) &&
+      /[!@#$%^&*(),.?":{}|<>]/.test(val)
+    )
+  }
 
   // Function: deriveFirstName
   const deriveFirstName = (value) => {
@@ -44,7 +58,27 @@ export default function Register() {
       }
 
       if (password.length < 6) {
-        setError('Password must be at least 6 characters')
+        setError('Password must be at least 6 characters long')
+        setLoading(false)
+        return
+      }
+      if (!/[A-Z]/.test(password)) {
+        setError('Password must contain at least one uppercase letter')
+        setLoading(false)
+        return
+      }
+      if (!/[a-z]/.test(password)) {
+        setError('Password must contain at least one lowercase letter')
+        setLoading(false)
+        return
+      }
+      if (!/\d/.test(password)) {
+        setError('Password must contain at least one number')
+        setLoading(false)
+        return
+      }
+      if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+        setError('Password must contain at least one special character')
         setLoading(false)
         return
       }
@@ -163,29 +197,59 @@ export default function Register() {
               <label htmlFor="password" className="block text-sm font-light text-[var(--text)] mb-2">
                 Password
               </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full px-4 py-2.5 rounded-lg border border-white/6 bg-[var(--card)] text-[var(--text)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition input-glass"
-              />
-              <p className="mt-1 text-xs text-slate-500">At least 6 characters</p>
+              <div className="relative">
+                <input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full px-4 pr-10 py-2.5 rounded-lg border border-white/6 bg-[var(--card)] text-[var(--text)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition input-glass"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600"
+                >
+                  {showPassword ? (
+                    <EyeSlashIcon className="h-5 w-5" aria-hidden="true" />
+                  ) : (
+                    <EyeIcon className="h-5 w-5" aria-hidden="true" />
+                  )}
+                </button>
+              </div>
+              {password && !isPasswordValid(password) && (
+                <p className="mt-1 text-xs text-rose-500">
+                  Password must be at least 6 characters, including 1 uppercase, 1 lowercase, 1 number, and 1 special character.
+                </p>
+              )}
             </div>
 
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-light text-[var(--text)] mb-2">
                 Confirm Password
               </label>
-              <input
-                id="confirmPassword"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full px-4 py-2.5 rounded-lg border border-white/6 bg-[var(--card)] text-[var(--text)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition input-glass"
-              />
+              <div className="relative">
+                <input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full px-4 pr-10 py-2.5 rounded-lg border border-white/6 bg-[var(--card)] text-[var(--text)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition input-glass"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600"
+                >
+                  {showConfirmPassword ? (
+                    <EyeSlashIcon className="h-5 w-5" aria-hidden="true" />
+                  ) : (
+                    <EyeIcon className="h-5 w-5" aria-hidden="true" />
+                  )}
+                </button>
+              </div>
             </div>
 
             <button
