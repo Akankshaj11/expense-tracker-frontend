@@ -9,6 +9,36 @@
     <meta name="description" content="PocketFlow - A premium finance workspace for teams." />
   </head>
   <body>
+    <script>
+      (function() {
+        try {
+          const currentUserStr = localStorage.getItem('currentUser');
+          let savedTheme = 'light';
+          if (currentUserStr) {
+            const currentUser = JSON.parse(currentUserStr);
+            if (currentUser && currentUser.email) {
+              savedTheme = localStorage.getItem('selectedTheme_' + currentUser.email) || 'light';
+            }
+          }
+          const path = window.location.pathname;
+          const isInnerRoute =
+            path === '/dashboard' ||
+            path === '/transactions' ||
+            path.indexOf('/module/') === 0 ||
+            path === '/manage-organization' ||
+            path.indexOf('/edit-transaction/') === 0 ||
+            path === '/add-transaction';
+
+          if (isInnerRoute && savedTheme === 'dark') {
+            document.body.classList.remove('theme-light-violet');
+            document.body.classList.add('dark');
+          } else {
+            document.body.classList.add('theme-light-violet');
+            document.body.classList.remove('dark');
+          }
+        } catch (e) {}
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
