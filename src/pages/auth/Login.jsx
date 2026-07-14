@@ -1,7 +1,7 @@
 // Repo file header
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ArrowRightIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
+import { ArrowLeftIcon, ArrowRightIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { apiRequest, setStoredAccessToken, setStoredRefreshToken, getStoredAccessToken } from '../../utils/api'
 import logo from '../../assets/logo.png'
@@ -129,7 +129,7 @@ export default function Login() {
   }
 
   return (
-    <div className="theme-light-violet relative h-screen overflow-hidden flex items-center justify-center px-4 py-6 sm:px-6 lg:px-8">
+    <div className="theme-light-violet relative min-h-screen overflow-y-auto flex items-center justify-center px-4 py-4 sm:px-6 lg:px-8">
       {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary-200/30 rounded-full blur-3xl" />
@@ -137,19 +137,31 @@ export default function Login() {
       </div>
 
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="relative w-full max-w-md"
+        transition={{ duration: 0.4 }}
+        className="relative w-full max-w-md my-auto"
       >
-        <div className="inner-card-accent bg-[var(--card)] rounded-2xl shadow-glass p-6 sm:p-8">
+        <div className="inner-card-accent bg-[var(--card)] rounded-2xl shadow-glass p-4 sm:p-5">
+          {/* Back button */}
+          <div className="mb-2 flex justify-start">
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 dark:border-white/8 bg-[var(--bg-2)] px-2.5 py-1 text-xs font-light text-[var(--text)] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+            >
+              <ArrowLeftIcon className="h-3 w-3" />
+              Back
+            </button>
+          </div>
+
           {/* Header */}
-          <div className="text-center mb-6">
-            <img src={logo} alt="PocketFlow Logo" className="mx-auto h-20 w-auto object-contain mb-4" />
-            <h1 className="text-3xl font-light text-[var(--text)]">
+          <div className="text-center mb-2">
+            <img src={logo} alt="PocketFlow Logo" className="mx-auto h-12 w-auto object-contain mb-1" />
+            <h1 className="text-xl font-light text-[var(--text)]">
               Welcome Back
             </h1>
-            <p className="mt-2 text-[var(--muted)]">
+            <p className="mt-0.5 text-xs text-[var(--muted)]">
               Sign in to your PocketFlow account
             </p>
           </div>
@@ -159,18 +171,18 @@ export default function Login() {
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-6 p-3 rounded-lg bg-red-900/10 border border-red-200 text-rose-400 text-sm"
+              className="mb-3 p-2 rounded-lg bg-red-900/10 border border-red-200 text-rose-400 text-xs"
             >
               {error}
             </motion.div>
           )}
 
           {/* Form */}
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleLogin} className="space-y-2.5">
             {!showOtp ? (
               <>
                 <div>
-                  <label htmlFor="email" className="block text-sm font-light text-slate-700 mb-2">
+                  <label htmlFor="email" className="block text-xs font-light text-[var(--text)] mb-1">
                     Email Address
                   </label>
                   <input
@@ -179,12 +191,12 @@ export default function Login() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@example.com"
-                    className="w-full px-4 py-2.5 rounded-lg border border-white/6 bg-[var(--card)] text-[var(--text)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+                    className="w-full px-3 py-2 rounded-lg border border-white/6 bg-[var(--card)] text-sm text-[var(--text)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="password" className="block text-sm font-light text-slate-700 mb-2">
+                  <label htmlFor="password" className="block text-xs font-light text-[var(--text)] mb-1">
                     Password
                   </label>
                   <div className="relative">
@@ -194,7 +206,7 @@ export default function Login() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full px-4 pr-10 py-2.5 rounded-lg border border-white/6 bg-[var(--card)] text-[var(--text)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+                      className="w-full px-3 pr-10 py-2 rounded-lg border border-white/6 bg-[var(--card)] text-sm text-[var(--text)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
                     />
                     <button
                       type="button"
@@ -210,7 +222,7 @@ export default function Login() {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center justify-between text-xs">
                   <label className="flex items-center gap-2 cursor-pointer"></label>
                   <button
                     type="button"
@@ -224,7 +236,7 @@ export default function Login() {
             ) : (
               <>
                 <div>
-                  <label htmlFor="otp" className="block text-sm font-light text-slate-700 mb-2">
+                  <label htmlFor="otp" className="block text-xs font-light text-[var(--text)] mb-1">
                     Verification Code
                   </label>
                   <input
@@ -234,9 +246,9 @@ export default function Login() {
                     onChange={(e) => setOtp(e.target.value)}
                     placeholder="000000"
                     maxLength={6}
-                    className="w-full px-4 py-2.5 rounded-lg border border-white/6 bg-[var(--card)] text-[var(--text)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition text-center tracking-widest text-lg font-bold"
+                    className="w-full px-3 py-2 rounded-lg border border-white/6 bg-[var(--card)] text-[var(--text)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition text-center tracking-widest text-base font-bold"
                   />
-                  <p className="mt-2 text-xs text-[var(--muted)] text-center">
+                  <p className="mt-1 text-[10px] text-[var(--muted)] text-center leading-tight">
                     Enter the 6-digit verification code sent to your email.
                   </p>
                 </div>
@@ -247,7 +259,7 @@ export default function Login() {
                       setShowOtp(false)
                       setError('')
                     }}
-                    className="text-primary-600 hover:text-primary-700 font-light text-sm focus:outline-none"
+                    className="text-primary-600 hover:text-primary-700 font-light text-xs focus:outline-none"
                   >
                     &larr; Back to login details
                   </button>
@@ -258,7 +270,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-4 px-4 py-2.5 rounded-lg accent-cta font-light shadow-glass hover:shadow-primary-500/40 transition hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full mt-2 px-4 py-2 rounded-lg accent-cta text-sm font-light shadow-glass hover:shadow-primary-500/40 transition hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? 'Processing...' : showOtp ? 'Verify & Sign In' : 'Sign In'}
               {!loading && <ArrowRightIcon className="h-4 w-4" />}

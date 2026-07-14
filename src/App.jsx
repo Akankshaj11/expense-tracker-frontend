@@ -208,7 +208,15 @@ function ThemeRouterSync() {
 // Function: RenderFooterUnlessHome
 function RenderFooterUnlessHome() {
   const location = useLocation()
-  // hide the short copyright footer on the home page where we show a full company footer
-  if (location?.pathname === '/') return null
+  const path = location?.pathname
+  // Hide footer on home page, login page, register page, and all setup flows
+  if (
+    path === '/' ||
+    path === '/login' ||
+    path === '/register' ||
+    path === '/select-currency' ||
+    path === '/select-language' ||
+    path === '/create-organization'
+  ) return null
   return <Footer />
 }

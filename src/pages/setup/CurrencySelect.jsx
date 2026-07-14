@@ -26,7 +26,7 @@ export default function CurrencySelect() {
   }
 
   return (
-    <div className="theme-light-violet relative min-h-screen overflow-hidden bg-gradient-to-br from-primary-50 via-white to-sky-100 px-4 py-12 sm:px-6 lg:px-8">
+    <div className="theme-light-violet relative h-screen overflow-hidden flex items-center justify-center bg-gradient-to-br from-primary-50 via-white to-sky-100 px-4 py-2 sm:px-6 lg:px-8">
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute -top-24 -left-24 h-72 w-72 rounded-full bg-primary-200/40 blur-3xl" />
         <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-sky-200/30 blur-3xl" />
@@ -35,57 +35,57 @@ export default function CurrencySelect() {
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative mx-auto flex min-h-[calc(100vh-6rem)] max-w-3xl items-center justify-center"
+        className="relative mx-auto flex w-full max-w-xl items-center justify-center my-auto"
       >
-        <div className="w-full rounded-[2rem] border border-white/80 bg-white p-6 shadow-2xl shadow-primary-500/10 sm:p-10">
-          <div className="mb-6 flex justify-start">
+        <div className="w-full rounded-[1.5rem] border border-white/80 bg-white p-4 shadow-2xl shadow-primary-500/10 sm:p-6">
+          <div className="mb-3 flex justify-start">
             <button
               type="button"
               onClick={() => navigate('/login')}
-              className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white px-4 py-2 text-sm font-light text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+              className="inline-flex items-center gap-1.5 rounded-full border border-white/70 bg-white px-3 py-1.5 text-xs font-light text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
             >
               ← Back
             </button>
           </div>
           <div className="mx-auto max-w-2xl text-center">
             <p className="text-xs font-light uppercase tracking-[0.3em] text-primary-600">Setup Step 1 of 3</p>
-            <h1 className="mt-3 text-3xl font-light tracking-tight text-slate-900 sm:text-4xl">Select Your Currency</h1>
-            <p className="mt-3 text-base leading-7 text-slate-600">Choose the default currency you want to use for your workspace.</p>
+            <h1 className="mt-1.5 text-2xl font-light tracking-tight text-slate-900 sm:text-3xl">Select Your Currency</h1>
+            <p className="mt-1 text-sm text-slate-600">Choose the default currency you want to use for your workspace.</p>
           </div>
 
-          <form onSubmit={handleContinue} className="mt-8 space-y-6">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <form onSubmit={handleContinue} className="mt-4 space-y-4">
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
               {CURRENCIES.map((item) => (
                 <button
-                  key={item.code}
-                  type="button"
-                  onClick={() => setCurrency(item.code)}
-                  className={`rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-lg ${
-                    currency === item.code
-                      ? 'border-primary-500 bg-primary-50 shadow-lg shadow-primary-500/10'
-                      : 'border-slate-200 bg-white'
-                  }`}
+                   key={item.code}
+                   type="button"
+                   onClick={() => setCurrency(item.code)}
+                   className={`rounded-xl border p-2.5 text-left transition hover:-translate-y-0.5 hover:shadow-md ${
+                     currency === item.code
+                       ? 'border-primary-500 bg-primary-50 shadow-md shadow-primary-500/10'
+                       : 'border-slate-200 bg-white'
+                   }`}
                 >
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-lg font-light text-slate-900">{item.code}</p>
-                        <p className="text-sm text-slate-600"><span className="currency-symbol">{item.symbol}</span></p>
+                        <p className="text-base font-light text-slate-900">{item.code}</p>
+                        <p className="text-xs text-slate-600"><span className="currency-symbol">{item.symbol}</span></p>
                       </div>
-                      <div className="text-2xl font-light text-primary-600"><span className="currency-symbol">{item.symbol}</span></div>
+                      <div className="text-lg font-light text-primary-600"><span className="currency-symbol">{item.symbol}</span></div>
                     </div>
                 </button>
               ))}
             </div>
 
-            {error ? <p className="text-sm text-red-600">{error}</p> : null}
+            {error ? <p className="text-xs text-red-600 my-1">{error}</p> : null}
 
             <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
               <button
                 type="submit"
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-primary-500 to-primary-600 px-6 py-3 text-sm font-light text-white shadow-lg shadow-primary-500/25 transition hover:-translate-y-0.5"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-primary-500 to-primary-600 px-5 py-2 text-xs font-light text-white shadow-lg shadow-primary-500/25 transition hover:-translate-y-0.5"
               >
                 Continue
-                <ArrowRightIcon className="h-4 w-4" />
+                <ArrowRightIcon className="h-3.5 w-3.5" />
               </button>
             </div>
           </form>
