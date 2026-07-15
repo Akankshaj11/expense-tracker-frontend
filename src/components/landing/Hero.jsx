@@ -1,123 +1,220 @@
 // Repo file header
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
-import { ArrowRightIcon, PlayCircleIcon } from '@heroicons/react/24/outline'
-
-/* ARCHIVED BALANCE CARD - To be used on dashboard/analytics pages later
-<div className="relative lg:col-span-6">
-  <motion.div initial={{ opacity: 0, scale: 0.94, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.55 }} className="relative mx-auto w-full max-w-[560px]">
-    <div className="absolute -left-8 top-8 h-24 w-24 rounded-full bg-primary-400/25 blur-3xl" />
-    <div className="absolute right-4 top-0 h-28 w-28 rounded-full bg-primary-200/70 blur-3xl" />
-    <div className="card-floating glass-card relative overflow-hidden rounded-[2rem] p-4 sm:p-5 lg:p-6">
-      <div className="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-primary-400/40 to-transparent" />
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-light text-[var(--muted)]">Total balance</p>
-          <p className="mt-1 text-3xl font-light tracking-tight text-white">$12,482.00</p>
-        </div>
-          <div className="rounded-full px-3 py-1 text-xs font-light" style={{background:'linear-gradient(90deg, rgba(15,74,166,0.12), rgba(14,165,164,0.12))', color:'#fff'}}>
-          +8.2% this month
-        </div>
-      </div>
-          <div className="mt-6 grid grid-cols-4 gap-3 sm:gap-4">
-        {[
-          { label: 'BTC', value: '6.0286', from: '#d4af37', to: '#c9a227' },
-          { label: 'DOGE', value: '16.800', from: '#0f4aa6', to: '#0b3a84' },
-          { label: 'ETH', value: '0.0086', from: '#06B6D4', to: '#06B6D4' },
-          { label: 'USDT', value: '7.860', from: '#111827', to: '#0F172A' },
-        ].map((card, index) => (
-          <motion.div key={card.label} animate={{ y: [0, -3, 0] }} transition={{ repeat: Infinity, duration: 5.5, delay: index * 0.6 }} className="rounded-2xl p-4 shadow-sm" style={{background:`linear-gradient(135deg, ${card.from}, ${card.to})`, color:'#fff'}}>
-            <p className="text-xs font-light">{card.label}</p>
-            <p className="mt-1 text-lg font-light">{card.value}</p>
-          </motion.div>
-        ))}
-      </div>
-      <div className="mt-5 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-        <div className="rounded-2xl border border-primary-100 bg-white/4 p-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-light uppercase tracking-[0.2em] text-[var(--muted)]">Spending</p>
-              <p className="mt-1 text-sm font-light text-[var(--text)]">Monthly overview</p>
-            </div>
-            <div className="h-11 w-11 rounded-full border-[6px] border-primary-100 border-t-primary-500" />
-          </div>
-          <div className="mt-4 space-y-3">
-            {[74, 56, 88].map((width, index) => (
-              <div key={index} className="space-y-1">
-                <div className="h-2 rounded-full bg-white/8">
-                  <motion.div initial={{ width: 0 }} animate={{ width: `${width}%` }} transition={{ delay: 0.35 + index * 0.12, duration: 0.8 }} className="h-full rounded-full bg-gradient-to-r from-primary-400 to-primary-600" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="rounded-2xl border border-primary-100 bg-primary-500 p-4 text-white shadow-lg shadow-primary-500/20">
-          <p className="text-xs font-light uppercase tracking-[0.2em] text-white/75">Insights</p>
-          <p className="mt-2 text-lg font-light">Track trends in real time</p>
-          <div className="mt-5 flex items-end gap-2">
-            {[24, 38, 28, 52, 46, 64].map((height, index) => (
-              <motion.span key={index} initial={{ height: 0 }} animate={{ height: `${height}px` }} transition={{ delay: 0.45 + index * 0.08, duration: 0.65 }} className="block w-3 rounded-full bg-white/85" />
-            ))}
-          </div>
-        </div>
-      </div>
-      <div className="mt-5 flex items-center justify-between rounded-2xl border border-primary-100 bg-white/4 px-4 py-3 shadow-sm">
-        <div>
-          <p className="text-xs font-light text-[var(--muted)]">Next payout</p>
-          <p className="text-sm font-light text-[var(--text)]">Salary · Freelancing · Dividends</p>
-        </div>
-        <div className="soft-ring flex h-12 w-12 items-center justify-center rounded-full bg-primary-500 text-white">+</div>
-      </div>
-    </div>
-  </motion.div>
-</div>
-*/
+import { ArrowRightIcon, PlayCircleIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline'
+import { StarIcon } from '@heroicons/react/24/solid'
 
 export default function Hero() {
+  const [isInstallable, setIsInstallable] = useState(!!window.deferredInstallPrompt)
+
+  useEffect(() => {
+    const handleInstallable = () => {
+      setIsInstallable(true)
+    }
+    
+    window.addEventListener('pwa-installable', handleInstallable)
+
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault()
+      window.deferredInstallPrompt = e
+      setIsInstallable(true)
+    }
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setIsInstallable(false)
+    }
+
+    return () => {
+      window.removeEventListener('pwa-installable', handleInstallable)
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+    }
+  }, [])
+
+  const handleInstallClick = async () => {
+    const promptEvent = window.deferredInstallPrompt
+    if (promptEvent) {
+      promptEvent.prompt()
+      const { outcome } = await promptEvent.userChoice
+      if (outcome === 'accepted') {
+        window.deferredInstallPrompt = null
+        setIsInstallable(false)
+      }
+    } else {
+      alert("To install PocketFlow:\n\n1. On Desktop (Chrome/Edge/Brave): Click the Install icon in the browser address bar.\n2. On Mobile (iOS Safari): Tap the Share button and select 'Add to Home Screen'.\n3. On Mobile (Chrome Android): Tap the three-dot menu and select 'Install app'.")
+    }
+  }
+
   return (
-    <section className="relative isolate overflow-hidden min-h-screen flex flex-col items-center justify-center">
-      <div className="floating-bg mesh-bg" />
+    <section className="relative min-h-screen lg:h-screen flex items-center justify-center bg-[url('/finance_hero_bg.png')] bg-cover bg-center overflow-hidden pt-24 pb-12 lg:py-0">
+      {/* Premium dark gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-br from-black via-slate-950/95 to-black/85" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary-500/10 via-transparent to-transparent" />
+      
+      <div className="container-max relative z-10 mx-auto px-4 sm:px-6 w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 items-center">
+          
+          {/* Left Side: Text and CTAs */}
+          <div className="lg:col-span-6 flex flex-col space-y-4 text-left">
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              transition={{ duration: 0.45 }}
+              className="self-start inline-flex items-center rounded-full border border-primary-200/30 bg-primary-500/10 px-3.5 py-1.5 text-[10px] font-light uppercase tracking-[0.25em] text-primary-400 shadow-sm"
+            >
+              Premium finance workspace
+            </motion.div>
 
-      <div className="container-max relative z-10 mx-auto flex flex-col items-center justify-center px-4 sm:px-6 py-20">
-        <div className="max-w-2xl text-center">
-          <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }} className="inline-flex items-center rounded-full border border-primary-200 bg-white/6 px-4 py-2 text-xs font-light uppercase tracking-[0.28em] text-white shadow-sm drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">
-            Premium finance workspace
-          </motion.p>
+            <motion.h1 
+              initial={{ opacity: 0, y: 16 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              transition={{ delay: 0.08, duration: 0.5 }} 
+              className="text-3xl font-extralight leading-[1.15] text-white sm:text-4xl lg:text-5xl tracking-tight"
+            >
+              Smart Spending. <br />
+              <span className="font-semibold text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-cyan-400">
+                Premium Experience.
+              </span>
+            </motion.h1>
 
-          <motion.h1 initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08, duration: 0.5 }} className="mt-8 max-w-2xl text-4xl font-light leading-[1.05] text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.4)] sm:text-5xl lg:text-6xl">
-            Smart Spending. <span className="letter-outline text-[var(--primary-500)]">Premium Experience.</span>
-          </motion.h1>
+            <motion.p
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.16, duration: 0.5 }}
+              className="text-sm sm:text-base leading-6 text-zinc-400 max-w-xl"
+            >
+              Stay organized, track every transaction, and experience smarter money management in a modern workspace built for clarity and control.
+            </motion.p>
 
-          <motion.p
-  initial={{ opacity: 0, y: 14 }}
-  animate={{ opacity: 1, y: 0 }}
-  transition={{ delay: 0.16, duration: 0.5 }}
-  className="mt-8 max-w-2xl text-center text-base sm:text-lg leading-7 text-zinc-300 mx-auto drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]"
->
-Stay organized, track every transaction, and experience smarter money management in a modern workspace built for clarity and control.
-          </motion.p>
+            <motion.div 
+              initial={{ opacity: 0, y: 14 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              transition={{ delay: 0.24, duration: 0.5 }} 
+              className="flex flex-col sm:flex-row gap-3 pt-1"
+            >
+              <Link to="/register" className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-primary-500 to-primary-600 px-6 py-3 text-xs sm:text-sm font-medium text-white shadow-lg shadow-primary-500/25 transition hover:-translate-y-0.5 hover:shadow-primary-500/40">
+                Get Started Free
+                <ArrowRightIcon className="h-4 w-4" />
+              </Link>
+              <a href="#features" className="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-700 bg-white/5 px-6 py-3 text-xs sm:text-sm font-medium text-white transition hover:bg-white/10 hover:-translate-y-0.5">
+                <PlayCircleIcon className="h-5 w-5 text-primary-400" />
+                Explore Features
+              </a>
+            </motion.div>
 
+            <motion.div 
+              initial={{ opacity: 0, y: 16 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              transition={{ delay: 0.32, duration: 0.5 }} 
+              className="flex flex-wrap gap-2.5 text-[11px] pt-2"
+            >
+              {['Multi-org support', 'Smart analytics', 'Fast transaction entry'].map((item) => (
+                <div key={item} className="rounded-full border border-zinc-800 bg-zinc-900/60 px-4 py-2 font-light text-zinc-300">
+                  ✓ {item}
+                </div>
+              ))}
+            </motion.div>
+          </div>
+          
+          {/* Right Side: Stats, Ratings & Reviews */}
+          <div className="lg:col-span-6 flex flex-col space-y-4 w-full">
+            
+            {/* Trustpilot-style Rating Card */}
+            <motion.div
+              initial={{ opacity: 0, x: 30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+            >
+              <motion.div
+                animate={{ y: [0, -6, 0] }}
+                transition={{ repeat: Infinity, duration: 6, ease: 'easeInOut' }}
+                className="glass-card rounded-[1.75rem] p-5 border border-white/10 shadow-2xl relative overflow-hidden group hover:border-primary-500/30 transition-all duration-300"
+              >
+                <div className="absolute -right-12 -top-12 h-32 w-32 rounded-full bg-primary-500/10 blur-2xl group-hover:bg-primary-500/20 transition-all duration-500" />
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-zinc-400">Average Rating</p>
+                    <p className="text-3xl font-bold text-white mt-0.5">4.9 / 5.0</p>
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <StarIcon key={star} className="h-5 w-5 text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.5)]" />
+                      ))}
+                    </div>
+                    <span className="text-[10px] text-zinc-500 mt-1.5">1,200+ Verified Reviews</span>
+                  </div>
+                </div>
 
-          <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.24, duration: 0.5 }} className="mt-10 flex flex-col justify-center gap-3 sm:flex-row">
-            <Link to="/register" className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-primary-500 to-primary-600 px-6 py-3.5 text-sm font-light text-white shadow-lg shadow-primary-500/25 transition hover:-translate-y-0.5 hover:shadow-primary-500/30 drop-shadow-[0_0_10px_rgba(255,255,255,0.15)]">
-              Get Started Free
-              <ArrowRightIcon className="h-4 w-4 drop-shadow-[0_0_6px_rgba(255,255,255,0.4)]" />
-            </Link>
-            <a href="#analytics" className="inline-flex items-center justify-center gap-2 rounded-full border border-primary-200 bg-white/6 px-6 py-3.5 text-sm font-light text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg drop-shadow-[0_0_10px_rgba(255,255,255,0.15)]">
-              <PlayCircleIcon className="h-5 w-5 text-primary-600 drop-shadow-[0_0_6px_rgba(122,0,153,0.4)]" />
-              Watch Demo
-            </a>
-          </motion.div>
+                <div className="mt-4 border-t border-white/5 pt-3 flex items-center justify-center">
+                  <p className="text-[11px] text-zinc-400 font-light">
+                    Trusted by <span className="font-semibold text-white">10,000+</span> teams worldwide.
+                  </p>
+                </div>
+              </motion.div>
+            </motion.div>
 
-          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.32, duration: 0.5 }} className="mt-10 flex flex-wrap justify-center gap-3 text-sm">
-            {['Multi-organization support', 'Smart analytics', 'Fast transaction entry'].map((item) => (
-              <div key={item} className="rounded-full border border-primary-100 bg-white/6 px-4 py-2 font-light text-white shadow-sm drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]">
-                {item}
-              </div>
-            ))}
-          </motion.div>
+            {/* Testimonial Quote Card */}
+            <motion.div
+              initial={{ opacity: 0, x: 30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.3, duration: 0.5 }}
+            >
+              <motion.div
+                animate={{ y: [0, -8, 0] }}
+                transition={{ repeat: Infinity, duration: 8, ease: 'easeInOut', delay: 0.3 }}
+                className="glass-card rounded-[1.75rem] p-5 border border-white/10 shadow-2xl relative hover:border-cyan-500/30 transition-all duration-300"
+              >
+                <p className="text-xs sm:text-sm italic leading-5.5 text-zinc-300 font-light">
+                  "PocketFlow completely changed how we handle team expenses. Switching between organizations takes one click, and downloading monthly PDF reports has cut our accounting overhead in half!"
+                </p>
+                <div className="mt-4 flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary-500 to-cyan-500 flex items-center justify-center text-white text-[10px] font-semibold">
+                    MK
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-semibold text-white">Marcus K.</h4>
+                    <p className="text-[10px] text-zinc-400">Founder at CloudScale</p>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+
+            {/* PWA Install Promo */}
+            <motion.div
+              initial={{ opacity: 0, x: 30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.4, duration: 0.5 }}
+            >
+              <motion.button
+                onClick={handleInstallClick}
+                animate={{ y: [0, -4, 0] }}
+                transition={{ repeat: Infinity, duration: 5, ease: 'easeInOut', delay: 0.6 }}
+                className="w-full flex items-center justify-between rounded-[1.75rem] bg-white/5 border border-white/5 px-6 py-6 shadow-sm hover:border-emerald-500/30 hover:bg-white/10 active:scale-[0.98] transition-all duration-300 cursor-pointer text-left focus:outline-none"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="p-2 bg-primary-500/10 rounded-xl text-primary-400">
+                    <ArrowDownTrayIcon className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-zinc-500">Platform Support</p>
+                    <p className="text-sm font-semibold text-white mt-0.5">Install Desktop & Mobile App</p>
+                    <p className="text-[10px] text-zinc-400 mt-1 font-light">Compatible with iOS, Android, macOS & Windows</p>
+                  </div>
+                </div>
+                <span className="text-[10px] text-primary-400 font-medium select-none hover:text-primary-300 whitespace-nowrap ml-2">
+                  {isInstallable ? 'Install Now' : 'Ready to Install'}
+                </span>
+              </motion.button>
+            </motion.div>
+            
+          </div>
+          
         </div>
       </div>
     </section>
   )
 }
+

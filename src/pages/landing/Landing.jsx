@@ -4,9 +4,8 @@ import Hero from '../../components/landing/Hero'
 import Stats from '../../components/landing/Stats'
 import About from '../../components/landing/About'
 import Features from '../../components/landing/Features'
-import HowItWorks from '../../components/landing/HowItWorks'
-import DashboardPreview from '../../components/landing/DashboardPreview'
-import Testimonials from '../../components/landing/Testimonials'
+import Ratings from '../../components/landing/Ratings'
+import FAQ from '../../components/landing/FAQ'
 import CTA from '../../components/landing/CTA'
 import FooterFull from '../../components/landing/FooterFull'
 import { useEffect } from 'react'
@@ -34,12 +33,11 @@ export default function Landing(){
         <Hero />
 
         <section className="container-max mx-auto px-4 pb-16 sm:px-6">
-          <About />
           <Stats />
+          <About />
           <Features />
-          {/* <HowItWorks /> */}
-          <DashboardPreview />
-          <Testimonials />
+          <Ratings />
+          <FAQ />
           <CTA />
         </section>
       </main>
@@ -48,3 +46,4 @@ export default function Landing(){
     </div>
   )
 }
+

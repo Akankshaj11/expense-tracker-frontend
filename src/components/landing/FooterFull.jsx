@@ -25,11 +25,12 @@ export default function FooterFull() {
           {/* Quick Links */}
           <div>
             <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
-            <ul className="space-y-3">
-              <li><Link to={'/#about'} className="hover:underline">About</Link></li>
-              <li><Link to={'/#features'} className="hover:underline">Features</Link></li>
-              <li><Link to={'/#analytics'} className="hover:underline">Analytics</Link></li>
-              <li><Link to={'/#pricing'} className="hover:underline">Pricing</Link></li>
+            <ul className="space-y-3 text-sm">
+              <li><Link to={'/#top'} className="hover:underline text-white/80 hover:text-white">Home</Link></li>
+              <li><Link to={'/#about'} className="hover:underline text-white/80 hover:text-white">About</Link></li>
+              <li><Link to={'/#features'} className="hover:underline text-white/80 hover:text-white">Features</Link></li>
+              <li><Link to={'/#ratings'} className="hover:underline text-white/80 hover:text-white">Ratings</Link></li>
+              <li><Link to={'/#faq'} className="hover:underline text-white/80 hover:text-white">FAQ</Link></li>
             </ul>
           </div>
 

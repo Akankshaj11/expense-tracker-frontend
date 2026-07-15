@@ -305,30 +305,30 @@ export default function Login() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="relative w-full max-w-md bg-[var(--card)] rounded-2xl shadow-glass p-6 sm:p-8 border border-white/10"
+              className="relative w-full max-w-sm bg-[var(--card)] rounded-2xl shadow-glass p-4 sm:p-5 border border-white/10"
             >
-              <div className="text-center mb-6">
-                <h2 className="text-2xl font-light text-[var(--text)]">Forgot Password</h2>
-                <p className="mt-2 text-sm text-[var(--muted)]">
+              <div className="text-center mb-4">
+                <h2 className="text-lg font-normal text-[var(--text)]">Forgot Password</h2>
+                <p className="mt-1 text-xs text-[var(--muted)] leading-normal">
                   Enter your email address and we'll send you a link to reset your password.
                 </p>
               </div>
 
               {forgotError && (
-                <div className="mb-4 p-3 rounded-lg bg-red-900/10 border border-red-200 text-rose-400 text-sm">
+                <div className="mb-3 p-2 rounded-lg bg-red-900/10 border border-red-200 text-rose-400 text-xs">
                   {forgotError}
                 </div>
               )}
 
               {forgotSuccess && (
-                <div className="mb-4 p-3 rounded-lg bg-emerald-900/10 border border-emerald-200 text-emerald-400 text-sm">
+                <div className="mb-3 p-2 rounded-lg bg-emerald-900/10 border border-emerald-200 text-emerald-400 text-xs">
                   {forgotSuccess}
                 </div>
               )}
 
-              <form onSubmit={handleSendResetLink} className="space-y-4">
+              <form onSubmit={handleSendResetLink} className="space-y-3">
                 <div>
-                  <label htmlFor="forgot-email" className="block text-sm font-light text-slate-700 mb-2">
+                  <label htmlFor="forgot-email" className="block text-xs font-light text-[var(--text)] mb-1">
                     Email Address
                   </label>
                   <input
@@ -337,12 +337,12 @@ export default function Login() {
                     value={forgotEmail}
                     onChange={(e) => setForgotEmail(e.target.value)}
                     placeholder="you@example.com"
-                    className="w-full px-4 py-2.5 rounded-lg border border-white/6 bg-[var(--card)] text-[var(--text)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+                    className="w-full px-3 py-2 rounded-lg border border-white/6 bg-[var(--card)] text-[var(--text)] text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
                     required
                   />
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex gap-2.5 pt-1">
                   <button
                     type="button"
                     onClick={() => {
@@ -350,14 +350,14 @@ export default function Login() {
                       setForgotError('')
                       setForgotSuccess('')
                     }}
-                    className="flex-1 px-4 py-2.5 rounded-lg border border-slate-300 text-[var(--text)] font-light hover:bg-slate-50 transition"
+                    className="flex-1 px-3 py-2 rounded-lg border border-slate-300 text-[var(--text)] text-xs font-light hover:bg-slate-50 transition"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={forgotLoading}
-                    className="flex-1 px-4 py-2.5 rounded-lg accent-cta font-light shadow-glass hover:shadow-primary-500/40 transition disabled:opacity-70 disabled:cursor-not-allowed"
+                    className="flex-1 px-3 py-2 rounded-lg accent-cta text-xs font-light shadow-glass hover:shadow-primary-500/40 transition disabled:opacity-70 disabled:cursor-not-allowed"
                   >
                     {forgotLoading ? 'Sending...' : 'Send Link'}
                   </button>

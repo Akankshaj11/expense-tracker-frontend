@@ -4,9 +4,22 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/png" href="/src/assets/logo.png" />
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/pwa-192x192.png" />
+    <meta name="theme-color" content="#1746A2" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="PocketFlow" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <title>PocketFlow</title>
-    <meta name="description" content="PocketFlow - A premium finance workspace for teams." />
+    <script>
+      window.deferredInstallPrompt = null;
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        window.deferredInstallPrompt = e;
+        window.dispatchEvent(new CustomEvent('pwa-installable'));
+      });
+    </script>
   </head>
   <body>
     <script>

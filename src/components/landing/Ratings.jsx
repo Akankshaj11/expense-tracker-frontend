@@ -2,7 +2,7 @@
 import { motion } from 'framer-motion'
 import { StarIcon } from '@heroicons/react/24/solid'
 
-const testimonials = [
+const reviews = [
   {
     name: 'Sophia L.',
     role: 'Head of Finance at GlobeScale',
@@ -23,27 +23,28 @@ const testimonials = [
   }
 ]
 
-export default function Testimonials(){
+export default function Ratings() {
   return (
-    <section id="testimonials" className="mt-20 scroll-mt-28 w-full">
+    <section id="ratings" className="mt-20 scroll-mt-28 w-full">
       <div className="max-w-3xl">
-        <p className="text-sm font-light uppercase tracking-[0.22em] text-primary-600">Testimonials</p>
-        <h3 className="mt-2 text-2xl font-light tracking-tight text-white sm:text-3xl">
-          Loved by teams that value clarity
-        </h3>
+        <p className="text-sm font-light uppercase tracking-[0.22em] text-primary-600">Ratings & Trust</p>
+        <h4 className="mt-2 text-2xl font-light text-white sm:text-3xl">
+          Highly rated by finance teams
+        </h4>
         <p className="mt-3 text-sm sm:text-base text-[var(--muted)]">
-          Read reviews from some of the fast-growing companies using PocketFlow.
+          PocketFlow is built to be robust, secure, and intuitive. Read reviews from some of the fast-growing companies using PocketFlow.
         </p>
       </div>
 
       <div className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-3 w-full">
-        {testimonials.map((item, index)=> (
+        {reviews.map((item, index)=> (
           <motion.article 
             key={item.name} 
             initial={{ opacity: 0, y: 15 }} 
             whileInView={{ opacity: 1, y: 0 }} 
             viewport={{ once: true, amount: 0.2 }} 
             transition={{ delay: index * 0.08, duration: 0.4 }} 
+            whileHover={{ y: -6, scale: 1.02 }}
             className="glass-card rounded-[2rem] p-5 border border-white/5 hover:border-white/10 transition-colors flex flex-col justify-between"
           >
             <div>
@@ -52,7 +53,7 @@ export default function Testimonials(){
                   <StarIcon key={s} className="h-3.5 w-3.5 text-amber-400" />
                 ))}
               </div>
-              <p className="text-xs sm:text-sm leading-6 text-zinc-300 font-light">
+              <p className="text-xs sm:text-sm leading-6 text-zinc-300 font-light font-sans">
                 “{item.quote}”
               </p>
             </div>
@@ -74,4 +75,3 @@ export default function Testimonials(){
     </section>
   )
 }
-

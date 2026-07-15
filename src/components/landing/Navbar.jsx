@@ -34,10 +34,11 @@ export default function Navbar(){
 
           <nav className="hidden lg:flex items-center gap-8 text-sm">
             {[
+              {label: 'Home', to: '/#top'},
               {label: 'About', to: '/#about'},
               {label: 'Features', to: '/#features'},
-              {label: 'Analytics', to: '/#analytics'},
-              {label: 'Pricing', to: '/#pricing'},
+              {label: 'Ratings', to: '/#ratings'},
+              {label: 'FAQ', to: '/#faq'},
             ].map((item) => (
               <Link key={item.label} to={item.to} className="group relative text-white/60 hover:text-white transition-colors">
                 {item.label}
@@ -71,10 +72,11 @@ export default function Navbar(){
           >
             <div className="container-max mx-auto flex flex-col gap-3 text-sm text-white">
               {[
+                {label: 'Home', to: '/#top'},
                 {label: 'About', to: '/#about'},
                 {label: 'Features', to: '/#features'},
-                {label: 'Analytics', to: '/#analytics'},
-                {label: 'Pricing', to: '/#pricing'},
+                {label: 'Ratings', to: '/#ratings'},
+                {label: 'FAQ', to: '/#faq'},
               ].map((item) => (
                   <Link key={item.label} to={item.to} className="rounded-xl px-3 py-3 transition hover:bg-white/10 hover:text-white" onClick={() => setMobileOpen(false)}>
                     {item.label}
