@@ -136,14 +136,14 @@ export default function SubmoduleSelector({
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ duration: 0.22, ease: 'easeOut', delay: index * 0.04 }}
                 whileHover={{ y: -2 }}
-                className={`flex min-h-[4.5rem] items-center justify-between rounded-[1.25rem] border px-4 py-2.5 text-left transition-shadow hover:shadow-md ${surfaceTone} ${textTone}`}
+                className={`flex min-h-[4.5rem] items-center justify-between rounded-[1.25rem] border px-4 py-2.5 text-left transition-shadow hover:shadow-md w-full whitespace-normal ${surfaceTone} ${textTone}`}
               >
-                <div>
+                <div className="min-w-0 flex-1 mr-2">
                   {/* <p className="text-base font-light capitalize">{submodule}</p> */}
-                  <p className="text-base font-light capitalize">
+                  <p className="text-base font-light capitalize break-all">
                     {translateSubmoduleLabel(language, submodule)}
                   </p>
-                  <p className="mt-0.5 text-xs opacity-80">{text.clickToContinue}</p>
+                  <p className="mt-0.5 text-xs opacity-80 break-all">{text.clickToContinue}</p>
                 </div>
                 <Squares2X2Icon className="h-5 w-5 shrink-0 opacity-90" />
               </motion.button>

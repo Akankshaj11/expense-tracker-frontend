@@ -30,6 +30,7 @@ export default function TransactionForm({
   setNote,
   attachment,
   setAttachment,
+  existingAttachmentName,
   date,
   setDate,
   time,
@@ -147,7 +148,7 @@ export default function TransactionForm({
                 <label className="flex cursor-pointer items-center justify-between rounded-xl border border-dashed border-slate-300 bg-[var(--card)] px-3 py-2.5 text-sm text-[var(--muted)] transition hover:border-primary-400 hover:bg-primary-50">
                   <span className="inline-flex items-center gap-2">
                     <PaperClipIcon className="h-4 w-4 text-primary-600" />
-                    {attachment?.name || text.uploadFile}
+                    {attachment?.name || existingAttachmentName || text.uploadFile}
                   </span>
                   <input type="file" className="hidden" onChange={(event) => setAttachment(event.target.files?.[0] || null)} />
                 </label>

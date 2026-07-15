@@ -234,11 +234,15 @@ export default function ModuleTransactions() {
 
   // Function: resolveAttachmentPreview
   const resolveAttachmentPreview = (transaction) => {
-    if (transaction.attachmentDataUrl) {
+    const dataUrl = transaction.attachmentDataUrl || transaction.attachment?.url || transaction.attachment?.dataUrl
+    const name = transaction.attachmentName || transaction.attachment?.name
+    const type = transaction.attachmentType || transaction.attachment?.type
+
+    if (dataUrl) {
       return {
-        name: transaction.attachmentName,
-        type: transaction.attachmentType,
-        dataUrl: transaction.attachmentDataUrl,
+        name,
+        type,
+        dataUrl,
       }
     }
 
@@ -386,14 +390,23 @@ export default function ModuleTransactions() {
                     </div>
                     <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-[var(--muted)]">
                       {transaction.note ? <span className="rounded-full bg-[var(--card)] px-3 py-1.5 ring-1 ring-slate-200">{transaction.note}</span> : null}
-                      {transaction.attachmentName ? (
+                      {(transaction.attachmentName || transaction.attachment?.name) ? (
                         <button
                           type="button"
-                          onClick={() => setPreviewAttachment({ ...transaction, ...resolveAttachmentPreview(transaction) })}
+                          onClick={() => {
+                            const preview = resolveAttachmentPreview(transaction)
+                            setPreviewAttachment({
+                              ...transaction,
+                              attachmentName: transaction.attachmentName || transaction.attachment?.name,
+                              attachmentType: transaction.attachmentType || transaction.attachment?.type,
+                              attachmentDataUrl: transaction.attachmentDataUrl || transaction.attachment?.url || transaction.attachment?.dataUrl,
+                              ...preview,
+                            })
+                          }}
                           className="inline-flex items-center gap-2 rounded-full bg-[var(--card)] px-3 py-1.5 ring-1 ring-slate-200 transition hover:bg-primary-50 hover:text-primary-700"
                         >
                           <PaperClipIcon className="h-4 w-4 text-slate-500" />
-                          {transaction.attachmentName}
+                          {transaction.attachmentName || transaction.attachment?.name}
                         </button>
                       ) : null}
                     </div>
@@ -416,29 +429,66 @@ export default function ModuleTransactions() {
                   <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">{text.attachmentPreview}</p>
                   <h2 className="mt-1 text-lg font-light text-[var(--text)]">{previewAttachment.attachmentName}</h2>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setPreviewAttachment(null)}
-                  className="rounded-full border border-slate-200 bg-white p-2 text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
-                  aria-label={text.closeAttachmentPreview}
-                >
-                  <XMarkIcon className="h-5 w-5" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <a
+                    href={previewAttachment.dataUrl || previewAttachment.attachmentDataUrl}
+                    download={previewAttachment.name || previewAttachment.attachmentName || 'download'}
+                    className="rounded-full border border-slate-200 bg-white p-2 text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
+                    title="Download attachment"
+                  >
+                    <ArrowDownTrayIcon className="h-5 w-5" />
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewAttachment(null)}
+                    className="rounded-full border border-slate-200 bg-white p-2 text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
+                    aria-label={text.closeAttachmentPreview}
+                  >
+                    <XMarkIcon className="h-5 w-5" />
+                  </button>
+                </div>
               </div>
 
               <div className="bg-[var(--card)] p-5">
-                {previewAttachment.dataUrl || previewAttachment.attachmentDataUrl ? (
-                  (previewAttachment.type || previewAttachment.attachmentType)?.startsWith('image/') ? (
-                    <img
-                      src={previewAttachment.dataUrl || previewAttachment.attachmentDataUrl}
-                      alt={previewAttachment.name || previewAttachment.attachmentName}
-                      className="max-h-[75vh] w-full rounded-2xl object-contain"
-                    />
-                  ) : (
+                {(() => {
+                  const dataUrl = previewAttachment.dataUrl || previewAttachment.attachmentDataUrl
+                  const type = previewAttachment.type || previewAttachment.attachmentType
+                  const isImage = type?.startsWith('image/') || dataUrl?.startsWith('data:image/')
+                  const isPdf = type === 'application/pdf' || dataUrl?.startsWith('data:application/pdf')
+
+                  if (!dataUrl) {
+                    return (
+                      <div className="rounded-2xl border border-dashed border-white/6 bg-[var(--card)] px-5 py-10 text-center text-sm text-slate-500">
+                        {text.noAttachmentPreview}
+                      </div>
+                    )
+                  }
+
+                  if (isImage) {
+                    return (
+                      <img
+                        src={dataUrl}
+                        alt={previewAttachment.name || previewAttachment.attachmentName}
+                        className="max-h-[70vh] w-full rounded-2xl object-contain"
+                      />
+                    )
+                  }
+
+                  if (isPdf) {
+                    return (
+                      <iframe
+                        src={dataUrl}
+                        title={previewAttachment.name || previewAttachment.attachmentName}
+                        className="h-[70vh] w-full rounded-2xl border border-slate-200"
+                      />
+                    )
+                  }
+
+                  return (
                     <div className="space-y-4 rounded-2xl border border-white/6 bg-[var(--card)] p-6 text-center">
                       <p className="text-sm font-light text-[var(--muted)]">{text.attachmentReadyMessage}</p>
                       <a
-                        href={previewAttachment.dataUrl || previewAttachment.attachmentDataUrl}
+                        href={dataUrl}
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex items-center justify-center rounded-full bg-primary-600 px-5 py-3 text-sm font-light text-white transition hover:bg-primary-700"
@@ -447,11 +497,7 @@ export default function ModuleTransactions() {
                       </a>
                     </div>
                   )
-                ) : (
-                  <div className="rounded-2xl border border-dashed border-white/6 bg-[var(--card)] px-5 py-10 text-center text-sm text-slate-500">
-                    {text.noAttachmentPreview}
-                  </div>
-                )}
+                })()}
               </div>
             </div>
           </div>

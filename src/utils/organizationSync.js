@@ -45,9 +45,21 @@ export async function loadOrganizationsFromBackend() {
       localStorage.setItem('organizations', JSON.stringify(organizations))
       localStorage.setItem('organization', JSON.stringify(organizations[0]))
 
-      const activeOrgId = localStorage.getItem('activeOrgId')
-      if (!activeOrgId || !organizations.some((organization) => organization.id === activeOrgId)) {
-        localStorage.setItem('activeOrgId', organizations[0].id)
+      const currentUser = readJSON('currentUser', null)
+      const userKey = currentUser ? `activeOrgId_${currentUser.email || currentUser.id}` : null
+      const storedActiveId = userKey ? (localStorage.getItem(userKey) || localStorage.getItem('activeOrgId')) : localStorage.getItem('activeOrgId')
+
+      if (!storedActiveId || !organizations.some((organization) => organization.id === storedActiveId)) {
+        const nextActiveId = organizations[0].id
+        localStorage.setItem('activeOrgId', nextActiveId)
+        if (userKey) {
+          localStorage.setItem(userKey, nextActiveId)
+        }
+      } else {
+        localStorage.setItem('activeOrgId', storedActiveId)
+        if (userKey) {
+          localStorage.setItem(userKey, storedActiveId)
+        }
       }
     }
 

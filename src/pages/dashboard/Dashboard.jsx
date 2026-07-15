@@ -326,7 +326,11 @@ function formatDateLabel(value) {
 export default function Dashboard() {
   const navigate = useNavigate()
   const [organizations, setOrganizations] = useState(() => readCachedOrganizations())
-  const [activeOrgId, setActiveOrgId] = useState(() => localStorage.getItem('activeOrgId') || readCachedOrganizations()[0]?.id || '')
+  const [activeOrgId, setActiveOrgId] = useState(() => {
+    const user = readJSON('currentUser', null)
+    const key = user ? `activeOrgId_${user.email || user.id}` : 'activeOrgId'
+    return localStorage.getItem(key) || localStorage.getItem('activeOrgId') || readCachedOrganizations()[0]?.id || ''
+  })
   const [orgMenuOpen, setOrgMenuOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const { language, setLanguage, text } = useLanguage()
@@ -348,7 +352,12 @@ export default function Dashboard() {
       }
 
       setOrganizations(refreshedOrganizations)
-      setActiveOrgId(localStorage.getItem('activeOrgId') || refreshedOrganizations[0]?.id || '')
+      const user = readJSON('currentUser', null)
+      const key = user ? `activeOrgId_${user.email || user.id}` : 'activeOrgId'
+      const fallbackId = refreshedOrganizations.find((org) => org.id === localStorage.getItem(key))?.id ||
+                         refreshedOrganizations.find((org) => org.id === localStorage.getItem('activeOrgId'))?.id ||
+                         refreshedOrganizations[0]?.id || ''
+      setActiveOrgId(localStorage.getItem(key) || localStorage.getItem('activeOrgId') || fallbackId)
     })
 
     return () => {
@@ -363,6 +372,10 @@ export default function Dashboard() {
   useEffect(() => {
     if (activeOrgId) {
       localStorage.setItem('activeOrgId', activeOrgId)
+      const user = readJSON('currentUser', null)
+      if (user) {
+        localStorage.setItem(`activeOrgId_${user.email || user.id}`, activeOrgId)
+      }
       loadTransactionsFromBackend(activeOrgId)
     }
   }, [activeOrgId])
@@ -505,7 +518,6 @@ export default function Dashboard() {
 
       try {
         clearStoredAuth()
-        localStorage.removeItem('activeOrgId')
       } catch {}
 
       setProfileOpen(false)

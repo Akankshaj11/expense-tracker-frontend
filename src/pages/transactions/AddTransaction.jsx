@@ -651,6 +651,7 @@ export default function AddTransaction() {
               setNote={setNote}
               attachment={attachment}
               setAttachment={setAttachment}
+              existingAttachmentName={loadedTransaction?.attachmentName || loadedTransaction?.attachment?.name || ''}
               date={date}
               setDate={setDate}
               time={time}

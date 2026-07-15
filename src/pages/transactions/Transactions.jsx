@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ArrowLeftIcon, BuildingOffice2Icon, CalendarDaysIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline'
+import { ArrowLeftIcon, BuildingOffice2Icon, CalendarDaysIcon, ArrowDownTrayIcon, PaperClipIcon, XMarkIcon, PlusIcon } from '@heroicons/react/24/outline'
 import { authenticatedFetch } from '../../utils/api'
 import { loadOrganizationsFromBackend, readCachedOrganizations, loadTransactionsFromBackend } from '../../utils/organizationSync'
 
@@ -131,6 +131,34 @@ export default function Transactions() {
   const [organizations, setOrganizations] = useState(() => readCachedOrganizations())
   const [language, setLanguage] = useState(() => localStorage.getItem('selectedLanguage') || 'en')
   const [transactionsRevision, setTransactionsRevision] = useState(0)
+  const [attachmentCache, setAttachmentCache] = useState(() => readJSON('attachments', []))
+  const [previewAttachment, setPreviewAttachment] = useState(null)
+
+  useEffect(() => {
+    // Function: handleStorage
+    const handleStorage = (event) => {
+      if (event.key === 'transactions' || event.key === 'attachments') {
+        setAttachmentCache(readJSON('attachments', []))
+      }
+    }
+    window.addEventListener('storage', handleStorage)
+    return () => window.removeEventListener('storage', handleStorage)
+  }, [])
+
+  const resolveAttachmentPreview = (transaction) => {
+    const dataUrl = transaction.attachmentDataUrl || transaction.attachment?.url || transaction.attachment?.dataUrl
+    const name = transaction.attachmentName || transaction.attachment?.name
+    const type = transaction.attachmentType || transaction.attachment?.type
+
+    if (dataUrl) {
+      return {
+        name,
+        type,
+        dataUrl,
+      }
+    }
+    return attachmentCache.find((item) => item.transactionId === (transaction.id || transaction._id)) || null
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -300,9 +328,10 @@ export default function Transactions() {
               <button
                 type="button"
                 onClick={() => navigate('/add-transaction')}
-                className="inline-flex items-center justify-center gap-2 rounded-full accent-cta px-5 py-3 text-sm font-light transition hover:-translate-y-0.5"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full accent-cta transition hover:-translate-y-0.5 shadow-md shadow-primary-500/20"
+                aria-label={text.addTransaction}
               >
-                {text.addTransaction}
+                <PlusIcon className="h-5 w-5 text-white" />
               </button>
             </div>
           </div>
@@ -341,10 +370,32 @@ export default function Transactions() {
                       <div>
                         {/* <p className="font-light text-[var(--text)]">{transaction.note?.trim() || `${capitalize(transaction.module || text.transaction)} ${text.update}`}</p> */}
                         <p className="font-light text-[var(--text)]">{transaction.note?.trim() || `${capitalize(translateModuleLabel(language, transaction.module) || text.transaction)} ${text.update}`}</p>
-                        <p className="text-sm text-slate-500">
-                          {/* {capitalize(transaction.module || text.transaction)} · {formatDateTime(transaction.createdAt || transaction.date, locale)} */}
-                          {capitalize(translateModuleLabel(language, transaction.module) || text.transaction)} · {formatDateTime(transaction.createdAt || transaction.date, locale)}
-                        </p>
+                        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-500">
+                          <span>{capitalize(translateModuleLabel(language, transaction.module) || text.transaction)}</span>
+                          <span>·</span>
+                          <span>{formatDateTime(transaction.createdAt || transaction.date, locale)}</span>
+                          {(transaction.attachmentName || transaction.attachment?.name) ? (
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.preventDefault()
+                                event.stopPropagation()
+                                const preview = resolveAttachmentPreview(transaction)
+                                setPreviewAttachment({
+                                  ...transaction,
+                                  attachmentName: transaction.attachmentName || transaction.attachment?.name,
+                                  attachmentType: transaction.attachmentType || transaction.attachment?.type,
+                                  attachmentDataUrl: transaction.attachmentDataUrl || transaction.attachment?.url || transaction.attachment?.dataUrl,
+                                  ...preview,
+                                })
+                              }}
+                              className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-light text-slate-600 ring-1 ring-slate-200 transition hover:bg-primary-50 hover:text-primary-700"
+                            >
+                              <PaperClipIcon className="h-3 w-3 text-slate-400" />
+                              {transaction.attachmentName || transaction.attachment?.name}
+                            </button>
+                          ) : null}
+                        </div>
                       </div>
                       <p className={`text-sm font-light ${amount >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                         {amount >= 0 ? '+' : '-'}{formatMoney(Math.abs(amount), selectedCurrency, locale)}
@@ -361,6 +412,88 @@ export default function Transactions() {
           )}
         </motion.div>
       </div>
+
+      {previewAttachment ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-4xl overflow-hidden rounded-[2rem] bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+              <div>
+                <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">{text.attachmentPreview}</p>
+                <h2 className="mt-1 text-lg font-light text-[var(--text)]">{previewAttachment.attachmentName}</h2>
+              </div>
+              <div className="flex items-center gap-2">
+                <a
+                  href={previewAttachment.dataUrl || previewAttachment.attachmentDataUrl}
+                  download={previewAttachment.name || previewAttachment.attachmentName || 'download'}
+                  className="rounded-full border border-slate-200 bg-white p-2 text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
+                  title="Download attachment"
+                >
+                  <ArrowDownTrayIcon className="h-5 w-5" />
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setPreviewAttachment(null)}
+                  className="rounded-full border border-slate-200 bg-white p-2 text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
+                  aria-label={text.closeAttachmentPreview}
+                >
+                  <XMarkIcon className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-[var(--card)] p-5">
+              {(() => {
+                const dataUrl = previewAttachment.dataUrl || previewAttachment.attachmentDataUrl
+                const type = previewAttachment.type || previewAttachment.attachmentType
+                const isImage = type?.startsWith('image/') || dataUrl?.startsWith('data:image/')
+                const isPdf = type === 'application/pdf' || dataUrl?.startsWith('data:application/pdf')
+
+                if (!dataUrl) {
+                  return (
+                    <div className="rounded-2xl border border-dashed border-white/6 bg-[var(--card)] px-5 py-10 text-center text-sm text-slate-500">
+                      {text.noAttachmentPreview}
+                    </div>
+                  )
+                }
+
+                if (isImage) {
+                  return (
+                    <img
+                      src={dataUrl}
+                      alt={previewAttachment.name || previewAttachment.attachmentName}
+                      className="max-h-[70vh] w-full rounded-2xl object-contain"
+                    />
+                  )
+                }
+
+                if (isPdf) {
+                  return (
+                    <iframe
+                      src={dataUrl}
+                      title={previewAttachment.name || previewAttachment.attachmentName}
+                      className="h-[70vh] w-full rounded-2xl border border-slate-200"
+                    />
+                  )
+                }
+
+                return (
+                  <div className="space-y-4 rounded-2xl border border-white/6 bg-[var(--card)] p-6 text-center">
+                    <p className="text-sm font-light text-[var(--muted)]">{text.attachmentReadyMessage}</p>
+                    <a
+                      href={dataUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center justify-center rounded-full bg-primary-600 px-5 py-3 text-sm font-light text-white transition hover:bg-primary-700"
+                    >
+                      {text.openAttachment}
+                    </a>
+                  </div>
+                )
+              })()}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

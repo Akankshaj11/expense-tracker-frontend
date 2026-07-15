@@ -10,13 +10,7 @@ import DashboardModuleEditor from './DashboardModuleEditor'
 
 // Function: getModuleTypeBadge
 function getModuleTypeBadge(module) {
-  // Do not show badges for the predefined 'Investment Returns' module
-  const name = String(module?.rawName || module?.name || module?.label || '').trim().toLowerCase()
-  if (name === 'investment returns' || name === 'investmentreturns') {
-    return null
-  }
-
-  if (!module?.isCustom || !(module?.transactionType || module?.direction)) {
+  if (!(module?.transactionType || module?.direction)) {
     return null
   }
 
@@ -31,7 +25,7 @@ function getModuleTypeBadge(module) {
     }
   }
 
-  if (['expenses', 'out', 'expense', 'debit'].includes(transactionType)) {
+  if (['expenses', 'out', 'expense', 'debit', 'investments', 'investment'].includes(transactionType)) {
     return {
       label: 'O',
       className: 'bg-rose-500 text-white',

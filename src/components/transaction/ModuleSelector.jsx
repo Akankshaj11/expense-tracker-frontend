@@ -150,11 +150,11 @@ export default function ModuleSelector({
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ duration: 0.22, ease: 'easeOut', delay: index * 0.04 }}
                 whileHover={{ y: -2 }}
-                className="flex min-h-[5rem] flex-col items-center justify-center rounded-[1.25rem] border px-4 py-3 text-center text-white transition-shadow hover:shadow-md"
+                className="flex min-h-[5rem] flex-col items-center justify-center rounded-[1.25rem] border px-4 py-3 text-center text-white transition-shadow hover:shadow-md w-full whitespace-normal"
                 style={style}
               >
-                <p className="text-md font-light">{label}</p>
-                <p className="mt-0.5 text-xs text-white/80">{text.chooseModuleHint}</p>
+                <p className="text-md font-light w-full break-all">{label}</p>
+                <p className="mt-0.5 text-xs text-white/80 w-full break-all">{text.chooseModuleHint}</p>
               </motion.button>
             )
           })}
