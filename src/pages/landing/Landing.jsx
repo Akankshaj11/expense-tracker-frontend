@@ -1,7 +1,6 @@
 // Repo file header
 import Navbar from '../../components/landing/Navbar'
 import Hero from '../../components/landing/Hero'
-import Stats from '../../components/landing/Stats'
 import About from '../../components/landing/About'
 import Features from '../../components/landing/Features'
 import Ratings from '../../components/landing/Ratings'
@@ -33,7 +32,6 @@ export default function Landing(){
         <Hero />
 
         <section className="container-max mx-auto px-4 pb-16 sm:px-6">
-          <Stats />
           <About />
           <Features />
           <Ratings />

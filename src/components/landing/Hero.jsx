@@ -107,10 +107,10 @@ export default function Hero() {
               initial={{ opacity: 0, y: 16 }} 
               animate={{ opacity: 1, y: 0 }} 
               transition={{ delay: 0.32, duration: 0.5 }} 
-              className="flex flex-wrap gap-2.5 text-[11px] pt-2"
+              className="flex flex-wrap gap-2.5 text-[13px] pt-2"
             >
               {['Multi-org support', 'Smart analytics', 'Fast transaction entry'].map((item) => (
-                <div key={item} className="rounded-full border border-zinc-800 bg-zinc-900/60 px-4 py-2 font-light text-zinc-300">
+                <div key={item} className="rounded-full border border-zinc-800 bg-zinc-900/60 px-4 py-2 font-normal text-zinc-300">
                   ✓ {item}
                 </div>
               ))}
@@ -118,7 +118,7 @@ export default function Hero() {
           </div>
           
           {/* Right Side: Stats, Ratings & Reviews */}
-          <div className="lg:col-span-6 flex flex-col space-y-4 w-full">
+          <div className="lg:col-span-6 flex flex-col space-y-4 w-full pt-8 lg:pt-12">
             
             {/* Trustpilot-style Rating Card */}
             <motion.div
@@ -126,10 +126,8 @@ export default function Hero() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.2, duration: 0.5 }}
             >
-              <motion.div
-                animate={{ y: [0, -6, 0] }}
-                transition={{ repeat: Infinity, duration: 6, ease: 'easeInOut' }}
-                className="glass-card rounded-[1.75rem] p-5 border border-white/10 shadow-2xl relative overflow-hidden group hover:border-primary-500/30 transition-all duration-300"
+              <div
+                className="animate-bob-1 glass-card rounded-[1.75rem] p-5 border border-white/10 shadow-2xl relative overflow-hidden group hover:border-primary-500/30 transition-all duration-300"
               >
                 <div className="absolute -right-12 -top-12 h-32 w-32 rounded-full bg-primary-500/10 blur-2xl group-hover:bg-primary-500/20 transition-all duration-500" />
                 
@@ -153,7 +151,7 @@ export default function Hero() {
                     Trusted by <span className="font-semibold text-white">10,000+</span> teams worldwide.
                   </p>
                 </div>
-              </motion.div>
+              </div>
             </motion.div>
 
             {/* Testimonial Quote Card */}
@@ -162,10 +160,8 @@ export default function Hero() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.3, duration: 0.5 }}
             >
-              <motion.div
-                animate={{ y: [0, -8, 0] }}
-                transition={{ repeat: Infinity, duration: 8, ease: 'easeInOut', delay: 0.3 }}
-                className="glass-card rounded-[1.75rem] p-5 border border-white/10 shadow-2xl relative hover:border-cyan-500/30 transition-all duration-300"
+              <div
+                className="animate-bob-2 glass-card rounded-[1.75rem] p-5 border border-white/10 shadow-2xl relative hover:border-cyan-500/30 transition-all duration-300"
               >
                 <p className="text-xs sm:text-sm italic leading-5.5 text-zinc-300 font-light">
                   "PocketFlow completely changed how we handle team expenses. Switching between organizations takes one click, and downloading monthly PDF reports has cut our accounting overhead in half!"
@@ -179,7 +175,7 @@ export default function Hero() {
                     <p className="text-[10px] text-zinc-400">Founder at CloudScale</p>
                   </div>
                 </div>
-              </motion.div>
+              </div>
             </motion.div>
 
             {/* PWA Install Promo */}
@@ -188,11 +184,9 @@ export default function Hero() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.4, duration: 0.5 }}
             >
-              <motion.button
+              <button
                 onClick={handleInstallClick}
-                animate={{ y: [0, -4, 0] }}
-                transition={{ repeat: Infinity, duration: 5, ease: 'easeInOut', delay: 0.6 }}
-                className="w-full flex items-center justify-between rounded-[1.75rem] bg-white/5 border border-white/5 px-6 py-6 shadow-sm hover:border-emerald-500/30 hover:bg-white/10 active:scale-[0.98] transition-all duration-300 cursor-pointer text-left focus:outline-none"
+                className="animate-bob-3 w-full flex items-center justify-between rounded-[1.75rem] bg-white/5 border border-white/5 px-6 py-6 shadow-sm hover:border-emerald-500/30 hover:bg-white/10 active:scale-[0.98] transition-all duration-300 cursor-pointer text-left focus:outline-none"
               >
                 <div className="flex items-center gap-4">
                   <div className="p-2 bg-primary-500/10 rounded-xl text-primary-400">
@@ -207,7 +201,7 @@ export default function Hero() {
                 <span className="text-[10px] text-primary-400 font-medium select-none hover:text-primary-300 whitespace-nowrap ml-2">
                   {isInstallable ? 'Install Now' : 'Ready to Install'}
                 </span>
-              </motion.button>
+              </button>
             </motion.div>
             
           </div>

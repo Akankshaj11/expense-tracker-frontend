@@ -24,7 +24,7 @@ export default function FooterFull() {
 
           {/* Quick Links */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
+            <h3 className="text-md font-semibold mb-4">Quick Links</h3>
             <ul className="space-y-3 text-sm">
               <li><Link to={'/#top'} className="hover:underline text-white/80 hover:text-white">Home</Link></li>
               <li><Link to={'/#about'} className="hover:underline text-white/80 hover:text-white">About</Link></li>
@@ -36,8 +36,8 @@ export default function FooterFull() {
 
           {/* Resources */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">Resources</h3>
-            <ul className="space-y-3">
+            <h3 className="text-md font-semibold mb-4">Resources</h3>
+            <ul className="space-y-3 text-sm">
               <li><Link to={'/terms'} className="hover:underline">Terms of Service</Link></li>
               <li><Link to={'/privacy'} className="hover:underline">Privacy Policy</Link></li>
             </ul>

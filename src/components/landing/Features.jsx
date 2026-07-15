@@ -130,12 +130,14 @@ export default function Features(){
                   {/* Glowing border overlay */}
                   <div className={`absolute inset-0 border border-transparent rounded-[1.5rem] transition-all duration-300 ${f.glow}`} />
                   
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/5 text-primary-400 shadow-sm group-hover:bg-primary-500/15 transition-colors">
-                    <f.icon className="h-5 w-5" />
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/5 text-primary-400 shadow-sm group-hover:bg-primary-500/15 transition-colors">
+                      <f.icon className="h-[18px] w-[18px]" />
+                    </div>
+                    <h4 className="text-[15px] font-semibold text-white leading-tight">{f.title}</h4>
                   </div>
-                  <div className="mt-4 flex-1">
-                    <h4 className="text-sm font-semibold text-white">{f.title}</h4>
-                    <p className="mt-1.5 text-xs leading-5 text-[var(--muted)] font-light">{f.desc}</p>
+                  <div className="mt-3 flex-1">
+                    <p className="text-xs leading-5 text-[var(--muted)] font-light">{f.desc}</p>
                   </div>
                 </motion.div>
               </div>

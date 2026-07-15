@@ -352,3 +352,31 @@ body.dark img.object-cover {
   filter: none !important;
   opacity: 1 !important;
 }
+
+/* Custom floating/bobbing animations to replace Framer Motion repeat infinity */
+@keyframes bob-slow-1 {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+@keyframes bob-slow-2 {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-16px); }
+}
+
+@keyframes bob-slow-3 {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.animate-bob-1 {
+  animation: bob-slow-1 6s ease-in-out infinite;
+}
+
+.animate-bob-2 {
+  animation: bob-slow-2 8s ease-in-out infinite;
+}
+
+.animate-bob-3 {
+  animation: bob-slow-3 5s ease-in-out infinite;
+}
