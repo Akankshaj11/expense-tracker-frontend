@@ -11,6 +11,8 @@ import ManageOrganization from './pages/management/ManageOrganization'
 import Dashboard from './pages/dashboard/Dashboard'
 import AddTransaction from './pages/transactions/AddTransaction'
 import ModuleTransactions from './pages/transactions/ModuleTransactions'
+import BookTransactions from './pages/transactions/BookTransactions'
+import AllBooks from './pages/books/AllBooks'
 import Transactions from './pages/transactions/Transactions'
 import TermsOfService from './pages/landing/TermsOfService'
 import PrivacyPolicy from './pages/landing/PrivacyPolicy'
@@ -115,17 +117,8 @@ export default function App(){
     const handleStorageChange = () => {
       syncDocumentLanguage()
       const currentTheme = getThemeForCurrentUser()
-      const path = window.location.pathname
-      const isInnerRoute =
-        path === '/dashboard' ||
-        path === '/transactions' ||
-        path.startsWith('/module/') ||
-        path === '/manage-organization' ||
-        path.startsWith('/edit-transaction/') ||
-        path === '/add-transaction'
-      
       const body = document.body
-      if (isInnerRoute && currentTheme === 'dark') {
+      if (currentTheme === 'dark') {
         body.classList.remove('theme-light-violet')
         body.classList.add('dark')
       } else {
@@ -163,6 +156,8 @@ export default function App(){
             <Route path="/edit-transaction/:transactionId" element={<AddTransaction />} />
             <Route path="/transactions" element={<Transactions />} />
             <Route path="/module/:moduleName" element={<ModuleTransactions />} />
+            <Route path="/book-transactions/:bookName" element={<BookTransactions />} />
+            <Route path="/all-books" element={<AllBooks />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/terms" element={<TermsOfService />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
@@ -180,20 +175,10 @@ function ThemeRouterSync() {
   const location = useLocation()
 
   useEffect(() => {
-    const path = location.pathname
     const body = document.body
     const savedTheme = getThemeForCurrentUser()
 
-    const isInnerRoute =
-      path === '/dashboard' ||
-      path === '/transactions' ||
-      path.startsWith('/module/') ||
-      path === '/manage-organization' ||
-      path.startsWith('/edit-transaction/') ||
-      path === '/add-transaction' ||
-      (path === '/create-organization' && location.state?.from === '/dashboard')
-
-    if (isInnerRoute && savedTheme === 'dark') {
+    if (savedTheme === 'dark') {
       body.classList.remove('theme-light-violet')
       body.classList.add('dark')
     } else {
@@ -208,15 +193,10 @@ function ThemeRouterSync() {
 // Function: RenderFooterUnlessHome
 function RenderFooterUnlessHome() {
   const location = useLocation()
-  const path = location?.pathname
-  // Hide footer on home page, login page, register page, and all setup flows
-  if (
-    path === '/' ||
-    path === '/login' ||
-    path === '/register' ||
-    path === '/select-currency' ||
-    path === '/select-language' ||
-    path === '/create-organization'
-  ) return null
-  return <Footer />
+  const path = location?.pathname || ''
+  // Only render footer on dashboard, terms, and privacy pages
+  if (path === '/dashboard' || path === '/terms' || path === '/privacy') {
+    return <Footer />
+  }
+  return null
 }

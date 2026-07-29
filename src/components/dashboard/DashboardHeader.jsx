@@ -136,7 +136,7 @@ function OrganizationMenu({ activeOrgId, activeOrganization, organizations, orgM
                 >
                   <div>
                     <p className="text-sm font-light text-[var(--text)]">{organization.organizationName}</p>
-                    <p className="text-xs text-slate-500">{organization.description || text.noDescription}</p>
+                    <p className="text-xs text-slate-500">{(organization.description ? organization.description.split('|||')[0].trim() : '') || text.noDescription}</p>
                   </div>
                   {activeOrgId === organization.id ? <span className="rounded-full bg-primary-600 px-2 py-1 text-[10px] font-light text-white">{text.active}</span> : null}
                 </button>
@@ -456,7 +456,7 @@ export default function DashboardHeader({
       <div className="mx-auto max-w-7xl px-10 sm:px-12 lg:px-16">
         <div className="flex h-20 items-center justify-between gap-4">
           <Link to="/" className="flex items-center gap-3">
-            <img src={logo} alt="PocketFlow Logo" className="h-11 w-11 object-contain" />
+            <img src={logo} alt="PocketFlow Logo" className="h-8 w-8 object-contain" />
             <div>
               <div className="text-[18px] pt-1 text-blue-600 font-semibold">PocketFlow</div>
             </div>

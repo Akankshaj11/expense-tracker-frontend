@@ -35,11 +35,12 @@ import useLanguage from '../../hooks/useLanguage'
 import DashboardHeader from '../../components/dashboard/DashboardHeader'
 import DashboardHero from '../../components/dashboard/DashboardHero'
 import DashboardMetricCards from '../../components/dashboard/DashboardMetricCards'
-import DashboardModulesSection from '../../components/dashboard/DashboardModulesSection'
+import DashboardBooksSection from '../../components/dashboard/DashboardBooksSection'
 import DashboardRecentActivity from '../../components/dashboard/DashboardRecentActivity'
 import DashboardWorkspaceSummary from '../../components/dashboard/DashboardWorkspaceSummary'
 import DashboardEmptyState from '../../components/dashboard/DashboardEmptyState'
 import { persistOrganizationCurrency } from '../../utils/organizationPersistence'
+import { getBooksFromOrganization } from '../../utils/bookUtils'
 
 // Function: readJSON
 function readJSON(key, fallback) {
@@ -300,7 +301,7 @@ function buildRecentActivity(transactions, currency, locale = 'en-US', text = {}
         transaction,
         editPath: getTransactionEditPath(transaction),
         title: transaction.note?.trim() || fallbackTitle,
-        meta: `${capitalize(displayModule || (text.dashboard || 'Dashboard'))} · ${metaDate}`,
+        meta: metaDate,
         amount: amount >= 0 ? formatMoney(amount, currency, locale) : `-${formatMoney(Math.abs(amount), currency, locale)}`,
         tone: amount >= 0 ? 'text-emerald-600' : 'text-rose-600',
       }
@@ -340,7 +341,7 @@ export default function Dashboard() {
   const [transactionsRevision, setTransactionsRevision] = useState(0)
 
   const [showDownloadModal, setShowDownloadModal] = useState(false)
-  const [selectedReportModule, setSelectedReportModule] = useState('all')
+  const [selectedReportBook, setSelectedReportBook] = useState('all')
   const [downloadingReport, setDownloadingReport] = useState(false)
 
   useEffect(() => {
@@ -467,6 +468,28 @@ export default function Dashboard() {
   const moduleCards = buildModuleCards(activeOrganization, activeCurrency, activeOrganizationTransactions, language, locale)
   const recentActivity = buildRecentActivity(activeOrganizationTransactions, activeCurrency, locale, text, language)
 
+  const booksList = useMemo(() => {
+    return getBooksFromOrganization(activeOrganization)
+  }, [activeOrganization, organizations])
+
+  const bookBalances = useMemo(() => {
+    const balances = {}
+    booksList.forEach((b) => {
+      balances[b.name] = 0
+    })
+    activeOrganizationTransactions.forEach((t) => {
+      const bookName = t.book || 'Default Book'
+      const direction = getDashboardCardDirection(t)
+      const amount = Number(t.amount || 0)
+      if (direction === 'in') {
+        balances[bookName] = (balances[bookName] || 0) + amount
+      } else {
+        balances[bookName] = (balances[bookName] || 0) - amount
+      }
+    })
+    return balances
+  }, [booksList, activeOrganizationTransactions, getDashboardCardDirection])
+
   const inAmountValue = activeOrganizationTransactions.reduce((sum, transaction) => {
     return getDashboardCardDirection(transaction) === 'in' ? sum + Math.abs(Number(transaction?.amount || 0)) : sum
   }, 0)
@@ -579,18 +602,13 @@ export default function Dashboard() {
       let response
       let filename = ''
       
-      if (selectedReportModule === 'all') {
-        response = await authenticatedFetch(`/dashboard/report?organizationId=${encodeURIComponent(activeOrganization.id)}`, {
-          method: 'GET',
-        })
-        filename = `workspace-report-${activeOrganization?.organizationName || 'report'}.pdf`
-      } else {
-        response = await authenticatedFetch(
-          `/transactions/report?organizationId=${encodeURIComponent(activeOrganization.id)}&module=${encodeURIComponent(selectedReportModule)}`,
-          { method: 'GET' }
-        )
-        filename = `${selectedReportModule.toLowerCase()}-report-${activeOrganization?.organizationName || 'report'}.pdf`
-      }
+      const bookQuery = selectedReportBook && selectedReportBook !== 'all' ? `&book=${encodeURIComponent(selectedReportBook)}` : ''
+      const bookSuffix = selectedReportBook && selectedReportBook !== 'all' ? `-${selectedReportBook.toLowerCase().replace(/\s+/g, '_')}` : ''
+
+      response = await authenticatedFetch(`/dashboard/report?organizationId=${encodeURIComponent(activeOrganization.id)}${bookQuery}`, {
+        method: 'GET',
+      })
+      filename = `workspace-report-${activeOrganization?.organizationName || 'report'}${bookSuffix}.pdf`
 
       if (!response.ok) {
         if (response.status === 401) {
@@ -640,7 +658,6 @@ export default function Dashboard() {
     { kind: 'revenue', label: text.in, value: inAmount, accent: 'text-emerald-600' },
     { kind: 'expenses', label: text.out, value: outAmount, accent: 'text-rose-600' },
   ]
-
   return (
     <div className="theme-light-violet min-h-screen text-[var(--text)]">
       <DashboardHeader
@@ -690,13 +707,14 @@ export default function Dashboard() {
               locale={locale}
             />
 
-            <DashboardModulesSection
+            <DashboardBooksSection
               text={text}
-              moduleCards={moduleCards}
               activeOrganization={activeOrganization}
               organizations={organizations}
               setOrganizations={setOrganizations}
-              onModuleClick={(moduleLabel) => navigate(`/module/${encodeURIComponent(moduleLabel)}`)}
+              bookBalances={bookBalances}
+              selectedCurrency={activeCurrency}
+              locale={locale}
             />
 
             <section className="mt-8 grid gap-6 lg:grid-cols-[1.5fr_1fr]">
@@ -706,7 +724,10 @@ export default function Dashboard() {
                 activeOrganization={activeOrganization}
                 activeCurrency={activeCurrency}
                 moduleCards={moduleCards}
-                onDownloadReport={() => setShowDownloadModal(true)}
+                onDownloadReport={() => {
+                  setSelectedReportBook('all')
+                  setShowDownloadModal(true)
+                }}
               />
             </section>
           </>
@@ -738,26 +759,30 @@ export default function Dashboard() {
                   Select which report you want to download for {activeOrganization?.organizationName}.
                 </p>
               </div>
-
-              <form onSubmit={handleDownloadReportSubmit} className="space-y-4">
-                <div>
-                  <label htmlFor="report-module" className="block text-sm font-light text-slate-700 mb-2">
-                    Report Type
-                  </label>
-                  <select
-                    id="report-module"
-                    value={selectedReportModule}
-                    onChange={(e) => setSelectedReportModule(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-white/6 bg-[var(--card)] text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
-                  >
-                    <option value="all">All Modules (Workspace Summary)</option>
-                    {activeOrganization?.modules?.map((module) => (
-                      <option key={module.name} value={module.name}>
-                        {module.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <form onSubmit={handleDownloadReportSubmit} className="space-y-4">
+                {activeOrganization?.books && activeOrganization.books.length > 0 && (
+                  <div>
+                    <label htmlFor="report-book" className="block text-sm font-light text-slate-700 mb-2">
+                      Report Scope
+                    </label>
+                    <select
+                      id="report-book"
+                      value={selectedReportBook}
+                      onChange={(e) => setSelectedReportBook(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl border border-white/6 bg-[var(--card)] text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+                    >
+                      <option value="all">Entire Organization (All Books)</option>
+                      {activeOrganization.books.map((book) => {
+                        const bookName = typeof book === 'string' ? book : (book?.name || '');
+                        return (
+                          <option key={bookName} value={bookName}>
+                            {bookName}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+                )}
 
                 <div className="flex gap-3 pt-2">
                   <button

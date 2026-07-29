@@ -40,114 +40,29 @@ export default function CreateOrganization() {
   const { language, text } = useLanguage()
   const [organizationName, setOrganizationName] = useState('')
   const [description, setDescription] = useState('')
-  const [selectedModules, setSelectedModules] = useState(defaultSelectedModules)
-  const [customCards, setCustomCards] = useState(() => [createCustomCard()])
-
-  const [submodules, setSubmodules] = useState(() => ({
-    ...createEmptyModuleState(),
-    Revenue: [...revenueModules],
-    Expenses: [...expenseModules],
-    Investments: [...investmentModules],
-    'Investment Returns': [...investmentModules],
-    Lend: ['Friends', 'Family', 'Colleagues'],
-    Borrow: ['Friends', 'Family', 'Colleagues'],
-  }))
-  const [submoduleDrafts, setSubmoduleDrafts] = useState(() => createEmptyDraftState())
+  const [books, setBooks] = useState([])
+  const [newBookName, setNewBookName] = useState('')
   const [error, setError] = useState('')
 
-  const moduleItems = useMemo(() => MODULE_LIST.filter((module) => module !== 'custom'), [])
   const backPath = location.state?.from || '/select-language'
 
-  const toggleModule = (module) => {
-    setSelectedModules((current) => {
-      if (current.includes(module)) {
-        return current.filter((item) => item !== module)
-      }
-      return [...current, module]
-    })
-  }
-
-  const allSelected = moduleItems.every((module) => selectedModules.includes(module))
-
-  const toggleSelectAll = () => {
-    if (allSelected) {
-      setSelectedModules([])
-    } else {
-      setSelectedModules(moduleItems)
+  const handleAddBook = (e) => {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
     }
-  }
-
-  const toggleCustomCard = (index) => {
-    setCustomCards((current) => {
-      const nextCards = current.map((card, cardIndex) => (
-        cardIndex === index ? { ...card, checked: !card.checked } : card
-      ))
-
-      if (!nextCards[index].checked) {
-        return nextCards.slice(0, index + 1)
-      }
-
-      if (index === nextCards.length - 1) {
-        return [...nextCards, createCustomCard()]
-      }
-
-      return nextCards
-    })
-  }
-
-  const updateCustomCard = (index, key, value) => {
-    setCustomCards((current) => current.map((card, cardIndex) => (
-      cardIndex === index ? { ...card, [key]: value } : card
-    )))
-  }
-
-  const addCustomCardSubmodule = (index) => {
-    setCustomCards((current) => current.map((card, cardIndex) => {
-      if (cardIndex !== index) {
-        return card
-      }
-
-      const nextSubmodule = card.submoduleDraft.trim()
-      if (!nextSubmodule) {
-        return card
-      }
-
-      if (card.submodules.includes(nextSubmodule)) {
-        return { ...card, submoduleDraft: '' }
-      }
-
-      return {
-        ...card,
-        submodules: [...card.submodules, nextSubmodule],
-        submoduleDraft: '',
-      }
-    }))
-  }
-
-  const removeCustomCardSubmodule = (index, value) => {
-    setCustomCards((current) => current.map((card, cardIndex) => (
-      cardIndex === index
-        ? { ...card, submodules: card.submodules.filter((item) => item !== value) }
-        : card
-    )))
-  }
-
-  const addSubmodule = (module) => {
-    const draft = submoduleDrafts[module]?.trim()
-    if (!draft) return
-
-    setSubmodules((current) => ({
-      ...current,
-      [module]: current[module].includes(draft) ? current[module] : [...current[module], draft],
-    }))
-    setSubmoduleDrafts((current) => ({ ...current, [module]: '' }))
-  }
-
-  const removeSubmodule = (module, value) => {
-    setSubmodules((current) => ({
-      ...current,
-      [module]: current[module].filter((item) => item !== value),
-    }))
+    const name = newBookName.trim()
+    if (!name) {
+      setError('Book name is required')
+      return
+    }
+    if (books.some((b) => b.name.toLowerCase() === name.toLowerCase())) {
+      setError('A book with this name already exists')
+      return
+    }
+    setBooks([...books, { name, createdAt: new Date().toISOString() }])
+    setNewBookName('')
+    setError('')
   }
 
   const handleCreateOrganization = async (e) => {
@@ -155,101 +70,54 @@ export default function CreateOrganization() {
     setError('')
 
     if (!organizationName.trim()) {
-      setError(text.organizationNameRequired)
+      setError(text.organizationNameRequired || 'Organization name is required')
       return
     }
 
-    const missingSubmoduleModules = selectedModules.filter((module) => submodules[module].length === 0)
-    if (missingSubmoduleModules.length > 0) {
-      const readableModules = missingSubmoduleModules.map((module) => translateModuleLabel(language, module)).join(', ')
-      setError(translateText(language, 'addAtLeastOneSubmoduleUnder', { modules: readableModules }))
+    if (books.length === 0) {
+      setError('At least one book is required')
       return
     }
 
-    const checkedCustomCards = customCards.filter((card) => card.checked)
-    const customNameErrors = checkedCustomCards.filter((card) => !card.name.trim())
-    if (customNameErrors.length > 0) {
-      setError(text.customModuleNameRequired)
-      return
+    const defaultModulesData = [
+      { name: 'Revenue', direction: 'in', transactionType: 'in', moduleType: 'in', isCustom: false, submodules: ['Salary', 'Freelance', 'Bonus', 'Interest', 'Commission', 'Pocket Money'] },
+      { name: 'Expenses', direction: 'out', transactionType: 'out', moduleType: 'out', isCustom: false, submodules: ['Food', 'Travel', 'Shopping', 'Bills', 'Health', 'Entertainment', 'Education', 'Rent', 'Subscriptions', 'Loans', 'Taxes'] },
+      { name: 'Investments', direction: 'out', transactionType: 'out', moduleType: 'out', isCustom: false, submodules: ['Mutual Funds', 'Stocks', 'Crypto', 'Fixed Deposit', 'Gold'] },
+      { name: 'Investment Returns', direction: 'in', transactionType: 'in', moduleType: 'in', isCustom: false, submodules: ['Mutual Funds', 'Stocks', 'Crypto', 'Fixed Deposit', 'Gold'] },
+      { name: 'Lend', direction: 'out', transactionType: 'out', moduleType: 'out', isCustom: false, submodules: ['Friends', 'Family', 'Colleagues'] },
+      { name: 'Borrow', direction: 'in', transactionType: 'in', moduleType: 'in', isCustom: false, submodules: ['Friends', 'Family', 'Colleagues'] },
+    ]
+
+    const submodulesData = {
+      Revenue: ['Salary', 'Freelance', 'Bonus', 'Interest', 'Commission', 'Pocket Money'],
+      Expenses: ['Food', 'Travel', 'Shopping', 'Bills', 'Health', 'Entertainment', 'Education', 'Rent', 'Subscriptions', 'Loans', 'Taxes'],
+      Investments: ['Mutual Funds', 'Stocks', 'Crypto', 'Fixed Deposit', 'Gold'],
+      'Investment Returns': ['Mutual Funds', 'Stocks', 'Crypto', 'Fixed Deposit', 'Gold'],
+      Lend: ['Friends', 'Family', 'Colleagues'],
+      Borrow: ['Friends', 'Family', 'Colleagues'],
     }
 
-    const customSubmoduleErrors = checkedCustomCards.filter((card) => card.submodules.length === 0)
-    if (customSubmoduleErrors.length > 0) {
-      const readableModules = customSubmoduleErrors.map((card) => card.name.trim()).filter(Boolean).join(', ')
-      setError(translateText(language, 'addAtLeastOneSubmoduleUnder', { modules: readableModules }))
-      return
-    }
-
-    const selectedModuleNames = new Set(selectedModules.map((module) => module.trim().toLowerCase()))
-    const customNames = new Set()
-    const duplicateCustomModule = checkedCustomCards.find((card) => {
-      const normalizedName = card.name.trim().toLowerCase()
-      if (!normalizedName) {
-        return false
-      }
-
-      if (selectedModuleNames.has(normalizedName) || customNames.has(normalizedName)) {
-        return true
-      }
-
-      customNames.add(normalizedName)
-      return false
-    })
-
-    if (duplicateCustomModule) {
-      setError(text.moduleNameAlreadyExists)
-      return
-    }
-
-    const activeModules = selectedModules.map((module) => {
-      if (module === 'Investment Returns') {
-        return {
-          name: module,
-          transactionType: 'in',
-          moduleType: 'in',
-          direction: 'in',
-          isCustom: false,
-          submodules: submodules[module] || [],
-        }
-      }
-      
-      let direction = 'in'
-      if (['Expenses', 'Investments', 'Lend'].includes(module)) {
-        direction = 'out'
-      }
-
-      return {
-        name: module,
-        direction,
-        transactionType: direction,
-        moduleType: direction,
-        isCustom: false,
-        submodules: submodules[module] || [],
-      }
-    })
-
-    const customModules = checkedCustomCards.map((card) => ({
-      name: card.name.trim(),
-      transactionType: card.transactionType,
-      moduleType: card.transactionType,
-      direction: card.transactionType,
-      isCustom: true,
-      submodules: card.submodules,
-    }))
-
-    if (activeModules.length === 0 && customModules.length === 0) {
-      setError(text.pleaseSelectAtLeastOneModule)
-      return
-    }
+    const serializedBooks = JSON.stringify(books.map((b) => ({
+      name: b.name,
+      description: "",
+      modules: defaultModulesData.map((m) => ({
+        name: m.name,
+        type: m.direction,
+        submodules: m.submodules,
+      })),
+      createdAt: b.createdAt || new Date().toISOString(),
+      updatedAt: b.updatedAt || new Date().toISOString(),
+    })))
+    const finalDescription = description.trim() + " ||| " + serializedBooks
 
     const selectedCurrency = JSON.parse(localStorage.getItem('selectedCurrency') || 'null')
 
     const organizationPayload = {
       organizationName: organizationName.trim(),
-      description: description.trim(),
+      description: finalDescription,
       currency: selectedCurrency,
-      modules: [...activeModules, ...customModules],
-      submodules,
+      modules: defaultModulesData,
+      submodules: submodulesData,
     }
 
     let savedOrganization = null
@@ -290,6 +158,7 @@ export default function CreateOrganization() {
     localStorage.setItem('organizations', JSON.stringify([...normalizedExistingOrganizations, organization]))
     localStorage.setItem('activeOrgId', organization.id)
     localStorage.setItem('organization', JSON.stringify(organization))
+    localStorage.setItem(`activeBookName_${organization.id}`, books[0].name)
     navigate('/dashboard')
   }
 
@@ -348,260 +217,80 @@ export default function CreateOrganization() {
               </div>
             </div>
 
-            <div>
-              <div className="mb-3 flex items-center justify-between">
-                <label className="block text-sm font-light text-slate-700">{text.selectModulesTitle}</label>
+            <div className="border-t border-slate-100 pt-6">
+              <div className="mb-4 flex items-center justify-between">
+                <label className="block text-sm font-semibold text-slate-700">
+                  Books <span className="text-xs font-light text-rose-500">(At least 1 required)</span>
+                </label>
+              </div>
+
+              <div className="flex gap-3 mb-4">
+                <input
+                  type="text"
+                  value={newBookName}
+                  onChange={(e) => setNewBookName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      handleAddBook(e)
+                    }
+                  }}
+                  placeholder="Enter book name (e.g. Personal, Business)"
+                  className="w-full rounded-xl border border-white/6 bg-[var(--card)] px-4 py-2.5 text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 input-glass"
+                />
                 <button
                   type="button"
-                  onClick={toggleSelectAll}
-                  className={`inline-flex h-9 w-9 items-center justify-center border transition ${allSelected ? 'border-primary-200 bg-primary-100 text-primary-700 shadow-sm' : 'border-transparent bg-transparent text-primary-600 hover:border-primary-100 hover:bg-primary-50'}`}
-                  aria-label={allSelected ? text.deselectAllModules : text.selectAllModules}
+                  onClick={handleAddBook}
+                  className="inline-flex items-center gap-2 rounded-xl bg-primary-600 px-5 py-2.5 text-sm font-medium text-white shadow-md hover:bg-primary-700 transition shrink-0"
                 >
-                  {allSelected ? (
-                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-5 w-5">
-                      <rect x="4" y="4" width="16" height="16" rx="1" stroke="currentColor" strokeWidth="1.6" />
-                      <path d="M8 12.5l2.2 2.2L16.5 8.4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  ) : (
-                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-5 w-5">
-                      <rect x="4" y="4" width="16" height="16" rx="1" stroke="currentColor" strokeWidth="1.6" />
-                    </svg>
-                  )}
+                  <PlusIcon className="h-4 w-4" />
+                  Add Book
                 </button>
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-3">
-                {moduleItems.map((module) => {
-                  const isSelected = selectedModules.includes(module)
-                  const draftValue = submoduleDrafts[module]
-                  const moduleSubmodules = submodules[module]
-
-                  return (
-                    <div
-                      key={module}
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => toggleModule(module)}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter' || event.key === ' ') {
-                          event.preventDefault()
-                          toggleModule(module)
-                        }
-                      }}
-                      className={`relative rounded-xl border p-4 transition ${isSelected ? 'border-primary-500 bg-primary-50' : 'border-white/6 bg-[var(--card)]'} cursor-pointer`}
-                    >
-                      <div className="flex items-start justify-between gap-3 pr-8">
-                        <div onClick={(event) => event.stopPropagation()}>
-                          <p className="text-base font-light capitalize text-[var(--text)]">{translateModuleLabel(language, module)}</p>
+              {books.length === 0 ? (
+                <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 p-8 text-center bg-slate-50/50">
+                  <svg fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-10 h-10 text-slate-400 mb-2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
+                  </svg>
+                  <span className="text-sm font-light text-slate-500">No books added yet</span>
+                </div>
+              ) : (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {books.map((book, index) => (
+                    <div key={index} className="flex items-center justify-between rounded-xl border border-white/6 bg-[var(--card)] p-3 shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="rounded-lg bg-primary-50 p-2 text-primary-600">
+                          <svg fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-5 h-5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
+                          </svg>
                         </div>
-
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => toggleModule(module)}
-                          onClick={(event) => event.stopPropagation()}
-                          className="absolute right-4 top-4 h-5 w-5 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
-                        />
+                        <span className="text-sm font-medium text-[var(--text)]">{book.name}</span>
                       </div>
-
-                      {isSelected ? (
-                        <div className="mt-3">
-                          <div className="flex gap-2">
-                            <input
-                              type="text"
-                              value={draftValue}
-                              onChange={(e) => setSubmoduleDrafts((current) => ({ ...current, [module]: e.target.value }))}
-                              onKeyDown={(event) => {
-                                event.stopPropagation()
-                                if (event.key === 'Enter') {
-                                  event.preventDefault()
-                                  addSubmodule(module)
-                                }
-                              }}
-                              onClick={(event) => event.stopPropagation()}
-                              className="w-full rounded-xl border border-white/6 bg-[var(--card)] px-4 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
-                              placeholder={translateText(language, 'addSubmoduleFor', { module: translateModuleLabel(language, module) })}
-                            />
-                            <button
-                              type="button"
-                              onMouseDown={(event) => event.stopPropagation()}
-                              onClick={(event) => {
-                                event.stopPropagation()
-                                addSubmodule(module)
-                              }}
-                              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary-200 bg-primary-50 text-primary-600 transition hover:bg-primary-100"
-                              aria-label={translateText(language, 'addSubmoduleTo', { module: translateModuleLabel(language, module) })}
-                            >
-                              <PlusIcon className="h-4 w-4" />
-                            </button>
-                          </div>
-
-                          {moduleSubmodules.length > 0 ? (
-                            <div className="no-scrollbar mt-3 overflow-x-auto pb-1">
-                              <div className="flex w-max gap-2 pr-2">
-                                {moduleSubmodules.map((item) => (
-                                  <span key={item} className="inline-flex shrink-0 items-center gap-2 rounded-full bg-[var(--card)] px-3 py-1.5 text-xs font-light text-slate-700 shadow-sm ring-1 ring-slate-200">
-                                    {translateSubmoduleLabel(language, item)}
-                                    <button
-                                      type="button"
-                                      onClick={(event) => {
-                                        event.stopPropagation()
-                                        removeSubmodule(module, item)
-                                      }}
-                                      onMouseDown={(event) => event.stopPropagation()}
-                                      className="text-slate-400 transition hover:text-red-500"
-                                      aria-label={translateText(language, 'removeSubmoduleFrom', { item, module: translateModuleLabel(language, module) })}
-                                    >
-                                      ×
-                                    </button>
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          ) : null}
-                        </div>
-                      ) : null}
+                      <button
+                        type="button"
+                        onClick={() => setBooks(books.filter((_, i) => i !== index))}
+                        className="rounded-lg p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition"
+                        aria-label="Delete book"
+                      >
+                        <svg fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-5 h-5">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                        </svg>
+                      </button>
                     </div>
-                  )
-                })}
-
-                {customCards.map((card, index) => {
-                  return (
-                    <div
-                      key={card.id}
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => toggleCustomCard(index)}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter' || event.key === ' ') {
-                          event.preventDefault()
-                          toggleCustomCard(index)
-                        }
-                      }}
-                      className={`relative rounded-xl border p-4 transition ${card.checked ? 'border-primary-500 bg-primary-50' : 'border-white/6 bg-[var(--card)]'} cursor-pointer`}
-                    >
-                      <div className="flex items-start justify-between gap-3 pr-8">
-                        <div onClick={(event) => event.stopPropagation()}>
-                          <div className="space-y-4">
-                            <div className="inline-flex max-w-[200px] rounded-xl border-2 border-dashed border-primary-300 bg-primary-50/70 px-2 py-1 transition focus-within:border-primary-500 focus-within:bg-[var(--card)]">
-                              <input
-                                type="text"
-                                value={card.name}
-                                onChange={(event) => updateCustomCard(index, 'name', event.target.value)}
-                                className="w-full bg-transparent px-1 text-sm font-light text-[var(--text)] outline-none placeholder:text-slate-400"
-                                placeholder={text.customModulePlaceholder}
-                              />
-                            </div>
-
-                            {card.checked ? (
-                              <div className="space-y-2">
-                                <p className="my-0 text-xs font-light uppercase tracking-[0.16em] text-slate-500">Module Type</p>
-                                <div className="flex gap-2">
-                                  {[
-                                    { value: 'in', label: 'In', selectedClass: 'border-emerald-500 bg-emerald-500 text-white shadow-sm' },
-                                    { value: 'out', label: 'Out', selectedClass: 'border-red-500 bg-red-500 text-white shadow-sm' },
-                                  ].map((item) => {
-                                    const isActive = card.transactionType === item.value
-
-                                    return (
-                                      <button
-                                        key={item.value}
-                                        type="button"
-                                        onClick={() => updateCustomCard(index, 'transactionType', item.value)}
-                                        className={`inline-flex items-center justify-center rounded-full border px-3 py-1.5 text-[10px] font-medium uppercase tracking-[0.14em] transition ${isActive ? item.selectedClass : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'}`}
-                                      >
-                                        {item.label}
-                                      </button>
-                                    )
-                                  })}
-                                </div>
-                              </div>
-                            ) : null}
-                          </div>
-                        </div>
-
-                        <input
-                          type="checkbox"
-                          checked={card.checked}
-                          onChange={() => toggleCustomCard(index)}
-                          onClick={(event) => event.stopPropagation()}
-                          className="absolute right-4 top-4 h-5 w-5 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
-                        />
-                      </div>
-
-                      {card.checked ? (
-                        <div className="mt-3">
-                          <div className="flex gap-2">
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="text"
-                                value={card.submoduleDraft}
-                                onChange={(event) => updateCustomCard(index, 'submoduleDraft', event.target.value)}
-                                onKeyDown={(event) => {
-                                  event.stopPropagation()
-                                  if (event.key === 'Enter') {
-                                    event.preventDefault()
-                                    addCustomCardSubmodule(index)
-                                  }
-                                }}
-                                onClick={(event) => event.stopPropagation()}
-                                className="w-full rounded-xl border border-white/6 bg-[var(--card)] px-4 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
-                                placeholder={text.addSubmoduleForCustom}
-                              />
-                              <button
-                                type="button"
-                                onMouseDown={(event) => event.stopPropagation()}
-                                onClick={(event) => {
-                                  event.stopPropagation()
-                                  addCustomCardSubmodule(index)
-                                }}
-                                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary-200 bg-primary-50 text-primary-600 transition hover:bg-primary-100"
-                                aria-label={translateText(language, 'addSubmoduleTo', { module: card.name.trim() || text.customModulePlaceholder })}
-                              >
-                                <PlusIcon className="h-4 w-4" />
-                              </button>
-                            </div>
-                          </div>
-
-                          {card.submodules.length > 0 ? (
-                            <div className="no-scrollbar mt-3 overflow-x-auto pb-1">
-                              <div className="flex w-max gap-2 pr-2">
-                                {card.submodules.map((item) => (
-                                  <span key={item} className="inline-flex shrink-0 items-center gap-2 rounded-full bg-[var(--card)] px-3 py-1.5 text-xs font-light text-slate-700 shadow-sm ring-1 ring-slate-200">
-                                    {translateSubmoduleLabel(language, item)}
-                                    <button
-                                      type="button"
-                                      onClick={(event) => {
-                                        event.stopPropagation()
-                                        removeCustomCardSubmodule(index, item)
-                                      }}
-                                      onMouseDown={(event) => event.stopPropagation()}
-                                      className="text-slate-400 transition hover:text-red-500"
-                                      aria-label={translateText(language, 'removeSubmoduleFrom', { item, module: card.name.trim() || text.customModulePlaceholder })}
-                                    >
-                                      ×
-                                    </button>
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          ) : null}
-                        </div>
-                      ) : null}
-                    </div>
-                  )
-                })}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+            <div className="flex flex-col gap-3 sm:flex-row sm:justify-end pt-4">
               <button
                 type="submit"
                 className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-primary-500 to-primary-600 px-6 py-3 text-sm font-light text-white shadow-lg shadow-primary-500/25 transition hover:-translate-y-0.5"
               >
-                {text.createOrganizationButton}
+                {text.createOrganizationButton || 'Create Organization'}
                 <PlusIcon className="h-4 w-4" />
               </button>
             </div>

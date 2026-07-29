@@ -210,6 +210,10 @@ body.dark .theme-light-violet {
 }
 
 body.dark .bg-white,
+body.dark .bg-white\/80,
+body.dark .bg-white\/70,
+body.dark .bg-white\/90,
+body.dark .bg-white\/75,
 body.dark .bg-\[var\(--card\)\] {
   background-color: var(--card) !important;
 }
@@ -220,7 +224,10 @@ body.dark .bg-slate-200 {
   background-color: var(--bg-2) !important;
 }
 
-body.dark .bg-slate-50\/80 {
+body.dark .bg-slate-50\/80,
+body.dark .bg-slate-50\/50,
+body.dark .bg-slate-50\/30,
+body.dark .bg-slate-50\/40 {
   background-color: rgba(24, 24, 27, 0.85) !important;
 }
 
@@ -263,6 +270,7 @@ body.dark .text-primary-700 {
 }
 
 /* Adjust borders and shadows for dark mode */
+body.dark .border-slate-100,
 body.dark .border-slate-200,
 body.dark .border-white\/6,
 body.dark .border-white\/70,

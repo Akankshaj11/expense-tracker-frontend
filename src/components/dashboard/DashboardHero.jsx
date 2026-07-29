@@ -25,7 +25,11 @@ export default function DashboardHero({ text, firstName, activeOrganization, lan
           <p className="max-w-2xl text-base leading-7 text-[var(--muted)]">
             {translateText(language, 'viewingWorkspace', {
               org: activeOrganization?.organizationName || 'your workspace',
-              desc: activeOrganization?.description ? ` · ${activeOrganization.description}` : '',
+              desc: (() => {
+                const raw = activeOrganization?.description || ''
+                const clean = raw.split('|||')[0].trim()
+                return ` · ${clean || 'no description'}`
+              })(),
             })}
           </p>
         </div>
@@ -33,19 +37,13 @@ export default function DashboardHero({ text, firstName, activeOrganization, lan
         <div className="flex flex-col sm:flex-row gap-3">
           <button
             type="button"
-            onClick={onAddTransaction}
-            className="inline-flex items-center justify-center w-full sm:w-auto gap-2 rounded-full accent-cta px-5 py-3 text-sm font-light transition hover:-translate-y-0.5"
+            onClick={() => {
+              window.dispatchEvent(new Event('dashboard:add-book'))
+            }}
+            className="inline-flex items-center justify-center w-full sm:w-auto gap-2 rounded-full bg-primary-600 hover:bg-primary-700 text-white shadow-lg shadow-primary-500/25 px-5 py-3 text-sm font-light transition hover:-translate-y-0.5"
           >
-            {text.addTransaction}
+            {text.addBook || 'Add Book'}
             <PlusIcon className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={onManageOrganization}
-            className="inline-flex items-center justify-center w-full sm:w-auto gap-2 rounded-full border border-white/6 bg-[var(--card)] px-5 py-3 text-sm font-light text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-          >
-            {text.manageOrganization}
-            <BuildingOffice2Icon className="h-4 w-4" />
           </button>
         </div>
       </div>

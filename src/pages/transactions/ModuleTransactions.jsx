@@ -6,6 +6,7 @@ import { ArrowLeftIcon, PaperClipIcon, TagIcon, XMarkIcon, ArrowDownTrayIcon, Pl
 import { authenticatedFetch } from '../../utils/api'
 import { loadOrganizationsFromBackend, readCachedOrganizations, loadTransactionsFromBackend } from '../../utils/organizationSync'
 import translations, { translateText, getLocale, translateModuleLabel, translateSubmoduleLabel } from '../../i18n/translations'
+import useLanguage from '../../hooks/useLanguage'
 
 // Read JSON from localStorage
 // Function: readJSON
@@ -135,7 +136,6 @@ export default function ModuleTransactions() {
   const { moduleName: encodedModuleName } = useParams()
   const moduleName = decodeURIComponent(encodedModuleName || '')
   const [organizations, setOrganizations] = useState(() => readCachedOrganizations())
-  const [language, setLanguage] = useState(() => localStorage.getItem('selectedLanguage') || 'en')
   
   // Reload organizations from localStorage on component mount to ensure fresh data
   useEffect(() => {
@@ -156,25 +156,14 @@ export default function ModuleTransactions() {
     const [attachmentCache, setAttachmentCache] = useState(() => readJSON('attachments', []))
 
   useEffect(() => {
-    // Function: handleLanguageChanged
-    const handleLanguageChanged = (event) => {
-      // Function: newLanguage
-      const newLanguage = (event && event.detail && event.detail.language) || localStorage.getItem('selectedLanguage') || 'en'
-      setLanguage(newLanguage)
-    }
-
     // Function: handleStorage
     const handleStorage = (event) => {
-      if (event.key === 'selectedLanguage') {
-        setLanguage(event.newValue || 'en')
-      }
       if (event.key === 'transactions' || event.key === 'attachments') {
         setTransactions(readJSON('transactions', []))
         setAttachmentCache(readJSON('attachments', []))
       }
     }
 
-    window.addEventListener('language:changed', handleLanguageChanged)
     window.addEventListener('storage', handleStorage)
 
     // Listen for app-level transactions updates
@@ -187,7 +176,6 @@ export default function ModuleTransactions() {
     window.addEventListener('transactions:updated', updateTransactionsFromStorage)
 
     return () => {
-      window.removeEventListener('language:changed', handleLanguageChanged)
       window.removeEventListener('storage', handleStorage)
       window.removeEventListener('transactions:updated', updateTransactionsFromStorage)
     }
@@ -203,7 +191,7 @@ export default function ModuleTransactions() {
 
   const activeOrganization = organizations.find((item) => item.id === activeOrgId) || organizations[0] || null
   const selectedCurrency = activeOrganization?.currency || readJSON('selectedCurrency', { code: 'USD', symbol: '$' })
-  const text = translations[language] || translations.en
+  const { language, text } = useLanguage()
   const locale = getLocale(language)
   const [selectedDate, setSelectedDate] = useState(getTodayDate())
   const [previewAttachment, setPreviewAttachment] = useState(null)
@@ -238,15 +226,23 @@ export default function ModuleTransactions() {
     const name = transaction.attachmentName || transaction.attachment?.name
     const type = transaction.attachmentType || transaction.attachment?.type
 
-    if (dataUrl) {
+    if (dataUrl && dataUrl !== 'None' && dataUrl !== 'null') {
       return {
-        name,
-        type,
+        name: (name === 'None' || name === 'null' || !name) ? 'Attachment' : name,
+        type: (type === 'None' || type === 'null' || !type) ? '' : type,
         dataUrl,
       }
     }
 
-    return attachmentCache.find((item) => item.transactionId === transaction.id) || null
+    const cached = attachmentCache.find((item) => item.transactionId === (transaction.id || transaction._id))
+    if (cached && cached.dataUrl && cached.dataUrl !== 'None' && cached.dataUrl !== 'null') {
+      return {
+        name: (cached.name === 'None' || cached.name === 'null' || !cached.name) ? 'Attachment' : cached.name,
+        type: (cached.type === 'None' || cached.type === 'null' || !cached.type) ? '' : cached.type,
+        dataUrl: cached.dataUrl,
+      }
+    }
+    return null
   }
 
   // Function: handleDownloadPDF
@@ -390,25 +386,28 @@ export default function ModuleTransactions() {
                     </div>
                     <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-[var(--muted)]">
                       {transaction.note ? <span className="rounded-full bg-[var(--card)] px-3 py-1.5 ring-1 ring-slate-200">{transaction.note}</span> : null}
-                      {(transaction.attachmentName || transaction.attachment?.name) ? (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const preview = resolveAttachmentPreview(transaction)
-                            setPreviewAttachment({
-                              ...transaction,
-                              attachmentName: transaction.attachmentName || transaction.attachment?.name,
-                              attachmentType: transaction.attachmentType || transaction.attachment?.type,
-                              attachmentDataUrl: transaction.attachmentDataUrl || transaction.attachment?.url || transaction.attachment?.dataUrl,
-                              ...preview,
-                            })
-                          }}
-                          className="inline-flex items-center gap-2 rounded-full bg-[var(--card)] px-3 py-1.5 ring-1 ring-slate-200 transition hover:bg-primary-50 hover:text-primary-700"
-                        >
-                          <PaperClipIcon className="h-4 w-4 text-slate-500" />
-                          {transaction.attachmentName || transaction.attachment?.name}
-                        </button>
-                      ) : null}
+                      {(() => {
+                        const att = resolveAttachmentPreview(transaction)
+                        if (!att) return null
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPreviewAttachment({
+                                ...transaction,
+                                attachmentName: att.name,
+                                attachmentType: att.type,
+                                attachmentDataUrl: att.dataUrl,
+                                ...att,
+                              })
+                            }}
+                            className="inline-flex items-center gap-2 rounded-full bg-[var(--card)] px-3 py-1.5 ring-1 ring-slate-200 transition hover:bg-primary-50 hover:text-primary-700"
+                          >
+                            <PaperClipIcon className="h-4 w-4 text-slate-500" />
+                            {att.name}
+                          </button>
+                        )
+                      })()}
                     </div>
                   </motion.div>
                 ))

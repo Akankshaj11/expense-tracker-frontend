@@ -26,6 +26,7 @@ import translations, {
   translateModuleLabel,
   translateSubmoduleLabel,
 } from '../../i18n/translations'
+import useLanguage from '../../hooks/useLanguage'
 
 // Return current HH:MM time
 // Function: getCurrentTimeValue
@@ -60,30 +61,22 @@ export default function AddTransaction() {
   const organizationModules = Array.isArray(activeOrganization?.modules) ? activeOrganization.modules : []
   const selectedCurrency = activeOrganization?.currency || readJSON('selectedCurrency', { code: 'USD', symbol: '$' })
   const isEditMode = Boolean(transactionId)
-  const [language, setLanguage] = useState(() => localStorage.getItem('selectedLanguage') || 'en')
-  const text = translations[language] || translations.en
+  const { language, text } = useLanguage()
   const locale = getLocale(language)
   const location = useLocation()
-  const preselectedModuleFromLocation = isEditMode ? '' : String(location?.state?.preselectedModule || '').trim()
-  const preselectedModuleData = preselectedModuleFromLocation
-    ? organizationModules.find((module) => String(module.name) === preselectedModuleFromLocation) ||
-    organizationModules.find((module) => translateModuleLabel(language, module.name) === preselectedModuleFromLocation) ||
-    null
-    : null
-  const initialSelectedModule = preselectedModuleData?.name || preselectedModuleFromLocation || ''
-  const initialSelectedSubmodule = preselectedModuleData
-    ? getModuleSubmodules(preselectedModuleData, activeOrganization)[0] || ''
-    : ''
-  const initialTransactionDirection = preselectedModuleData
-    ? getPersistedModuleTransactionType(preselectedModuleData)
-    : ''
-  const [step, setStep] = useState(() => (isEditMode ? 4 : initialSelectedModule ? 3 : 1))
+  const preselectedDirection = isEditMode ? '' : (location?.state?.preselectedDirection || 'in')
+  const initialSelectedModule = preselectedDirection === 'in' ? 'revenue' : 'expenses'
+  const initialSelectedSubmodule = 'default'
+  const initialTransactionDirection = preselectedDirection || 'in'
+
+  const [step, setStep] = useState(4)
   const [selectedModule, setSelectedModule] = useState(() => initialSelectedModule)
   const [selectedSubmodule, setSelectedSubmodule] = useState(() => initialSelectedSubmodule)
   const [customModuleDraft, setCustomModuleDraft] = useState('')
   const [creatingCustomSubmodule, setCreatingCustomSubmodule] = useState(false)
   const [customSubmoduleDraft, setCustomSubmoduleDraft] = useState('')
   const [transactionDirection, setTransactionDirection] = useState(() => initialTransactionDirection)
+  const [paymentMode, setPaymentMode] = useState('')
   const [amountExpression, setAmountExpression] = useState('')
   const [note, setNote] = useState('')
   const [attachment, setAttachment] = useState(null)
@@ -95,31 +88,10 @@ export default function AddTransaction() {
   const [isHydrated, setIsHydrated] = useState(!isEditMode)
   const [loadedTransaction, setLoadedTransaction] = useState(null)
   const [forceSubmoduleSelection, setForceSubmoduleSelection] = useState(false)
-  const [preselectedFromModule, setPreselectedFromModule] = useState(preselectedModuleFromLocation)
-  const [openedFromModule] = useState(() => Boolean(preselectedModuleFromLocation))
+  const [preselectedFromModule, setPreselectedFromModule] = useState('')
+  const [openedFromModule] = useState(false)
 
-  useEffect(() => {
-    // Function: handleLanguageChanged
-    const handleLanguageChanged = (event) => {
-      // Function: newLang
-      const newLang = (event && event.detail && event.detail.language) || localStorage.getItem('selectedLanguage') || 'en'
-      setLanguage(newLang)
-    }
 
-    // Function: handleStorage
-    const handleStorage = (event) => {
-      if (event.key === 'selectedLanguage') {
-        setLanguage(event.newValue || 'en')
-      }
-    }
-
-    window.addEventListener('language:changed', handleLanguageChanged)
-    window.addEventListener('storage', handleStorage)
-    return () => {
-      window.removeEventListener('language:changed', handleLanguageChanged)
-      window.removeEventListener('storage', handleStorage)
-    }
-  }, [])
 
   useEffect(() => {
     if (!isEditMode) {
@@ -148,6 +120,7 @@ export default function AddTransaction() {
       existingTransaction.transactionDirection ||
       '',
     )
+    setPaymentMode(existingTransaction.paymentMode || 'online')
     setAmountExpression(existingTransaction.amountExpression || String(Math.abs(Number(existingTransaction.amount || 0))))
     setNote(existingTransaction.note || '')
     setAttachment(null)
@@ -179,7 +152,7 @@ export default function AddTransaction() {
     organizationModules.find((module) => translateModuleLabel(language, module.name) === selectedModule) ||
     null
   const derivedTransactionType = transactionDirection || getPersistedModuleTransactionType(selectedModuleRecord)
-  const canSave = totalAmount !== null && selectedModule && selectedSubmodule && derivedTransactionType
+  const canSave = previewAmount !== null && previewAmount !== 0 && selectedModule && selectedSubmodule && derivedTransactionType && note.trim() !== ''
   const selectionModalOpen = step < 4
   const saveButtonLabel = isEditMode ? text.updateTransaction : text.save
   const secondaryButtonLabel = isEditMode ? '' : text.saveAndAddAnother
@@ -269,14 +242,14 @@ export default function AddTransaction() {
       }
     }
 
-    // const currentUser = readJSON('currentUser', null)
+    const activeBookName = loadedTransaction?.book || localStorage.getItem(`activeBookName_${activeOrgId}`) || 'Default Book'
     const transactionPayload = {
       organizationId: activeOrganization?.id || '',
       module: selectedModule,
       submodule: selectedSubmodule,
-      direction: derivedTransactionType,
-      amountExpression,
-      amount: totalAmount,
+      direction: transactionDirection,
+      amountExpression: totalAmount !== null ? amountExpression : String(previewAmount || 0),
+      amount: totalAmount !== null ? totalAmount : (previewAmount !== null ? previewAmount : 0),
       note: note.trim(),
       attachmentName: attachment?.name || '',
       attachmentType: attachment?.type || '',
@@ -284,6 +257,8 @@ export default function AddTransaction() {
       date,
       time,
       currency: selectedCurrency?.code || 'USD',
+      book: activeBookName,
+      paymentMode: paymentMode || 'online',
     }
 
     const canSyncTransaction = isEditMode && isMongoObjectId(existingTransactionId)
@@ -448,29 +423,17 @@ export default function AddTransaction() {
 
     setIsSaving(false)
 
-    if (isEditMode) {
-      navigate('/transactions')
-      return
-    }
-
     if (stayOnPage) {
-      setStep(1)
-      setSelectedModule('')
-      setSelectedSubmodule('')
-      setTransactionDirection('')
       setAmountExpression('')
       setNote('')
       setAttachment(null)
       setDate(getTodayDate())
       setTime(getCurrentTimeValue())
+      setPaymentMode('')
       return
     }
 
-    if (openedFromModule) {
-      navigate(`/module/${encodeURIComponent(selectedModule)}`)
-    } else {
-      navigate('/dashboard')
-    }
+    navigate(`/book-transactions/${encodeURIComponent(activeBookName)}`)
   }
 
   if (!activeOrganization) {
@@ -608,21 +571,8 @@ export default function AddTransaction() {
   }
 
   return (
-    <div className="theme-light-violet h-full overflow-hidden px-4 py-4 text-[var(--text)] sm:px-6 lg:px-8">
+    <div className="theme-light-violet h-full overflow-hidden px-4 pt-1 pb-4 text-[var(--text)] sm:px-6 lg:px-8">
       <div className="mx-auto max-w-2xl">
-        <div className="mt-2 mb-6 flex items-center justify-between gap-3">
-          <Link
-            to={isEditMode ? '/transactions' : '/dashboard'}
-            className="inline-flex items-center gap-2 rounded-full border border-white/6 bg-[var(--card)] px-4 py-2.5 text-sm font-light text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-          >
-            <ArrowLeftIcon className="h-4 w-4" />
-            {isEditMode ? text.backToTransactions : text.backToDashboard}
-          </Link>
-          <div className="rounded-full bg-primary-50 px-4 py-2 text-sm font-light text-primary-700">
-            {isEditMode ? text.editTransaction : activeOrganization.organizationName}
-          </div>
-        </div>
-
         <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}>
           {step === 4 ? (
             <TransactionForm
@@ -631,14 +581,8 @@ export default function AddTransaction() {
               language={language}
               locale={locale}
               selectedCurrency={selectedCurrency}
-              selectedModuleName={translateModuleLabel(
-                language,
-                selectedModuleData?.name,
-              )}
-              selectedSubmodule={translateSubmoduleLabel(
-                language,
-                selectedSubmodule,
-              )}
+              selectedModuleName={selectedModule}
+              selectedSubmodule={selectedSubmodule}
               amountDisplayValue={amountDisplayValue}
               amountExpression={amountExpression}
               setAmountExpression={(updater) => {
@@ -662,17 +606,17 @@ export default function AddTransaction() {
               isSaving={isSaving}
               saveButtonLabel={saveButtonLabel}
               secondaryButtonLabel={secondaryButtonLabel}
-              onBack={navigateBackFromTransactionForm}
-              onChangeModule={() => {
-                setForceSubmoduleSelection(true)
-                setStep(1)
-                setSelectedModule('')
-                setSelectedSubmodule('')
-                setTransactionDirection('')
-                setError('')
-              }}
+              onBack={() => navigate(-1)}
+              onChangeModule={null}
               onSave={saveTransaction}
               onSaveAndAddAnother={saveTransaction}
+              transactionDirection={transactionDirection}
+              setTransactionDirection={(dir) => {
+                setTransactionDirection(dir)
+                setSelectedModule(dir === 'in' ? 'revenue' : 'expenses')
+              }}
+              paymentMode={paymentMode}
+              setPaymentMode={setPaymentMode}
             />
           ) : null}
         </motion.div>

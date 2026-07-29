@@ -26,7 +26,7 @@ export default function Navbar(){
       <div className="container-max mx-auto px-4 sm:px-6">
         <div className="flex h-20 items-center justify-between">
           <Link to="/" className="flex items-center gap-3">
-            <img src={logo} alt="PocketFlow Logo" className="h-11 w-11 object-contain" />
+            <img src={logo} alt="PocketFlow Logo" className="h-8 w-8 object-contain" />
             <div>
               <div className="text-[18px] pt-1 text-blue-500 font-semibold">PocketFlow</div>
             </div>

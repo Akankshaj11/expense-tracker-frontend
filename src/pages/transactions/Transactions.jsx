@@ -11,6 +11,7 @@ import translations, {
   translateText,
   translateModuleLabel,
 } from '../../i18n/translations'
+import useLanguage from '../../hooks/useLanguage'
 
 // Read JSON from localStorage
 // Function: readJSON
@@ -129,7 +130,6 @@ function getTransactionEditPath(transaction) {
 export default function Transactions() {
   const navigate = useNavigate()
   const [organizations, setOrganizations] = useState(() => readCachedOrganizations())
-  const [language, setLanguage] = useState(() => localStorage.getItem('selectedLanguage') || 'en')
   const [transactionsRevision, setTransactionsRevision] = useState(0)
   const [attachmentCache, setAttachmentCache] = useState(() => readJSON('attachments', []))
   const [previewAttachment, setPreviewAttachment] = useState(null)
@@ -150,14 +150,23 @@ export default function Transactions() {
     const name = transaction.attachmentName || transaction.attachment?.name
     const type = transaction.attachmentType || transaction.attachment?.type
 
-    if (dataUrl) {
+    if (dataUrl && dataUrl !== 'None' && dataUrl !== 'null') {
       return {
-        name,
-        type,
+        name: (name === 'None' || name === 'null' || !name) ? 'Attachment' : name,
+        type: (type === 'None' || type === 'null' || !type) ? '' : type,
         dataUrl,
       }
     }
-    return attachmentCache.find((item) => item.transactionId === (transaction.id || transaction._id)) || null
+
+    const cached = attachmentCache.find((item) => item.transactionId === (transaction.id || transaction._id))
+    if (cached && cached.dataUrl && cached.dataUrl !== 'None' && cached.dataUrl !== 'null') {
+      return {
+        name: (cached.name === 'None' || cached.name === 'null' || !cached.name) ? 'Attachment' : cached.name,
+        type: (cached.type === 'None' || cached.type === 'null' || !cached.type) ? '' : cached.type,
+        dataUrl: cached.dataUrl,
+      }
+    }
+    return null
   }
 
   useEffect(() => {
@@ -174,28 +183,7 @@ export default function Transactions() {
     }
   }, [])
 
-  useEffect(() => {
-    // Function: handleLanguageChanged
-    const handleLanguageChanged = (event) => {
-      // Function: newLanguage
-      const newLanguage = (event && event.detail && event.detail.language) || localStorage.getItem('selectedLanguage') || 'en'
-      setLanguage(newLanguage)
-    }
 
-    // Function: handleStorage
-    const handleStorage = (event) => {
-      if (event.key === 'selectedLanguage') {
-        setLanguage(event.newValue || 'en')
-      }
-    }
-
-    window.addEventListener('language:changed', handleLanguageChanged)
-    window.addEventListener('storage', handleStorage)
-    return () => {
-      window.removeEventListener('language:changed', handleLanguageChanged)
-      window.removeEventListener('storage', handleStorage)
-    }
-  }, [])
 
   const activeOrgId = localStorage.getItem('activeOrgId') || organizations[0]?.id || ''
 
@@ -220,7 +208,7 @@ export default function Transactions() {
   const activeOrganization = organizations.find((item) => item.id === activeOrgId) || organizations[0] || null
   const selectedCurrency = activeOrganization?.currency || readJSON('selectedCurrency', { code: 'USD', symbol: '$' })
   const transactions = useMemo(() => readJSON('transactions', []), [transactionsRevision])
-  const text = translations[language] || translations.en
+  const { language, text } = useLanguage()
   const locale = getLocale(language)
 
   const organizationTransactions = useMemo(() => {
@@ -323,17 +311,6 @@ export default function Transactions() {
               <h1 className="mt-2 text-3xl font-light tracking-tight text-[var(--text)]">{activeOrganization.organizationName}</h1>
               <p className="mt-2 text-sm text-slate-500">{text.transactionsDescription}</p>
             </div>
-
-            <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-end sm:justify-end sm:gap-4">
-              <button
-                type="button"
-                onClick={() => navigate('/add-transaction')}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-full accent-cta transition hover:-translate-y-0.5 shadow-md shadow-primary-500/20"
-                aria-label={text.addTransaction}
-              >
-                <PlusIcon className="h-5 w-5 text-white" />
-              </button>
-            </div>
           </div>
 
           <div className="mt-6 flex items-center justify-between gap-4">
@@ -367,39 +344,55 @@ export default function Transactions() {
                       transition={{ delay: index * 0.03, duration: 0.35 }}
                       className="flex items-center justify-between rounded-2xl px-4 py-4"
                     >
-                      <div>
-                        {/* <p className="font-light text-[var(--text)]">{transaction.note?.trim() || `${capitalize(transaction.module || text.transaction)} ${text.update}`}</p> */}
-                        <p className="font-light text-[var(--text)]">{transaction.note?.trim() || `${capitalize(translateModuleLabel(language, transaction.module) || text.transaction)} ${text.update}`}</p>
-                        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-500">
-                          <span>{capitalize(translateModuleLabel(language, transaction.module) || text.transaction)}</span>
-                          <span>·</span>
+                      <div className="flex-1 space-y-1 pr-4">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-base font-semibold text-slate-800">
+                            {transaction.note?.trim() || capitalize(translateModuleLabel(language, transaction.module) || text.transaction)}
+                          </span>
+                          {transaction.paymentMode && (
+                            <span className={`inline-flex items-center rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                              transaction.paymentMode === 'online'
+                                ? 'bg-blue-50 text-blue-600'
+                                : 'bg-orange-50 text-orange-600'
+                            }`}>
+                              {transaction.paymentMode}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs text-slate-500">
                           <span>{formatDateTime(transaction.createdAt || transaction.date, locale)}</span>
-                          {(transaction.attachmentName || transaction.attachment?.name) ? (
-                            <button
-                              type="button"
-                              onClick={(event) => {
-                                event.preventDefault()
-                                event.stopPropagation()
-                                const preview = resolveAttachmentPreview(transaction)
-                                setPreviewAttachment({
-                                  ...transaction,
-                                  attachmentName: transaction.attachmentName || transaction.attachment?.name,
-                                  attachmentType: transaction.attachmentType || transaction.attachment?.type,
-                                  attachmentDataUrl: transaction.attachmentDataUrl || transaction.attachment?.url || transaction.attachment?.dataUrl,
-                                  ...preview,
-                                })
-                              }}
-                              className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-light text-slate-600 ring-1 ring-slate-200 transition hover:bg-primary-50 hover:text-primary-700"
-                            >
-                              <PaperClipIcon className="h-3 w-3 text-slate-400" />
-                              {transaction.attachmentName || transaction.attachment?.name}
-                            </button>
-                          ) : null}
+                          {(() => {
+                            const att = resolveAttachmentPreview(transaction)
+                            if (!att) return null
+                            return (
+                              <button
+                                type="button"
+                                onClick={(event) => {
+                                  event.preventDefault()
+                                  event.stopPropagation()
+                                  setPreviewAttachment({
+                                    ...transaction,
+                                    attachmentName: att.name,
+                                    attachmentType: att.type,
+                                    attachmentDataUrl: att.dataUrl,
+                                    ...att,
+                                  })
+                                }}
+                                className="inline-flex items-center gap-1 ml-2 text-primary-600 hover:underline"
+                              >
+                                <PaperClipIcon className="h-3 w-3" />
+                                attachment
+                              </button>
+                            )
+                          })()}
                         </div>
                       </div>
-                      <p className={`text-sm font-light ${amount >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                        {amount >= 0 ? '+' : '-'}{formatMoney(Math.abs(amount), selectedCurrency, locale)}
-                      </p>
+
+                      <div className="flex flex-col items-end space-y-1">
+                        <span className={`text-base font-bold ${amount >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                          {amount >= 0 ? '+' : '-'} {formatMoney(Math.abs(amount), selectedCurrency, locale)}
+                        </span>
+                      </div>
                     </motion.div>
                   </Link>
                 )

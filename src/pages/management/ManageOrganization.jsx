@@ -67,7 +67,7 @@ export default function ManageOrganization() {
   const activeOrganization = organizations.find((item) => item.id === activeOrgId) || organizations[0] || null
 
   const [organizationName, setOrganizationName] = useState(activeOrganization?.organizationName || '')
-  const [description, setDescription] = useState(activeOrganization?.description || '')
+  const [description, setDescription] = useState(activeOrganization?.description ? activeOrganization.description.split('|||')[0].trim() : '')
   const [modules, setModules] = useState(() => buildModuleItems(activeOrganization))
   const [moduleDraft, setModuleDraft] = useState(null)
   const [error, setError] = useState('')
@@ -96,7 +96,7 @@ export default function ManageOrganization() {
     }
 
     setOrganizationName(activeOrganization.organizationName || '')
-    setDescription(activeOrganization.description || '')
+    setDescription(activeOrganization.description ? activeOrganization.description.split('|||')[0].trim() : '')
     setModules(buildModuleItems(activeOrganization))
     setModuleDraft(null)
   }, [activeOrganization])
@@ -304,9 +304,13 @@ export default function ManageOrganization() {
       submodulesForBackend[module.name] = module.submodules
     })
 
+    const rawDesc = activeOrganization?.description || ""
+    const booksPart = rawDesc.includes("|||") ? " ||| " + rawDesc.split("|||")[1].trim() : ""
+    const finalDesc = description.trim() + booksPart
+
     const updatePayload = {
       organizationName: organizationName.trim(),
-      description: description.trim(),
+      description: finalDesc,
       modules: modulesForBackend,
       submodules: submodulesForBackend,
     }
