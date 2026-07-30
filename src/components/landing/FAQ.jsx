@@ -38,13 +38,13 @@ function FAQItem({ faq, index }) {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ delay: index * 0.08, duration: 0.4 }}
-      className="glass-card rounded-2xl border border-white/5 overflow-hidden transition-colors hover:border-white/10"
+      className="glass-card rounded-xl border border-white/5 overflow-hidden transition-colors hover:border-white/10"
     >
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-5 py-4 flex items-center justify-between text-left focus:outline-none"
+        className="w-full px-5 py-4 flex items-center justify-between text-left focus:outline-none hover:bg-white/2 transition-colors duration-200"
       >
-        <span className="text-xs sm:text-sm font-semibold text-white">{faq.question}</span>
+        <span className="text-[11px] sm:text-xs font-semibold text-white">{faq.question}</span>
         <ChevronDownIcon 
           className={`h-4 w-4 text-primary-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} 
         />
@@ -58,7 +58,7 @@ function FAQItem({ faq, index }) {
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2, ease: 'easeInOut' }}
           >
-            <div className="px-5 pb-5 text-xs sm:text-sm text-[var(--muted)] leading-5 sm:leading-6 border-t border-white/5 pt-3">
+            <div className="px-5 pb-5 text-[10px] sm:text-[11px] text-[var(--muted)] leading-relaxed border-t border-white/5 pt-3">
               {faq.answer}
             </div>
           </motion.div>
@@ -75,11 +75,11 @@ export default function FAQ() {
   return (
     <section id="faq" className="mt-16 scroll-mt-28 w-full">
       <div className="max-w-3xl">
-        <p className="text-sm font-light uppercase tracking-[0.22em] text-primary-600">FAQ</p>
-        <h4 className="mt-2 text-2xl font-light text-white sm:text-3xl">
+        <p className="text-xs font-light uppercase tracking-[0.22em] text-primary-600">FAQ</p>
+        <h4 className="mt-2 text-xl font-light text-white sm:text-2xl">
           Frequently Asked Questions
         </h4>
-        <p className="mt-3 text-sm sm:text-base text-[var(--muted)]">
+        <p className="mt-3 text-xs sm:text-sm text-[var(--muted)]">
           Find answers to common questions about PocketFlow features, security, organization setups, and platform access.
         </p>
       </div>

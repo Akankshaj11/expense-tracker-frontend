@@ -10,22 +10,22 @@ export default function FooterFull() {
           {/* Branding */}
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <img src={logo} alt="PocketFlow Logo" className="h-12 w-12 object-contain bg-white/10 p-1 rounded-full" />
+              <img src={logo} alt="PocketFlow Logo" className="h-10 w-10 object-contain bg-white/10 p-1 rounded-full" />
               <div>
-                <div className="text-lg font-bold">PocketFlow</div>
-                <div className="text-sm text-white/90">Expert finance workspace for teams</div>
+                <div className="text-md font-bold">PocketFlow</div>
+                <div className="text-xs text-white/90">Expert finance workspace for teams</div>
               </div>
             </div>
 
-            <p className="text-sm text-white/90">Collaborate, attach receipts, and export print-ready reports.</p>
+            <p className="text-xs text-white/90">Collaborate, attach receipts, and export print-ready reports.</p>
 
             {/* Social links removed per request */}
           </div>
 
           {/* Quick Links */}
           <div>
-            <h3 className="text-md font-semibold mb-4">Quick Links</h3>
-            <ul className="space-y-3 text-sm">
+            <h3 className="text-sm font-semibold mb-4">Quick Links</h3>
+            <ul className="space-y-3 text-xs">
               <li><Link to={'/#top'} className="hover:underline text-white/80 hover:text-white">Home</Link></li>
               <li><Link to={'/#about'} className="hover:underline text-white/80 hover:text-white">About</Link></li>
               <li><Link to={'/#features'} className="hover:underline text-white/80 hover:text-white">Features</Link></li>
@@ -36,15 +36,15 @@ export default function FooterFull() {
 
           {/* Resources */}
           <div>
-            <h3 className="text-md font-semibold mb-4">Resources</h3>
-            <ul className="space-y-3 text-sm">
+            <h3 className="text-sm font-semibold mb-4">Resources</h3>
+            <ul className="space-y-3 text-xs">
               <li><Link to={'/terms'} className="hover:underline">Terms of Service</Link></li>
               <li><Link to={'/privacy'} className="hover:underline">Privacy Policy</Link></li>
             </ul>
           </div>
         </div>
 
-        <div className="mt-8 border-t border-white/20 pt-6 text-center text-white text-sm">
+        <div className="mt-8 border-t border-white/20 pt-6 text-center text-white text-xs">
           <div>© {new Date().getFullYear()} PocketFlow. All rights reserved.</div>
           <div className="mt-2">Designed by : Softtrades Technology Pvt. Ltd.</div>
         </div>

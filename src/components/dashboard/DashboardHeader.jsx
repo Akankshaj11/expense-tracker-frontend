@@ -1,6 +1,6 @@
 // Repo file header
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   BuildingOffice2Icon,
   ChevronDownIcon,
@@ -10,6 +10,7 @@ import {
   PlusIcon,
   SunIcon,
   MoonIcon,
+  EllipsisVerticalIcon,
 } from '@heroicons/react/24/outline'
 import { CURRENCIES, getCurrencyByCode } from '../../utils/currencies'
 import logo from '../../assets/logo.png'
@@ -77,6 +78,54 @@ function OrganizationMenu({ activeOrgId, activeOrganization, organizations, orgM
   const containerRef = useRef(null)
   const isDesktop = useIsDesktop()
   const isActiveView = mobile ? !isDesktop : isDesktop
+  const navigate = useNavigate()
+  const [actionMenuOrgId, setActionMenuOrgId] = useState(null)
+
+  const handleEditOrg = (org) => {
+    if (org.id !== activeOrgId) {
+      handleSwitchOrg(org.id)
+    }
+    setOrgMenuOpen(false)
+    navigate('/manage-organization')
+  }
+
+  const handleDeleteOrg = async (org) => {
+    if (organizations.length <= 1) {
+      alert(text.mustHaveAtLeastOneOrg || 'You must have at least one organization.')
+      return
+    }
+
+    const confirmMessage = `Are you sure you want to delete "${org.organizationName}"? All books and transactions inside will be deleted permanently.`
+    if (!window.confirm(confirmMessage)) {
+      return
+    }
+
+    try {
+      const isMongoId = /^[a-f0-9]{24}$/.test(org.id)
+      if (isMongoId) {
+        await apiRequest(`/organizations/${org.id}`, {
+          method: 'DELETE',
+        })
+      }
+
+      // Update localStorage
+      const nextOrgs = organizations.filter((item) => item.id !== org.id)
+      localStorage.setItem('organizations', JSON.stringify(nextOrgs))
+
+      // If we deleted the active organization, switch to another one
+      if (activeOrgId === org.id) {
+        const fallbackOrg = nextOrgs[0]
+        localStorage.setItem('activeOrgId', fallbackOrg.id)
+        localStorage.setItem('organization', JSON.stringify(fallbackOrg))
+        handleSwitchOrg(fallbackOrg.id)
+      } else {
+        window.location.reload()
+      }
+    } catch (err) {
+      console.error(err)
+      alert('Failed to delete organization: ' + (err?.message || err))
+    }
+  }
 
   useEffect(() => {
     if (!orgMenuOpen || !isActiveView) {
@@ -88,6 +137,7 @@ function OrganizationMenu({ activeOrgId, activeOrganization, organizations, orgM
       if (containerRef.current && !containerRef.current.contains(event.target)) {
         setOrgMenuOpen(false)
         setProfileOpen(false)
+        setActionMenuOrgId(null)
       }
     }
 
@@ -107,6 +157,7 @@ function OrganizationMenu({ activeOrgId, activeOrganization, organizations, orgM
         onClick={() => {
           setOrgMenuOpen((current) => !current)
           setProfileOpen(false)
+          setActionMenuOrgId(null)
         }}
         className="inline-flex items-center gap-3 rounded-full border border-white/6 bg-[var(--card)] px-4 py-2.5 text-sm font-light text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
       >
@@ -118,38 +169,95 @@ function OrganizationMenu({ activeOrgId, activeOrganization, organizations, orgM
       </button>
 
       {orgMenuOpen ? (
-        <div className="absolute right-0 mt-3 w-72 overflow-hidden rounded-2xl border border-white/6 bg-[var(--card)] shadow-2xl shadow-slate-200/80">
-          <div className="border-b border-white/4 px-4 py-3">
+        <div className="absolute right-0 mt-3 w-72 overflow-visible rounded-2xl border border-slate-150 bg-white dark:border-white/6 dark:bg-[var(--card)] shadow-2xl shadow-slate-200/80 z-[100]">
+          <div className="border-b border-slate-100 dark:border-white/4 px-4 py-3">
             <p className="text-sm font-light text-[var(--text)]">{text.organizationMenuTitle}</p>
             <p className="text-xs text-slate-500">{text.organizationMenuSubtitle}</p>
           </div>
-          <div className="max-h-64 overflow-auto p-2">
+          <div className="p-2 space-y-1">
             {organizations.length > 0 ? (
               organizations.map((organization) => (
-                <button
+                <div
                   key={organization.id}
-                  type="button"
-                  onClick={() => handleSwitchOrg(organization.id)}
-                  className={`flex w-full items-center justify-between rounded-xl px-3 py-3 text-left transition hover:bg-primary-50 ${
-                    activeOrgId === organization.id ? 'bg-primary-50' : 'bg-transparent'
+                  className={`group/org-item flex w-full items-center justify-between rounded-xl px-3 py-2 transition relative ${
+                    activeOrgId === organization.id ? 'bg-primary-50 dark:bg-primary-950/30' : 'bg-transparent hover:bg-slate-50 dark:hover:bg-white/4'
                   }`}
                 >
-                  <div>
-                    <p className="text-sm font-light text-[var(--text)]">{organization.organizationName}</p>
-                    <p className="text-xs text-slate-500">{(organization.description ? organization.description.split('|||')[0].trim() : '') || text.noDescription}</p>
+                  {/* Left side: Switch Active Action area */}
+                  <div
+                    onClick={() => {
+                      handleSwitchOrg(organization.id)
+                      setActionMenuOrgId(null)
+                    }}
+                    className="flex-1 min-w-0 flex items-center gap-2 cursor-pointer"
+                  >
+                    {/* Activeness checkmark tick */}
+                    <div className="shrink-0 w-4 flex justify-start">
+                      {activeOrgId === organization.id ? (
+                        <span className="text-primary-600 dark:text-primary-400 font-bold text-sm select-none">✓</span>
+                      ) : null}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-[var(--text)] truncate">{organization.organizationName}</p>
+                      <p className="text-xs text-slate-400 dark:text-zinc-500 truncate font-light">{(organization.description ? organization.description.split('|||')[0].trim() : '') || text.noDescription}</p>
+                    </div>
                   </div>
-                  {activeOrgId === organization.id ? <span className="rounded-full bg-primary-600 px-2 py-1 text-[10px] font-light text-white">{text.active}</span> : null}
-                </button>
+
+                  {/* Right side: Actions menu trigger */}
+                  <div className="flex items-center gap-1.5 shrink-0 ml-2 relative">
+
+                    {/* Actions Menu Trigger */}
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setActionMenuOrgId(actionMenuOrgId === organization.id ? null : organization.id)
+                        }}
+                        className="rounded-lg p-1 text-slate-400 hover:bg-slate-200/50 hover:text-slate-600 dark:hover:bg-white/10 dark:hover:text-white transition"
+                      >
+                        <EllipsisVerticalIcon className="h-4 w-4" />
+                      </button>
+
+                      {actionMenuOrgId === organization.id ? (
+                        <div className="absolute right-0 top-7 z-[110] w-24 overflow-hidden rounded-xl border border-slate-150 bg-white dark:bg-[var(--card)] dark:border-white/6 shadow-xl py-1">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setActionMenuOrgId(null)
+                              handleEditOrg(organization)
+                            }}
+                            className="flex w-full items-center px-3 py-1.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/4 transition"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setActionMenuOrgId(null)
+                              handleDeleteOrg(organization)
+                            }}
+                            className="flex w-full items-center px-3 py-1.5 text-xs text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition font-medium"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
               ))
             ) : (
               <div className="rounded-xl bg-[var(--card)] px-3 py-4 text-sm text-slate-500">{text.noOrganizationsFound}</div>
             )}
           </div>
-          <div className="border-t border-white/4 p-2">
+          <div className="border-t border-slate-100 dark:border-white/4 p-2">
             <button
               type="button"
               onClick={handleCreateNewOrg}
-              className="flex w-full items-center justify-between rounded-xl px-3 py-3 text-sm font-light text-primary-700 transition hover:bg-primary-50"
+              className="flex w-full items-center justify-between rounded-xl px-3 py-3 text-sm font-light text-primary-700 dark:text-primary-400 transition hover:bg-primary-50 dark:hover:bg-white/4"
             >
               {text.createNewOrganization}
               <PlusIcon className="h-4 w-4" />

@@ -234,8 +234,7 @@ body.dark .bg-slate-50\/40 {
 /* Overrides for setup pages and organization creation backgrounds */
 body.dark .from-primary-50,
 body.dark .via-white,
-body.dark .to-sky-100,
-body.dark .bg-gradient-to-br {
+body.dark .to-sky-100 {
   background-image: none !important;
   background-color: var(--bg) !important;
 }
@@ -387,4 +386,18 @@ body.dark img.object-cover {
 
 .animate-bob-3 {
   animation: bob-slow-3 5s ease-in-out infinite;
+}
+
+@keyframes pulse-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.3; }
+  33% { transform: translate(40px, -60px) scale(1.15); opacity: 0.5; }
+  66% { transform: translate(-30px, 40px) scale(0.9); opacity: 0.25; }
+}
+
+.animate-drift-slow {
+  animation: pulse-drift 18s ease-in-out infinite;
+}
+
+.animate-drift-slower {
+  animation: pulse-drift 25s ease-in-out infinite alternate;
 }

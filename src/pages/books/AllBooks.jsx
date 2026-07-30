@@ -256,7 +256,7 @@ export default function AllBooks() {
   }
 
   return (
-    <div className="theme-light-violet h-full min-h-screen px-4 py-4 text-[var(--text)] sm:px-6 lg:px-8 bg-slate-50/50">
+    <div className="theme-light-violet h-full min-h-screen px-4 py-4 pb-16 text-[var(--text)] sm:px-6 lg:px-8 bg-slate-50/50">
       <div className="mx-auto max-w-5xl pt-4">
         {/* Navigation Header */}
         <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">

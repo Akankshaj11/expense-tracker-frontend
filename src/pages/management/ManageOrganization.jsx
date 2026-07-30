@@ -1,109 +1,71 @@
 // Repo file header
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ArrowLeftIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { apiRequest } from '../../utils/api'
 import { loadOrganizationsFromBackend, readCachedOrganizations } from '../../utils/organizationSync'
-import { getPersistedModuleTransactionType } from '../../utils/moduleUtils'
 import useLanguage from '../../hooks/useLanguage'
 
-import {
-  translateText,
-  translateModuleLabel,
-  translateSubmoduleLabel,
-} from '../../i18n/translations'
+import { translateText } from '../../i18n/translations'
 
-// Function: readJSON
-function readJSON(key, fallback) {
+function getBooksFromOrgDesc(org) {
   try {
-    const value = localStorage.getItem(key)
-    return value ? JSON.parse(value) : fallback
-  } catch {
-    return fallback
+    const rawDesc = org?.description || ''
+    if (rawDesc.includes('|||')) {
+      const booksJSON = rawDesc.split('|||')[1].trim()
+      return JSON.parse(booksJSON)
+    }
+  } catch (e) {
+    console.error('Failed to parse books from organization description:', e)
   }
-}
-
-// Function: createModuleItem
-function createModuleItem(module, index, organizationSubmodules = {}) {
-  const normalizedName = String(module?.name || '').toLowerCase()
-  const isDefaultSystemModule = ['revenue', 'expenses', 'investments', 'investment returns', 'lend', 'borrow'].includes(normalizedName)
-
-  return {
-    id: `${module.name}-${index}-${Date.now()}`,
-    name: module.name || '',
-    direction: getPersistedModuleTransactionType(module),
-    isCustom: module?.isCustom === true || (!isDefaultSystemModule && Boolean(module?.direction || module?.transactionType)),
-    submodules: Array.isArray(module.submodules)
-      ? module.submodules
-      : Array.isArray(organizationSubmodules?.[module.name])
-        ? organizationSubmodules[module.name]
-        : [],
-  }
-}
-
-// Function: buildModuleItems
-function buildModuleItems(organization) {
-  return (organization?.modules || []).map((module, index) => createModuleItem(module, index, organization?.submodules || {}))
-}
-
-// Function: createEmptyModuleDraft
-function createEmptyModuleDraft() {
-  return {
-    id: `module-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-    name: '',
-    transactionType: 'in',
-    direction: 'in',
-    submodules: [],
-    submoduleDraft: '',
-  }
+  return []
 }
 
 export default function ManageOrganization() {
   const navigate = useNavigate()
   const [organizations, setOrganizations] = useState(() => readCachedOrganizations())
   const { language, text } = useLanguage()
+  
   const activeOrgId = localStorage.getItem('activeOrgId') || organizations[0]?.id || ''
   const activeOrganization = organizations.find((item) => item.id === activeOrgId) || organizations[0] || null
 
-  const [organizationName, setOrganizationName] = useState(activeOrganization?.organizationName || '')
-  const [description, setDescription] = useState(activeOrganization?.description ? activeOrganization.description.split('|||')[0].trim() : '')
-  const [modules, setModules] = useState(() => buildModuleItems(activeOrganization))
-  const [moduleDraft, setModuleDraft] = useState(null)
+  const [organizationName, setOrganizationName] = useState('')
+  const [description, setDescription] = useState('')
+  const [books, setBooks] = useState([])
+  const [newBookName, setNewBookName] = useState('')
+  
   const [error, setError] = useState('')
   const [savedMessage, setSavedMessage] = useState('')
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
 
-  // Reload organizations from the backend on mount to ensure fresh data.
+  // Reload organizations from backend on mount to ensure fresh data
   useEffect(() => {
     let cancelled = false
-
     loadOrganizationsFromBackend().then((refreshedOrganizations) => {
       if (!cancelled) {
         setOrganizations(refreshedOrganizations)
       }
     })
-
     return () => {
       cancelled = true
     }
   }, [])
 
+  // Sync state with activeOrganization
   useEffect(() => {
-    if (!activeOrganization) {
-      return
-    }
-
+    if (!activeOrganization) return
     setOrganizationName(activeOrganization.organizationName || '')
     setDescription(activeOrganization.description ? activeOrganization.description.split('|||')[0].trim() : '')
-    setModules(buildModuleItems(activeOrganization))
-    setModuleDraft(null)
+    setBooks(getBooksFromOrgDesc(activeOrganization))
+    setError('')
+    setSavedMessage('')
   }, [activeOrganization])
 
   if (!activeOrganization) {
     return (
-      <div className="theme-light-violet flex min-h-screen items-center justify-center px-4">
+      <div className="theme-light-violet flex min-h-screen items-center justify-center px-4 bg-slate-50/50">
         <div className="w-full max-w-xl rounded-[2rem] border border-white/6 bg-[var(--card)] p-8 text-center shadow-sm">
           <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">{text.noOrganizationFound}</p>
           <h1 className="mt-3 text-3xl font-light tracking-tight text-[var(--text)]">{text.createAnOrganizationFirst}</h1>
@@ -117,219 +79,99 @@ export default function ManageOrganization() {
     )
   }
 
-  // Function: updateModule
-  const updateModule = (moduleId, key, value) => {
-    setModules((current) => current.map((module) => (module.id === moduleId ? { ...module, [key]: value } : module)))
-  }
-
-  // Function: updateSubmodule
-  const updateSubmodule = (moduleId, subIndex, value) => {
-    setModules((current) =>
-      current.map((module) => {
-        if (module.id !== moduleId) {
-          return module
-        }
-
-        const nextSubmodules = [...module.submodules]
-        nextSubmodules[subIndex] = value
-        return { ...module, submodules: nextSubmodules }
-      }),
-    )
-  }
-
-  // Function: addModule
-  const addModule = () => {
-    setError('')
-    setSavedMessage('')
-    setModuleDraft((currentDraft) => currentDraft || createEmptyModuleDraft())
-  }
-
-  // Function: cancelModuleDraft
-  const cancelModuleDraft = () => {
-    setModuleDraft(null)
-  }
-
-  // Function: updateModuleDraft
-  const updateModuleDraft = (key, value) => {
-    setModuleDraft((currentDraft) => {
-      if (!currentDraft) {
-        return currentDraft
-      }
-
-      return { ...currentDraft, [key]: value }
-    })
-  }
-
-  // Function: saveModuleDraft
-  const saveModuleDraft = () => {
-    if (!moduleDraft) {
-      return
+  const handleAddBook = (e) => {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
     }
-
-    const name = moduleDraft.name.trim()
-    // Function: submodules
-    const submodules = (moduleDraft.submodules || []).map((submodule) => submodule.trim()).filter(Boolean)
-
+    const name = newBookName.trim()
     if (!name) {
-      setError(text.moduleNameRequired)
+      setError('Book name is required')
       return
     }
-
-    if (submodules.length === 0) {
-      setError(text.addAtLeastOneSubmodule)
+    if (books.some((b) => b.name.toLowerCase() === name.toLowerCase())) {
+      setError('A book with this name already exists')
       return
     }
-
-    if (modules.some((module) => module.name.toLowerCase() === name.toLowerCase())) {
-      setError(text.moduleNameAlreadyExists)
-      return
-    }
-
-    const nextModule = {
-      id: `module-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-      name,
-      transactionType: moduleDraft.transactionType || 'in',
-      direction: moduleDraft.direction || 'in',
-      isCustom: true,
-      submodules,
-    }
-
-    setModules((current) => [...current, nextModule])
-    setModuleDraft(null)
+    setBooks([...books, { name, createdAt: new Date().toISOString() }])
+    setNewBookName('')
     setError('')
   }
 
-  // Function: addModuleDraftSubmodule
-  const addModuleDraftSubmodule = () => {
-    setModuleDraft((currentDraft) => {
-      if (!currentDraft) {
-        return currentDraft
-      }
-
-      const nextSubmodule = currentDraft.submoduleDraft.trim()
-      if (!nextSubmodule) {
-        return currentDraft
-      }
-
-      if (currentDraft.submodules.some((submodule) => submodule.toLowerCase() === nextSubmodule.toLowerCase())) {
-        return { ...currentDraft, submoduleDraft: '' }
-      }
-
-      return {
-        ...currentDraft,
-        submodules: [...currentDraft.submodules, nextSubmodule],
-        submoduleDraft: '',
-      }
-    })
+  const handleDeleteBook = (index) => {
+    if (books.length <= 1) {
+      setError('At least one book is required')
+      return
+    }
+    setBooks(books.filter((_, i) => i !== index))
   }
 
-  // Function: removeModuleDraftSubmodule
-  const removeModuleDraftSubmodule = (submoduleValue) => {
-    setModuleDraft((currentDraft) => {
-      if (!currentDraft) {
-        return currentDraft
-      }
-
-      return {
-        ...currentDraft,
-        submodules: currentDraft.submodules.filter((submodule) => submodule !== submoduleValue),
-      }
-    })
-  }
-
-  // Function: removeModule
-  const removeModule = (moduleId) => {
-    setModules((current) => current.filter((module) => module.id !== moduleId))
-  }
-
-  // Function: addSubmodule
-  const addSubmodule = (moduleId) => {
-    setModules((current) =>
-      current.map((module) =>
-        module.id === moduleId ? { ...module, submodules: ['', ...module.submodules] } : module,
-      ),
-    )
-  }
-
-  // Function: removeSubmodule
-  const removeSubmodule = (moduleId, subIndex) => {
-    setModules((current) =>
-      current.map((module) => {
-        if (module.id !== moduleId) {
-          return module
-        }
-
-        return { ...module, submodules: module.submodules.filter((_, index) => index !== subIndex) }
-      }),
-    )
-  }
-
-  // Function: handleSave
   const handleSave = async (event) => {
     event.preventDefault()
-
-    const normalizedModules = modules
-      .map((module) => ({
-        name: module.name.trim(),
-        transactionType: module.transactionType || 'in',
-        direction: module.direction || 'in',
-        isCustom: module?.isCustom === true,
-        submodules: module.submodules.map((submodule) => submodule.trim()).filter(Boolean),
-      }))
-      .filter((module) => module.name)
+    setError('')
+    setSavedMessage('')
 
     if (!organizationName.trim()) {
-      setError(text.organizationNameRequired)
+      setError(text.organizationNameRequired || 'Organization name is required')
       return
     }
 
-    if (normalizedModules.length === 0) {
-      setError(text.addAtLeastOneModule)
+    if (books.length === 0) {
+      setError('At least one book is required')
       return
     }
 
-    if (normalizedModules.some((module) => module.submodules.length === 0)) {
-      setError(text.eachModuleNeedsAtLeastOneSubmodule)
-      return
+    // Standard default system modules & submodules
+    const defaultModulesData = [
+      { name: 'Revenue', direction: 'in', transactionType: 'in', moduleType: 'in', isCustom: false, submodules: ['Salary', 'Freelance', 'Bonus', 'Interest', 'Commission', 'Pocket Money'] },
+      { name: 'Expenses', direction: 'out', transactionType: 'out', moduleType: 'out', isCustom: false, submodules: ['Food', 'Travel', 'Shopping', 'Bills', 'Health', 'Entertainment', 'Education', 'Rent', 'Subscriptions', 'Loans', 'Taxes'] },
+      { name: 'Investments', direction: 'out', transactionType: 'out', moduleType: 'out', isCustom: false, submodules: ['Mutual Funds', 'Stocks', 'Crypto', 'Fixed Deposit', 'Gold'] },
+      { name: 'Investment Returns', direction: 'in', transactionType: 'in', moduleType: 'in', isCustom: false, submodules: ['Mutual Funds', 'Stocks', 'Crypto', 'Fixed Deposit', 'Gold'] },
+      { name: 'Lend', direction: 'out', transactionType: 'out', moduleType: 'out', isCustom: false, submodules: ['Friends', 'Family', 'Colleagues'] },
+      { name: 'Borrow', direction: 'in', transactionType: 'in', moduleType: 'in', isCustom: false, submodules: ['Friends', 'Family', 'Colleagues'] },
+    ]
+
+    const submodulesData = {
+      Revenue: ['Salary', 'Freelance', 'Bonus', 'Interest', 'Commission', 'Pocket Money'],
+      Expenses: ['Food', 'Travel', 'Shopping', 'Bills', 'Health', 'Entertainment', 'Education', 'Rent', 'Subscriptions', 'Loans', 'Taxes'],
+      Investments: ['Mutual Funds', 'Stocks', 'Crypto', 'Fixed Deposit', 'Gold'],
+      'Investment Returns': ['Mutual Funds', 'Stocks', 'Crypto', 'Fixed Deposit', 'Gold'],
+      Lend: ['Friends', 'Family', 'Colleagues'],
+      Borrow: ['Friends', 'Family', 'Colleagues'],
     }
 
-    // Transform modules structure: separate module names from submodules dict
-    const modulesForBackend = normalizedModules.map((module) => ({
-      name: module.name,
-      direction: module.direction,
-      isCustom: module.isCustom,
-    }))
-    const submodulesForBackend = {}
-    normalizedModules.forEach((module) => {
-      submodulesForBackend[module.name] = module.submodules
-    })
-
-    const rawDesc = activeOrganization?.description || ""
-    const booksPart = rawDesc.includes("|||") ? " ||| " + rawDesc.split("|||")[1].trim() : ""
-    const finalDesc = description.trim() + booksPart
+    const serializedBooks = JSON.stringify(books.map((b) => ({
+      name: b.name,
+      description: "",
+      modules: defaultModulesData.map((m) => ({
+        name: m.name,
+        type: m.direction,
+        submodules: m.submodules,
+      })),
+      createdAt: b.createdAt || new Date().toISOString(),
+      updatedAt: b.updatedAt || new Date().toISOString(),
+    })))
+    const finalDesc = description.trim() + " ||| " + serializedBooks
 
     const updatePayload = {
       organizationName: organizationName.trim(),
       description: finalDesc,
-      modules: modulesForBackend,
-      submodules: submodulesForBackend,
+      modules: defaultModulesData,
+      submodules: submodulesData,
     }
 
-    // Check if this is a local ID (from offline mode) or a MongoDB ObjectId
     const isMongoId = /^[a-f0-9]{24}$/.test(activeOrganization.id)
 
     try {
       let updatedOrg = null
 
       if (isMongoId) {
-        // Call backend for MongoDB-backed organization
         const response = await apiRequest(`/organizations/${activeOrganization.id}`, {
           method: 'PATCH',
           body: JSON.stringify(updatePayload),
         })
         updatedOrg = response?.data || null
       } else {
-        // For local IDs (offline mode), just update localStorage
         updatedOrg = {
           ...activeOrganization,
           ...updatePayload,
@@ -341,55 +183,58 @@ export default function ManageOrganization() {
         const updatedOrganizations = organizations.map((org) =>
           org.id === activeOrganization.id
             ? {
-              ...org,
-              organizationName: updatedOrg.organizationName,
-              description: updatedOrg.description,
-              modules: updatedOrg.modules,
-              submodules: updatedOrg.submodules,
-            }
-            : org,
+                ...org,
+                organizationName: updatedOrg.organizationName,
+                description: updatedOrg.description,
+                modules: updatedOrg.modules,
+                submodules: updatedOrg.submodules,
+              }
+            : org
         )
 
         localStorage.setItem('organizations', JSON.stringify(updatedOrganizations))
         localStorage.setItem('organization', JSON.stringify(updatedOrg))
         localStorage.setItem('activeOrgId', updatedOrg.id)
 
+        // Reset active book if deleted
+        const activeBookKey = `activeBookName_${updatedOrg.id}`
+        const currentActiveBookName = localStorage.getItem(activeBookKey)
+        if (!books.some((b) => b.name === currentActiveBookName)) {
+          localStorage.setItem(activeBookKey, books[0].name)
+        }
+
         setError('')
-        setSavedMessage(text.organizationUpdatedSuccessfully)
+        setSavedMessage(text.organizationUpdatedSuccessfully || 'Organization updated successfully')
         setTimeout(() => {
           navigate('/dashboard')
         }, 800)
       }
     } catch (err) {
-      setError(err?.message || text.unableToSaveOrganization)
+      setError(err?.message || text.unableToSaveOrganization || 'Unable to save organization changes')
     }
   }
 
-  // Function: handleDelete
   const handleDelete = async () => {
     setIsDeleting(true)
     const isMongoId = /^[a-f0-9]{24}$/.test(activeOrganization.id)
 
     try {
       if (isMongoId) {
-        // Call backend to delete
         await apiRequest(`/organizations/${activeOrganization.id}`, {
           method: 'DELETE',
         })
       }
 
-      // Remove from localStorage
       const updatedOrganizations = organizations.filter((org) => org.id !== activeOrganization.id)
       localStorage.setItem('organizations', JSON.stringify(updatedOrganizations))
 
-      // Clear active org if it was the deleted one
       if (localStorage.getItem('activeOrgId') === activeOrganization.id) {
         localStorage.removeItem('organization')
         localStorage.removeItem('activeOrgId')
       }
 
       setError('')
-      setSavedMessage(text.organizationDeletedSuccessfully)
+      setSavedMessage(text.organizationDeletedSuccessfully || 'Organization deleted successfully')
       setDeleteConfirmOpen(false)
 
       setTimeout(() => {
@@ -401,328 +246,184 @@ export default function ManageOrganization() {
       }, 800)
     } catch (err) {
       setIsDeleting(false)
-      const errorMsg = err?.message || text.unableToDeleteOrganization
+      const errorMsg = err?.message || text.unableToDeleteOrganization || 'Failed to delete organization'
       setError(errorMsg)
       setDeleteConfirmOpen(false)
     }
   }
 
   return (
-    <div className="theme-light-violet min-h-screen px-4 py-6 text-[var(--text)] sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-6xl">
-        <div className="mb-6 flex items-center justify-between gap-3">
-          <Link to="/dashboard" className="inline-flex items-center gap-2 rounded-full border border-white/6 bg-[var(--card)] px-4 py-2.5 text-sm font-light text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-            <ArrowLeftIcon className="h-4 w-4" />
-            {text.backToDashboard}
-          </Link>
-          <div className="rounded-full bg-primary-50 px-4 py-2 text-sm font-light text-primary-700">
-            {activeOrganization.organizationName}
-          </div>
-        </div>
+    <div className="theme-light-violet relative min-h-screen overflow-hidden bg-gradient-to-br from-primary-50 via-white to-sky-100 px-4 py-12 sm:px-6 lg:px-8">
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute -top-24 left-0 h-72 w-72 rounded-full bg-primary-200/35 blur-3xl" />
+        <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-sky-200/30 blur-3xl" />
+      </div>
 
-        <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} className="inner-card-accent rounded-[2rem] border border-white bg-[var(--card)] p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-8">
-          <div className="flex flex-col gap-3 border-b border-white/4 pb-6">
-            <p className="text-sm font-light uppercase tracking-[0.26em] text-primary-600">{text.manageOrganization}</p>
-            <h1 className="text-3xl font-light tracking-tight text-[var(--text)]">{activeOrganization.organizationName}</h1>
-            <p className="max-w-3xl text-base leading-7 text-[var(--muted)]">{text.manageOrganizationDescription}</p>
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative mx-auto flex w-full min-h-[calc(100vh-6rem)] items-center justify-center px-2 sm:px-4 lg:px-0"
+      >
+        <div className="inner-card-accent w-full max-w-3xl rounded-[2rem] border border-white/80 bg-[var(--card)] p-5 shadow-glass sm:p-8">
+          <div className="mb-6 flex justify-start">
+            <Link
+              to="/dashboard"
+              className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white px-4 py-2 text-sm font-light text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+            >
+              <ArrowLeftIcon className="h-4 w-4" />
+              {text.backToDashboard || 'Back to Dashboard'}
+            </Link>
+          </div>
+
+          <div className="mx-auto max-w-3xl text-center">
+            <p className="text-xs font-light uppercase tracking-[0.3em] text-primary-600">{text.manageOrganization || 'Manage Organization'}</p>
+            <h1 className="mt-3 text-3xl font-light tracking-tight text-[var(--text)] sm:text-4xl">{activeOrganization.organizationName}</h1>
+            <p className="mt-3 text-base leading-7 text-[var(--muted)]">{text.manageOrganizationDescription || 'Edit organization profile details and manage books'}</p>
           </div>
 
           <form onSubmit={handleSave} className="mt-8 space-y-8">
             <div className="grid gap-6 lg:grid-cols-2">
               <div>
-                <label className="mb-2 block text-sm font-light text-slate-700">{text.organizationNameLabel}</label>
+                <label className="mb-2 block text-sm font-light text-slate-700">{text.organizationNameLabel || 'Organization Name'}</label>
                 <input
                   type="text"
                   value={organizationName}
-                  onChange={(event) => setOrganizationName(event.target.value)}
-                  className="w-full rounded-xl border border-white/6 bg-[var(--card)] px-4 py-3 text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+                  onChange={(e) => setOrganizationName(e.target.value)}
+                  className="w-full rounded-xl border border-white/6 bg-[var(--card)] px-4 py-3 text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 input-glass"
+                  placeholder={text.organizationNamePlaceholder}
                 />
               </div>
+
               <div>
-                <label className="mb-2 block text-sm font-light text-slate-700">{text.descriptionLabel}</label>
+                <label className="mb-2 block text-sm font-light text-slate-700">{text.descriptionLabel || 'Description'}</label>
                 <input
                   type="text"
                   value={description}
-                  onChange={(event) => setDescription(event.target.value)}
-                  className="w-full rounded-xl border border-white/6 bg-[var(--card)] px-4 py-3 text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="w-full rounded-xl border border-white/6 bg-[var(--card)] px-4 py-3 text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 input-glass"
+                  placeholder={text.descriptionPlaceholder}
                 />
               </div>
             </div>
 
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h2 className="text-xl font-light text-[var(--text)]">{text.modulesAndSubmodules}</h2>
-                <p className="text-sm text-slate-500">{text.editEveryModuleDirectly}</p>
+            <div className="border-t border-slate-100 pt-6">
+              <div className="mb-4 flex items-center justify-between">
+                <label className="block text-sm font-semibold text-slate-700">
+                  Books <span className="text-xs font-light text-rose-500">(At least 1 required)</span>
+                </label>
               </div>
-              <button
-                type="button"
-                onClick={addModule}
-                className="inline-flex items-center gap-2 rounded-full border border-primary-200 bg-primary-50 px-4 py-2.5 text-sm font-light text-primary-700 transition hover:bg-primary-100"
-              >
-                {text.addModule}
-                <PlusIcon className="h-4 w-4" />
-              </button>
+
+              <div className="flex gap-3 mb-4">
+                <input
+                  type="text"
+                  value={newBookName}
+                  onChange={(e) => setNewBookName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      handleAddBook(e)
+                    }
+                  }}
+                  placeholder="Enter book name (e.g. Personal, Business)"
+                  className="w-full rounded-xl border border-white/6 bg-[var(--card)] px-4 py-2.5 text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 input-glass"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddBook}
+                  className="inline-flex items-center gap-2 rounded-xl bg-primary-600 px-5 py-2.5 text-sm font-medium text-white shadow-md hover:bg-primary-700 transition shrink-0"
+                >
+                  <PlusIcon className="h-4 w-4" />
+                  Add Book
+                </button>
+              </div>
+
+              {books.length === 0 ? (
+                <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 p-8 text-center bg-slate-50/50">
+                  <svg fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-10 h-10 text-slate-400 mb-2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
+                  </svg>
+                  <span className="text-sm font-light text-slate-500">No books added yet</span>
+                </div>
+              ) : (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {books.map((book, index) => (
+                    <div key={index} className="flex items-center justify-between rounded-xl border border-white/6 bg-[var(--card)] p-3 shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="rounded-lg bg-primary-50 p-2 text-primary-600">
+                          <svg fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-5 h-5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
+                          </svg>
+                        </div>
+                        <span className="text-sm font-medium text-[var(--text)]">{book.name}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteBook(index)}
+                        className="rounded-lg p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition"
+                        aria-label="Delete book"
+                      >
+                        <svg fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-5 h-5">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {moduleDraft ? (
-              <div
-                className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-3 py-4 backdrop-blur-sm"
-                onClick={cancelModuleDraft}
-              >
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.96, y: 10 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  transition={{ duration: 0.18, ease: 'easeOut' }}
-                  className="inner-card-accent w-full max-w-md rounded-[1.5rem] border border-white/80 bg-[var(--card)] p-3 shadow-glass sm:p-4"
-                  onClick={(event) => event.stopPropagation()}
-                >
-                  <div className="mb-3 flex items-start justify-between gap-3 border-b border-white/60 pb-3">
-                    <div>
-                      <p className="text-[10px] font-light uppercase tracking-[0.28em] text-primary-600">{text.addModule}</p>
-                      <h3 className="mt-1.5 text-xl font-light tracking-tight text-[var(--text)]">{text.createNewModule}</h3>
-                      {/* <p className="mt-1.5 text-xs leading-5 text-[var(--muted)]">Enter the module details, choose the type, and add submodules before saving.</p> */}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={cancelModuleDraft}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/70 bg-white text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-                      aria-label={text.closeModuleForm}
-                    >
-                      <span className="text-lg leading-none">×</span>
-                    </button>
-                  </div>
+            {error ? <p className="text-sm text-rose-600">{error}</p> : null}
+            {savedMessage ? <p className="text-sm text-emerald-600">{savedMessage}</p> : null}
 
-                  <div className="flex flex-col gap-3">
-                    <div className="space-y-3">
-                      <div>
-                        <label className="mb-2 block text-sm font-light text-slate-700">{text.moduleNameLabel}</label>
-                        <input
-                          type="text"
-                          value={moduleDraft.name}
-                          onChange={(event) => updateModuleDraft('name', event.target.value)}
-                          className="w-full rounded-xl border border-dashed border-primary-300 bg-primary-50/70 px-3 py-2.5 text-sm font-light text-[var(--text)] outline-none transition focus:border-primary-500 focus:bg-[var(--card)] focus:ring-2 focus:ring-primary-500/20 input-glass"
-                          placeholder={text.moduleNamePlaceholder}
-                        />
-                      </div>
-
-                      <div>
-                        <p className="text-xs font-light uppercase tracking-[0.16em] text-slate-500">{text.moduleTypeLabel}</p>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {[
-                            { value: 'revenue', label: text.revenue, activeClass: 'border-emerald-500 bg-emerald-500 text-white shadow-sm' },
-                            { value: 'expense', label: text.expenses, activeClass: 'border-red-500 bg-red-500 text-white shadow-sm' },
-                          ].map((item) => {
-                            const isActive = moduleDraft.direction === item.value
-
-                            return (
-                              <button
-                                key={item.value}
-                                type="button"
-                                onClick={() => updateModuleDraft('direction', item.value)}
-                                className={`inline-flex items-center justify-center rounded-full border px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.14em] transition ${isActive ? item.activeClass : 'border-white/70 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'}`}
-                              >
-                                {item.label}
-                              </button>
-                            )
-                          })}
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="mb-2 block text-sm font-light text-slate-700">{text.submoduleNameLabel}</label>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="text"
-                            value={moduleDraft.submoduleDraft}
-                            onChange={(event) => updateModuleDraft('submoduleDraft', event.target.value)}
-                            onKeyDown={(event) => {
-                              if (event.key === 'Enter') {
-                                event.preventDefault()
-                                addModuleDraftSubmodule()
-                              }
-                            }}
-                            className="w-full rounded-xl border border-dashed border-primary-300 bg-primary-50/70 px-3 py-2.5 text-sm font-light text-[var(--text)] outline-none transition focus:border-primary-500 focus:bg-[var(--card)] focus:ring-2 focus:ring-primary-500/20"
-                            placeholder={text.submoduleNamePlaceholder}
-                          />
-                          <button
-                            type="button"
-                            onClick={addModuleDraftSubmodule}
-                            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary-200 bg-primary-50 text-primary-600 transition hover:bg-primary-100"
-                            aria-label={text.addSubmodule}
-                          >
-                            <PlusIcon className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                    {moduleDraft.submodules.length > 0 ? (
-                      <div className="flex flex-wrap gap-2">
-                        {moduleDraft.submodules.map((submodule) => (
-                          <span key={translateSubmoduleLabel(language, submodule)} className="inline-flex items-center gap-2 rounded-full bg-white px-2.5 py-1 text-[11px] font-light text-slate-700 shadow-sm ring-1 ring-slate-200">
-                            {translateSubmoduleLabel(language, submodule)}
-                            <button
-                              type="button"
-                              onClick={() => removeModuleDraftSubmodule(submodule)}
-                              className="text-slate-400 transition hover:text-rose-600"
-                              aria-label={translateText(language, 'removeSubmodule', { submodule })}
-                            >
-                              ×
-                            </button>
-                          </span>
-                        ))}
-                      </div>
-                    ) : null}
-
-                    <div className="flex flex-wrap items-center justify-end gap-3 border-t border-white/60 pt-4">
-                      <button
-                        type="button"
-                        onClick={cancelModuleDraft}
-                        className="inline-flex items-center justify-center rounded-full border border-white/70 bg-white px-4 py-2 text-sm font-light text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-                      >
-                        {text.cancel}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={saveModuleDraft}
-                        className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-primary-500 to-primary-600 px-4 py-2 text-sm font-light text-white shadow-lg shadow-primary-500/25 transition hover:-translate-y-0.5"
-                      >
-                        {text.saveModule}
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              </div>
-            ) : null}
-
-            <ul className="grid gap-4 sm:grid-cols-2">
-              {modules.map((module, moduleIndex) => (
-                <li key={module.id} className="rounded-[1.5rem] border border-white/6 bg-[var(--card)] p-4">
-                  <div className="flex items-center justify-between gap-3 border-b border-white/6 pb-4">
-                    <div className="flex-1">
-                      <label className="mb-2 block text-xs font-light uppercase tracking-[0.18em] text-slate-500">{translateText(language, 'moduleLabelWithNumber', { number: moduleIndex + 1 })}</label>
-                      <input
-                        type="text"
-                        value={translateModuleLabel(language, module.name)}
-                        onChange={(event) => updateModule(module.id, 'name', event.target.value)}
-                        className="w-full rounded-xl border border-white/6 bg-[var(--card)] px-4 py-3 text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 input-glass"
-                        placeholder={
-                          module.isCustom
-                            ? text.moduleNamePlaceholder
-                            : translateModuleLabel(language, module.name)
-                        }
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => removeModule(module.id)}
-                      className="mt-6 inline-flex h-11 w-11 items-center justify-center rounded-full border border-rose-200 bg-rose-50 text-rose-600 transition hover:bg-rose-100"
-                      aria-label={translateText(language, 'deleteModule', { module: module.name || moduleIndex + 1 })}
-                    >
-                      <TrashIcon className="h-4 w-4" />
-                    </button>
-                  </div>
-
-                  <div className="mt-4 pl-2">
-                    <div className="mb-3 flex items-center justify-between gap-3">
-                      <p className="text-xs font-light uppercase tracking-[0.18em] text-slate-500">{text.submodules}</p>
-                      <button
-                        type="button"
-                        onClick={() => addSubmodule(module.id)}
-                        className="inline-flex items-center gap-2 rounded-full border border-white/6 bg-[var(--card)] px-3 py-2 text-xs font-light text-slate-700 transition hover:border-primary-300 hover:text-primary-700"
-                      >
-                        <PlusIcon className="h-3.5 w-3.5" />
-                        {text.addSubmodule}
-                      </button>
-                    </div>
-
-                    <ul className="space-y-3 border-l border-dashed border-slate-300 pl-4">
-                      {module.submodules.map((submodule, subIndex) => (
-                        <li key={`${module.id}-${subIndex}`} className="flex items-center gap-2">
-                          {/* {!module.isCustom ? (
-                            <p className="mb-1 text-xs font-light text-primary-600">
-                              {translateSubmoduleLabel(language, submodule)}
-                            </p>
-                          ) : null} */}
-                          <span className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-primary-500" />
-                              <input
-                                type="text"
-                                value={translateSubmoduleLabel(language, submodule)}
-                                onChange={(event) => updateSubmodule(module.id, subIndex, event.target.value)}
-                                className="min-w-0 flex-1 rounded-xl text-slate-400 border border-white/6 bg-[var(--card)] px-3 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
-                                placeholder={
-                                  translateSubmoduleLabel(language, submodule) ||
-                                  translateText(language, 'submoduleNumberPlaceholder', {
-                                    number: subIndex + 1,
-                                  })
-                                }
-                              />
-                          <button
-                            type="button"
-                            onClick={() => removeSubmodule(module.id, subIndex)}
-                            className="rounded-xl border border-white/6 bg-[var(--card)] p-2 text-slate-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
-                            aria-label={text.removeSubmodule}
-                          >
-                            <TrashIcon className="h-4 w-4" />
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </li>
-              ))}
-            </ul>
-
-            {error ? <p className="text-sm font-light text-rose-600">{error}</p> : null}
-            {savedMessage ? <p className="text-sm font-light text-emerald-600">{savedMessage}</p> : null}
-
-            <div className="flex flex-col gap-4 border-t border-white/6 pt-6 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-4 border-t border-slate-100 pt-6 sm:flex-row sm:items-center sm:justify-between">
               <button
                 type="button"
                 onClick={() => setDeleteConfirmOpen(true)}
                 className="inline-flex items-center justify-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-6 py-3 text-sm font-light text-rose-600 transition hover:bg-rose-100"
               >
                 <TrashIcon className="h-4 w-4" />
-                {text.deleteOrganization}
+                {text.deleteOrganization || 'Delete Organization'}
               </button>
-              <button type="submit" className="inline-flex items-center justify-center gap-2 rounded-full accent-cta px-6 py-3 text-sm font-light transition hover:-translate-y-0.5">
-                {text.saveChanges}
+              <button type="submit" className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-primary-500 to-primary-600 px-6 py-3 text-sm font-light text-white shadow-lg shadow-primary-500/25 transition hover:-translate-y-0.5">
+                {text.saveChanges || 'Save Changes'}
                 <PlusIcon className="h-4 w-4" />
               </button>
             </div>
           </form>
-        </motion.div>
+        </div>
+      </motion.div>
 
-        {deleteConfirmOpen ? (
-          <div className="fixed inset-0 flex items-center justify-center bg-black/30 px-4 py-6 backdrop-blur-sm">
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="inner-card-accent w-full max-w-md rounded-[2rem] border border-white bg-[var(--card)] p-6 shadow-lg sm:p-8">
-              <div className="mb-6">
-                <h2 className="text-2xl font-light text-[var(--text)]">{text.deleteOrganization}</h2>
-                <p className="mt-2 text-base leading-7 text-[var(--muted)]">{translateText(language, 'deleteOrganizationConfirmation', { organization: activeOrganization.organizationName })}</p>
-              </div>
-              <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  onClick={() => setDeleteConfirmOpen(false)}
-                  disabled={isDeleting}
-                  className="inline-flex items-center justify-center rounded-full border border-white/6 bg-[var(--card)] px-6 py-3 text-sm font-light text-[var(--text)] transition hover:border-white/10 disabled:opacity-50"
-                >
-                  {text.cancel}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDelete}
-                  disabled={isDeleting}
-                  className="inline-flex items-center justify-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-6 py-3 text-sm font-light text-rose-600 transition hover:bg-rose-100 disabled:opacity-50"
-                >
-                  <TrashIcon className="h-4 w-4" />
-                  {isDeleting ? text.deleting : text.delete}
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        ) : null}
-      </div>
+      {deleteConfirmOpen ? (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/30 px-4 py-6 backdrop-blur-sm z-50">
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="inner-card-accent w-full max-w-md rounded-[2rem] border border-white bg-[var(--card)] p-6 shadow-lg sm:p-8">
+            <div className="mb-6">
+              <h2 className="text-2xl font-light text-[var(--text)]">{text.deleteOrganization || 'Delete Organization'}</h2>
+              <p className="mt-2 text-base leading-7 text-[var(--muted)]">
+                Are you sure you want to delete organization "{activeOrganization.organizationName}"? This action cannot be undone and will delete all associated data.
+              </p>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmOpen(false)}
+                disabled={isDeleting}
+                className="inline-flex items-center justify-center rounded-full border border-white/6 bg-[var(--card)] px-6 py-3 text-sm font-light text-[var(--text)] transition hover:border-white/10 disabled:opacity-50"
+              >
+                {text.cancel || 'Cancel'}
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-6 py-3 text-sm font-light text-rose-600 transition hover:bg-rose-100 disabled:opacity-50"
+              >
+                <TrashIcon className="h-4 w-4" />
+                {isDeleting ? (text.deleting || 'Deleting...') : (text.delete || 'Delete')}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      ) : null}
     </div>
   )
 }

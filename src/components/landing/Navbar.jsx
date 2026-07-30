@@ -25,14 +25,19 @@ export default function Navbar(){
     >
       <div className="container-max mx-auto px-4 sm:px-6">
         <div className="flex h-20 items-center justify-between">
-          <Link to="/" className="flex items-center gap-3">
-            <img src={logo} alt="PocketFlow Logo" className="h-8 w-8 object-contain" />
+          <Link to="/" className="flex items-center gap-3 group">
+            <motion.div
+              whileHover={{ rotate: 15, scale: 1.12 }}
+              transition={{ type: "spring", stiffness: 350, damping: 12 }}
+            >
+              <img src={logo} alt="PocketFlow Logo" className="h-7 w-7 object-contain" />
+            </motion.div>
             <div>
-              <div className="text-[18px] pt-1 text-blue-500 font-semibold">PocketFlow</div>
+              <span className="text-[16px] pt-0.5 text-blue-500 font-semibold group-hover:text-blue-400 transition-colors duration-200">PocketFlow</span>
             </div>
           </Link>
 
-          <nav className="hidden lg:flex items-center gap-8 text-sm">
+          <nav className="hidden lg:flex items-center gap-8 text-xs">
             {[
               {label: 'Home', to: '/#top'},
               {label: 'About', to: '/#about'},
@@ -40,20 +45,30 @@ export default function Navbar(){
               {label: 'Ratings', to: '/#ratings'},
               {label: 'FAQ', to: '/#faq'},
             ].map((item) => (
-              <Link key={item.label} to={item.to} className="group relative text-white/60 hover:text-white transition-colors">
-                {item.label}
-                <span className="absolute left-0 -bottom-2 h-0.5 w-0 bg-gradient-to-r from-primary-500 to-primary-600 transition-all duration-300 group-hover:w-full rounded" />
-              </Link>
+              <motion.div 
+                key={item.label}
+                whileHover={{ y: -1.5 }}
+                transition={{ duration: 0.15 }}
+              >
+                <Link to={item.to} className="group relative text-white/60 hover:text-white transition-colors">
+                  {item.label}
+                  <span className="absolute left-0 -bottom-2 h-0.5 w-0 bg-gradient-to-r from-primary-500 to-primary-600 transition-all duration-300 group-hover:w-full rounded" />
+                </Link>
+              </motion.div>
             ))}
           </nav>
 
           <div className="hidden md:flex items-center gap-3">
-            <Link to="/login" className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/6 px-4 py-2 text-sm font-light text-white transition hover:-translate-y-0.5 hover:shadow-lg">
-              Login
-            </Link>
-            <Link to="/register" className="inline-flex items-center rounded-full bg-gradient-to-r from-primary-500 to-primary-600 px-5 py-2 text-sm font-light text-white shadow-lg shadow-primary-500/25 transition hover:-translate-y-0.5 hover:shadow-primary-500/30">
-              Get Started
-            </Link>
+            <motion.div whileHover={{ y: -2, scale: 1.03 }} transition={{ duration: 0.2 }}>
+              <Link to="/login" className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/6 px-4 py-2 text-xs font-medium text-white transition hover:shadow-lg hover:bg-white/10">
+                Login
+              </Link>
+            </motion.div>
+            <motion.div whileHover={{ y: -2, scale: 1.03 }} transition={{ duration: 0.2 }}>
+              <Link to="/register" className="inline-flex items-center rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 px-5 py-2 text-xs font-medium text-white shadow-lg shadow-primary-500/25 transition hover:shadow-primary-500/40">
+                Get Started
+              </Link>
+            </motion.div>
           </div>
 
           <button className="md:hidden inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/40 bg-white/6 text-white" onClick={() => setMobileOpen((prev) => !prev)} aria-label="Toggle menu">

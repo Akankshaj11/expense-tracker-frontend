@@ -21,7 +21,7 @@ export default function About(){
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true, amount: 0.2 }}
             transition={{ duration: 0.5 }}
-            className="glass-card rounded-[2.5rem] p-6 border border-white/5 shadow-2xl relative overflow-hidden group hover:border-white/10 transition-all duration-300"
+            className="glass-card rounded-2xl p-7 border border-white/5 shadow-2xl relative overflow-hidden group hover:border-white/10 transition-all duration-300"
           >
             {/* Soft decorative background glows */}
             <div className="absolute -left-16 -bottom-16 h-36 w-36 rounded-full bg-cyan-500/5 blur-3xl" />
@@ -38,29 +38,38 @@ export default function About(){
 
             {/* Total Balance & In/Out Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="rounded-xl bg-white/4 p-3 border border-white/5">
+              <motion.div 
+                whileHover={{ y: -3, scale: 1.02 }}
+                className="rounded-xl bg-white/4 p-3 border border-white/5 cursor-pointer hover:border-white/10 hover:bg-white/6 transition-colors duration-200"
+              >
                 <p className="text-[9px] uppercase tracking-wider text-zinc-400 font-light">Total Balance</p>
                 <p className="text-lg font-bold text-white mt-0.5">$12,482.00</p>
                 <span className="text-[8px] text-emerald-400 font-light mt-0.5 inline-block">
                   ↑ +8.2%
                 </span>
-              </div>
+              </motion.div>
               
-              <div className="rounded-xl bg-white/4 p-3 border border-white/5">
+              <motion.div 
+                whileHover={{ y: -3, scale: 1.02 }}
+                className="rounded-xl bg-white/4 p-3 border border-white/5 cursor-pointer hover:border-white/10 hover:bg-white/6 transition-colors duration-200"
+              >
                 <p className="text-[9px] uppercase tracking-wider text-zinc-400 font-light">Total Inflow</p>
                 <p className="text-lg font-bold text-emerald-400 mt-0.5">+$15,800.00</p>
                 <span className="text-[8px] text-zinc-500 font-light mt-0.5 inline-block">
                   This month
                 </span>
-              </div>
+              </motion.div>
 
-              <div className="rounded-xl bg-white/4 p-3 border border-white/5">
+              <motion.div 
+                whileHover={{ y: -3, scale: 1.02 }}
+                className="rounded-xl bg-white/4 p-3 border border-white/5 cursor-pointer hover:border-white/10 hover:bg-white/6 transition-colors duration-200"
+              >
                 <p className="text-[9px] uppercase tracking-wider text-zinc-400 font-light">Total Outflow</p>
                 <p className="text-lg font-bold text-rose-400 mt-0.5">-$3,318.00</p>
                 <span className="text-[8px] text-zinc-500 font-light mt-0.5 inline-block">
                   This month
                 </span>
-              </div>
+              </motion.div>
             </div>
 
             {/* Simulated Transaction Log Feed */}
@@ -76,9 +85,10 @@ export default function About(){
                   key={index} 
                   initial={{ opacity: 0, x: -10 }}
                   whileInView={{ opacity: 1, x: 0 }}
+                  whileHover={{ x: 4, backgroundColor: 'rgba(255,255,255,0.06)' }}
                   viewport={{ once: true }}
                   transition={{ delay: 0.15 + index * 0.08, duration: 0.35 }}
-                  className="flex items-center justify-between p-3 rounded-xl bg-white/4 border border-white/5 hover:bg-white/6 transition-colors"
+                  className="flex items-center justify-between p-3 rounded-xl bg-white/4 border border-white/5 cursor-pointer transition-colors"
                 >
                   <div>
                     <h5 className="text-xs font-semibold text-white">{txn.name}</h5>
@@ -95,11 +105,11 @@ export default function About(){
         {/* Right Side: Copywriting Content */}
         <div className="lg:col-span-6 flex flex-col space-y-6">
           <div>
-            <p className="text-sm font-light uppercase tracking-[0.22em] text-primary-600">Overview</p>
-            <h3 className="mt-2 text-2xl font-light tracking-wide text-white sm:text-3xl">
+            <p className="text-xs font-light uppercase tracking-[0.22em] text-primary-600">Overview</p>
+            <h3 className="mt-2 text-xl font-light tracking-wide text-white sm:text-2xl">
               About PocketFlow
             </h3>
-            <p className="mt-3 text-zinc-400 text-sm sm:text-base leading-6">
+            <p className="mt-3 text-zinc-400 text-xs sm:text-sm leading-relaxed">
               PocketFlow is a premium finance workspace engineered specifically for teams and organizations. 
               We separate system-level workspaces from transaction categories, giving you the freedom to 
               shape custom workflows, collaborate with permission layers, and export audit-ready summaries instantly.
@@ -112,12 +122,13 @@ export default function About(){
                 key={point} 
                 initial={{ opacity: 0, x: 15 }}
                 whileInView={{ opacity: 1, x: 0 }}
+                whileHover={{ x: 4 }}
                 viewport={{ once: true }}
                 transition={{ delay: 0.1 * index, duration: 0.4 }}
-                className="flex items-start gap-3"
+                className="flex items-start gap-3 cursor-pointer group"
               >
-                <CheckCircleIcon className="h-5 w-5 text-primary-500 shrink-0 mt-0.5" />
-                <p className="text-sm text-zinc-300 leading-6">{point}</p>
+                <CheckCircleIcon className="h-5 w-5 text-primary-500 shrink-0 mt-0.5 group-hover:scale-110 transition-transform duration-200" />
+                <p className="text-xs text-zinc-300 leading-relaxed">{point}</p>
               </motion.div>
             ))}
           </div>

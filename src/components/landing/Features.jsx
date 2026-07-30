@@ -90,11 +90,11 @@ export default function Features(){
   return (
     <section id="features" className="mt-20 scroll-mt-28 w-full">
       <div className="max-w-3xl">
-        <p className="text-sm font-light uppercase tracking-[0.22em] text-primary-600">Features</p>
-        <h4 className="mt-2 text-2xl font-light text-white sm:text-3xl">
+        <p className="text-xs font-light uppercase tracking-[0.22em] text-primary-600">Features</p>
+        <h4 className="mt-2 text-xl font-light text-white sm:text-2xl">
           Built for modern expense management
         </h4>
-        <p className="mt-3 text-sm sm:text-base text-[var(--muted)]">
+        <p className="mt-3 text-xs sm:text-sm text-[var(--muted)]">
           A premium, modular finance workspace designed to scale with your team's complexity.
         </p>
       </div>
@@ -125,19 +125,19 @@ export default function Features(){
                 <motion.div 
                   whileHover={{ y: -4, scale: 1.01 }}
                   transition={{ duration: 0.2 }}
-                  className="glass-card rounded-[1.5rem] p-5 border border-white/5 flex flex-col justify-between relative group hover:border-primary-500/20 transition-all duration-300 min-h-[190px] h-full text-left"
+                  className="glass-card rounded-xl p-6 border border-white/5 flex flex-col justify-between relative group hover:border-primary-500/20 transition-all duration-300 min-h-[190px] h-full text-left"
                 >
                   {/* Glowing border overlay */}
-                  <div className={`absolute inset-0 border border-transparent rounded-[1.5rem] transition-all duration-300 ${f.glow}`} />
+                  <div className={`absolute inset-0 border border-transparent rounded-xl transition-all duration-300 ${f.glow}`} />
                   
                   <div className="flex items-center gap-3">
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/5 text-primary-400 shadow-sm group-hover:bg-primary-500/15 transition-colors">
                       <f.icon className="h-[18px] w-[18px]" />
                     </div>
-                    <h4 className="text-[15px] font-semibold text-white leading-tight">{f.title}</h4>
+                    <h4 className="text-[13.5px] font-semibold text-white leading-tight">{f.title}</h4>
                   </div>
                   <div className="mt-3 flex-1">
-                    <p className="text-xs leading-5 text-[var(--muted)] font-light">{f.desc}</p>
+                    <p className="text-[11px] leading-relaxed text-[var(--muted)] font-light">{f.desc}</p>
                   </div>
                 </motion.div>
               </div>
