@@ -41,13 +41,13 @@ export function getBooksFromOrganization(organization) {
       {
         name: "Default Book",
         description: "Default workspace book",
-        modules: [
-          { name: "Revenue", type: "in", submodules: ["Salary", "Freelance", "Bonus", "Interest", "Commission", "Pocket Money"] },
-          { name: "Expenses", type: "out", submodules: ["Food", "Travel", "Shopping", "Bills", "Health", "Entertainment", "Education", "Rent", "Subscriptions", "Loans", "Taxes"] },
-          { name: "Investments", type: "out", submodules: ["Mutual Funds", "Stocks", "Crypto", "Fixed Deposit", "Gold"] },
-          { name: "Investment Returns", type: "in", submodules: ["Mutual Funds", "Stocks", "Crypto", "Fixed Deposit", "Gold"] },
-          { name: "Lend", type: "out", submodules: ["Friends", "Family", "Colleagues"] },
-          { name: "Borrow", type: "in", submodules: ["Friends", "Family", "Colleagues"] }
+        categories: [
+          { name: "Revenue", type: "in", subcategories: ["Salary", "Freelance", "Bonus", "Interest", "Commission", "Pocket Money"] },
+          { name: "Expenses", type: "out", subcategories: ["Food", "Travel", "Shopping", "Bills", "Health", "Entertainment", "Education", "Rent", "Subscriptions", "Loans", "Taxes"] },
+          { name: "Investments", type: "out", subcategories: ["Mutual Funds", "Stocks", "Crypto", "Fixed Deposit", "Gold"] },
+          { name: "Investment Returns", type: "in", subcategories: ["Mutual Funds", "Stocks", "Crypto", "Fixed Deposit", "Gold"] },
+          { name: "Lend", type: "out", subcategories: ["Friends", "Family", "Colleagues"] },
+          { name: "Borrow", type: "in", subcategories: ["Friends", "Family", "Colleagues"] }
         ],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
@@ -65,26 +65,26 @@ export async function saveBooksList(activeOrgId, updatedBooks, organizations, se
   const activeOrg = organizations.find((org) => org.id === activeOrgId)
   if (!activeOrg) return false
 
-  // Union modules/submodules
-  const allModules = []
-  const allSubmodules = {}
+  // Union categories/subcategories
+  const allCategories = []
+  const allsubcategories = {}
   for (const b of updatedBooks) {
-    for (const m of b.modules) {
-      if (!allModules.some((mod) => mod.name.toLowerCase() === m.name.toLowerCase())) {
-        allModules.push({
+    for (const m of b.categories) {
+      if (!allCategories.some((mod) => mod.name.toLowerCase() === m.name.toLowerCase())) {
+        allCategories.push({
           name: m.name,
           direction: m.type,
-          moduleType: m.type,
+          categoryType: m.type,
           transactionType: m.type,
         })
       }
-      const existingSubs = allSubmodules[m.name] || []
-      for (const sub of m.submodules) {
+      const existingSubs = allsubcategories[m.name] || []
+      for (const sub of m.subcategories) {
         if (!existingSubs.includes(sub)) {
           existingSubs.push(sub)
         }
       }
-      allSubmodules[m.name] = existingSubs
+      allsubcategories[m.name] = existingSubs
     }
   }
 
@@ -97,8 +97,8 @@ export async function saveBooksList(activeOrgId, updatedBooks, organizations, se
   const updatePayload = {
     description: finalDesc,
     books: updatedBooks,
-    modules: allModules,
-    submodules: allSubmodules,
+    categories: allCategories,
+    subcategories: allsubcategories,
   }
 
   let updatedOrg = null
@@ -144,19 +144,19 @@ export async function addNewBook(activeOrgId, name, description, organizations, 
     throw new Error("A book with this name already exists")
   }
 
-  const defaultModules = [
-    { name: "Revenue", type: "in", submodules: ["Salary", "Freelance", "Bonus", "Interest", "Commission", "Pocket Money"] },
-    { name: "Expenses", type: "out", submodules: ["Food", "Travel", "Shopping", "Bills", "Health", "Entertainment", "Education", "Rent", "Subscriptions", "Loans", "Taxes"] },
-    { name: "Investments", type: "out", submodules: ["Mutual Funds", "Stocks", "Crypto", "Fixed Deposit", "Gold"] },
-    { name: "Investment Returns", type: "in", submodules: ["Mutual Funds", "Stocks", "Crypto", "Fixed Deposit", "Gold"] },
-    { name: "Lend", type: "out", submodules: ["Friends", "Family", "Colleagues"] },
-    { name: "Borrow", type: "in", submodules: ["Friends", "Family", "Colleagues"] }
+  const defaultCategories = [
+    { name: "Revenue", type: "in", subcategories: ["Salary", "Freelance", "Bonus", "Interest", "Commission", "Pocket Money"] },
+    { name: "Expenses", type: "out", subcategories: ["Food", "Travel", "Shopping", "Bills", "Health", "Entertainment", "Education", "Rent", "Subscriptions", "Loans", "Taxes"] },
+    { name: "Investments", type: "out", subcategories: ["Mutual Funds", "Stocks", "Crypto", "Fixed Deposit", "Gold"] },
+    { name: "Investment Returns", type: "in", subcategories: ["Mutual Funds", "Stocks", "Crypto", "Fixed Deposit", "Gold"] },
+    { name: "Lend", type: "out", subcategories: ["Friends", "Family", "Colleagues"] },
+    { name: "Borrow", type: "in", subcategories: ["Friends", "Family", "Colleagues"] }
   ]
 
   const newBook = {
     name,
     description,
-    modules: defaultModules,
+    categories: defaultCategories,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   }

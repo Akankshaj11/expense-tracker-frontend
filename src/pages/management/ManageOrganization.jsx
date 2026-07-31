@@ -69,7 +69,7 @@ export default function ManageOrganization() {
         <div className="w-full max-w-xl rounded-[2rem] border border-white/6 bg-[var(--card)] p-8 text-center shadow-sm">
           <p className="text-sm font-light uppercase tracking-[0.22em] text-slate-500">{text.noOrganizationFound}</p>
           <h1 className="mt-3 text-3xl font-light tracking-tight text-[var(--text)]">{text.createAnOrganizationFirst}</h1>
-          <p className="mt-3 text-base leading-7 text-[var(--muted)]">{text.needOrganizationBeforeManagingModules}</p>
+          <p className="mt-3 text-base leading-7 text-[var(--muted)]">{text.needOrganizationBeforeManagingCategories}</p>
           <Link to="/create-organization" className="mt-6 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary-500 to-primary-600 px-5 py-3 text-sm font-light text-white shadow-lg shadow-primary-500/25">
             {text.createOrganization}
             <PlusIcon className="h-4 w-4" />
@@ -121,33 +121,10 @@ export default function ManageOrganization() {
       return
     }
 
-    // Standard default system modules & submodules
-    const defaultModulesData = [
-      { name: 'Revenue', direction: 'in', transactionType: 'in', moduleType: 'in', isCustom: false, submodules: ['Salary', 'Freelance', 'Bonus', 'Interest', 'Commission', 'Pocket Money'] },
-      { name: 'Expenses', direction: 'out', transactionType: 'out', moduleType: 'out', isCustom: false, submodules: ['Food', 'Travel', 'Shopping', 'Bills', 'Health', 'Entertainment', 'Education', 'Rent', 'Subscriptions', 'Loans', 'Taxes'] },
-      { name: 'Investments', direction: 'out', transactionType: 'out', moduleType: 'out', isCustom: false, submodules: ['Mutual Funds', 'Stocks', 'Crypto', 'Fixed Deposit', 'Gold'] },
-      { name: 'Investment Returns', direction: 'in', transactionType: 'in', moduleType: 'in', isCustom: false, submodules: ['Mutual Funds', 'Stocks', 'Crypto', 'Fixed Deposit', 'Gold'] },
-      { name: 'Lend', direction: 'out', transactionType: 'out', moduleType: 'out', isCustom: false, submodules: ['Friends', 'Family', 'Colleagues'] },
-      { name: 'Borrow', direction: 'in', transactionType: 'in', moduleType: 'in', isCustom: false, submodules: ['Friends', 'Family', 'Colleagues'] },
-    ]
-
-    const submodulesData = {
-      Revenue: ['Salary', 'Freelance', 'Bonus', 'Interest', 'Commission', 'Pocket Money'],
-      Expenses: ['Food', 'Travel', 'Shopping', 'Bills', 'Health', 'Entertainment', 'Education', 'Rent', 'Subscriptions', 'Loans', 'Taxes'],
-      Investments: ['Mutual Funds', 'Stocks', 'Crypto', 'Fixed Deposit', 'Gold'],
-      'Investment Returns': ['Mutual Funds', 'Stocks', 'Crypto', 'Fixed Deposit', 'Gold'],
-      Lend: ['Friends', 'Family', 'Colleagues'],
-      Borrow: ['Friends', 'Family', 'Colleagues'],
-    }
-
     const serializedBooks = JSON.stringify(books.map((b) => ({
       name: b.name,
-      description: "",
-      modules: defaultModulesData.map((m) => ({
-        name: m.name,
-        type: m.direction,
-        submodules: m.submodules,
-      })),
+      description: b.description || "",
+      categories: b.categories || activeOrganization.categories || [],
       createdAt: b.createdAt || new Date().toISOString(),
       updatedAt: b.updatedAt || new Date().toISOString(),
     })))
@@ -156,8 +133,8 @@ export default function ManageOrganization() {
     const updatePayload = {
       organizationName: organizationName.trim(),
       description: finalDesc,
-      modules: defaultModulesData,
-      submodules: submodulesData,
+      categories: activeOrganization.categories || [],
+      subcategories: activeOrganization.subcategories || {},
     }
 
     const isMongoId = /^[a-f0-9]{24}$/.test(activeOrganization.id)
@@ -186,8 +163,8 @@ export default function ManageOrganization() {
                 ...org,
                 organizationName: updatedOrg.organizationName,
                 description: updatedOrg.description,
-                modules: updatedOrg.modules,
-                submodules: updatedOrg.submodules,
+                categories: updatedOrg.categories,
+                subcategories: updatedOrg.subcategories,
               }
             : org
         )

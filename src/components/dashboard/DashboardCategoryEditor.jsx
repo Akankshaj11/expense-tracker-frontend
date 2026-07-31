@@ -2,16 +2,16 @@
 import { motion } from 'framer-motion'
 import { PlusIcon, XMarkIcon } from '@heroicons/react/24/outline'
 
-export default function DashboardModuleEditor({
+export default function DashboardCategoryEditor({
   text,
   isOpen,
   onClose,
-  moduleNameDraft,
-  setModuleNameDraft,
-  submoduleDrafts,
-  addSubmoduleDraft,
-  updateSubmoduleDraft,
-  removeSubmoduleDraft,
+  categoryNameDraft,
+  setCategoryNameDraft,
+  subcategoryDrafts,
+  addsubcategoryDraft,
+  updatesubcategoryDraft,
+  removesubcategoryDraft,
   isSaving,
   error,
   onSave,
@@ -31,8 +31,8 @@ export default function DashboardModuleEditor({
       >
         <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
           <div>
-            <p className="text-xs font-light uppercase tracking-[0.24em] text-primary-600">{text.modules}</p>
-            <h3 className="mt-2 text-2xl font-light tracking-tight text-slate-800">{text.modulesAndSubmodules}</h3>
+            <p className="text-xs font-light uppercase tracking-[0.24em] text-primary-600">{text.categories}</p>
+            <h3 className="mt-2 text-2xl font-light tracking-tight text-slate-800">{text.categoriesAndsubcategories}</h3>
           </div>
           <button
             type="button"
@@ -46,43 +46,43 @@ export default function DashboardModuleEditor({
 
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
           <div>
-            <label className="mb-1.5 block text-sm font-light text-slate-700">{text.moduleNameLabel || 'Module Name *'}</label>
+            <label className="mb-1.5 block text-sm font-light text-slate-700">{text.categoryNameLabel || 'Category Name *'}</label>
             <input
               type="text"
-              value={moduleNameDraft}
-              onChange={(event) => setModuleNameDraft(event.target.value)}
+              value={categoryNameDraft}
+              onChange={(event) => setCategoryNameDraft(event.target.value)}
               className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-800 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
             />
           </div>
 
           <div>
             <div className="flex items-center justify-between gap-3">
-              <label className="block text-sm font-light text-slate-700">{text.submoduleNameLabel || 'Submodule Name *'}</label>
+              <label className="block text-sm font-light text-slate-700">{text.subcategoryNameLabel || 'Subcategory Name *'}</label>
               <button
                 type="button"
-                onClick={addSubmoduleDraft}
+                onClick={addsubcategoryDraft}
                 className="inline-flex items-center gap-2 rounded-full border border-primary-200 bg-primary-50 px-3 py-1.5 text-xs font-medium text-primary-700 transition hover:border-primary-300 hover:bg-primary-100"
               >
                 <PlusIcon className="h-3.5 w-3.5" />
-                {text.addSubmodule || 'Add Submodule'}
+                {text.addsubcategory || 'Add Subcategory'}
               </button>
             </div>
 
             <div className="mt-3 space-y-2">
-              {submoduleDrafts.map((submodule, index) => (
+              {subcategoryDrafts.map((subcategory, index) => (
                 <div key={index} className="flex items-center gap-2">
                   <input
                     type="text"
-                    value={submodule}
-                    onChange={(event) => updateSubmoduleDraft(index, event.target.value)}
+                    value={subcategory}
+                    onChange={(event) => updatesubcategoryDraft(index, event.target.value)}
                     className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-800 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
-                    placeholder={`${text.submoduleNumberPlaceholder || 'Submodule'} ${index + 1}`}
+                    placeholder={`${text.subcategoryNumberPlaceholder || 'Subcategory'} ${index + 1}`}
                   />
                   <button
                     type="button"
-                    onClick={() => removeSubmoduleDraft(index)}
+                    onClick={() => removesubcategoryDraft(index)}
                     className="rounded-full border border-slate-200 bg-white p-2 text-rose-600 transition hover:border-rose-200 hover:bg-rose-50"
-                    aria-label={text.removeSubmodule || 'Remove submodule'}
+                    aria-label={text.removesubcategory || 'Remove subcategory'}
                   >
                     <XMarkIcon className="h-4 w-4" />
                   </button>

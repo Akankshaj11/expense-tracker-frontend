@@ -3,12 +3,12 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ArrowLeftIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/outline'
-import ModuleSelector from '../../components/transaction/ModuleSelector'
-import SubmoduleSelector from '../../components/transaction/SubmoduleSelector'
+import CategorySelector from '../../components/transaction/CategorySelector'
+import SubCategorySelector from '../../components/transaction/SubCategorySelector'
 import TransactionForm from '../../components/transaction/TransactionForm'
 import { apiRequest } from '../../utils/api'
 import { loadOrganizationsFromBackend, readCachedOrganizations } from '../../utils/organizationSync'
-import { buildModuleOptions, getModuleSubmodules, getPersistedModuleTransactionType } from '../../utils/moduleUtils'
+import { buildCategoryOptions, getCategorySubcategories, getPersistedCategoryTransactionType } from '../../utils/categoryUtils'
 import {
   evaluateExpression,
   getAmountInputDisplay,
@@ -23,8 +23,8 @@ import {
 import translations, {
   translateText,
   getLocale,
-  translateModuleLabel,
-  translateSubmoduleLabel,
+  translateCategoryLabel,
+  translateSubcategoryLabel,
 } from '../../i18n/translations'
 import useLanguage from '../../hooks/useLanguage'
 
@@ -58,23 +58,23 @@ export default function AddTransaction() {
 
   const activeOrgId = localStorage.getItem('activeOrgId') || organizations[0]?.id || ''
   const activeOrganization = organizations.find((item) => item.id === activeOrgId) || organizations[0] || null
-  const organizationModules = Array.isArray(activeOrganization?.modules) ? activeOrganization.modules : []
+  const organizationCategories = Array.isArray(activeOrganization?.categories) ? activeOrganization.categories : []
   const selectedCurrency = activeOrganization?.currency || readJSON('selectedCurrency', { code: 'USD', symbol: '$' })
   const isEditMode = Boolean(transactionId)
   const { language, text } = useLanguage()
   const locale = getLocale(language)
   const location = useLocation()
   const preselectedDirection = isEditMode ? '' : (location?.state?.preselectedDirection || 'in')
-  const initialSelectedModule = preselectedDirection === 'in' ? 'revenue' : 'expenses'
-  const initialSelectedSubmodule = 'default'
+  const initialSelectedCategory = preselectedDirection === 'in' ? 'revenue' : 'expenses'
+  const initialSelectedsubcategory = 'default'
   const initialTransactionDirection = preselectedDirection || 'in'
 
   const [step, setStep] = useState(4)
-  const [selectedModule, setSelectedModule] = useState(() => initialSelectedModule)
-  const [selectedSubmodule, setSelectedSubmodule] = useState(() => initialSelectedSubmodule)
-  const [customModuleDraft, setCustomModuleDraft] = useState('')
-  const [creatingCustomSubmodule, setCreatingCustomSubmodule] = useState(false)
-  const [customSubmoduleDraft, setCustomSubmoduleDraft] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState(() => initialSelectedCategory)
+  const [selectedSubcategory, setSelectedSubcategory] = useState(() => initialSelectedsubcategory)
+  const [customCategoryDraft, setCustomCategoryDraft] = useState('')
+  const [creatingCustomSubcategory, setCreatingCustomSubcategory] = useState(false)
+  const [customSubcategoryDraft, setCustomSubcategoryDraft] = useState('')
   const [transactionDirection, setTransactionDirection] = useState(() => initialTransactionDirection)
   const [paymentMode, setPaymentMode] = useState('')
   const [amountExpression, setAmountExpression] = useState('')
@@ -87,9 +87,9 @@ export default function AddTransaction() {
   const [isSaving, setIsSaving] = useState(false)
   const [isHydrated, setIsHydrated] = useState(!isEditMode)
   const [loadedTransaction, setLoadedTransaction] = useState(null)
-  const [forceSubmoduleSelection, setForceSubmoduleSelection] = useState(false)
-  const [preselectedFromModule, setPreselectedFromModule] = useState('')
-  const [openedFromModule] = useState(false)
+  const [forceSubcategorySelection, setForceSubcategorySelection] = useState(false)
+  const [preselectedFromCategory, setPreselectedFromCategory] = useState('')
+  const [openedFromCategory] = useState(false)
 
 
 
@@ -112,8 +112,8 @@ export default function AddTransaction() {
       return
     }
 
-    setSelectedModule(existingTransaction.module || '')
-    setSelectedSubmodule(existingTransaction.submodule || '')
+    setSelectedCategory(existingTransaction.category || '')
+    setSelectedSubcategory(existingTransaction.subcategory || '')
     setTransactionDirection(
       existingTransaction.direction ||
       existingTransaction.transactionType ||
@@ -133,26 +133,26 @@ export default function AddTransaction() {
   }, [isEditMode, transactionId, text.transactionNotFound])
 
   useEffect(() => {
-    const currentModule = organizationModules.find((module) => module.name === selectedModule)
-    const currentSubmodules = getModuleSubmodules(currentModule, activeOrganization)
-    if (currentModule && !currentSubmodules.includes(selectedSubmodule)) {
-      setSelectedSubmodule(currentSubmodules[0] || '')
+    const currentCategory = organizationCategories.find((category) => category.name === selectedCategory)
+    const currentsubcategories = getCategorySubcategories(currentCategory, activeOrganization)
+    if (currentCategory && !currentsubcategories.includes(selectedSubcategory)) {
+      setSelectedSubcategory(currentsubcategories[0] || '')
     }
-  }, [organizationModules, selectedModule, selectedSubmodule, activeOrganization])
+  }, [organizationCategories, selectedCategory, selectedSubcategory, activeOrganization])
 
-  const selectedModuleData = organizationModules.find((module) => module.name === selectedModule) || null
-  const selectedModuleSubmodules = getModuleSubmodules(selectedModuleData, activeOrganization)
-  const moduleOptions = useMemo(() => buildModuleOptions(organizationModules), [organizationModules])
+  const selectedCategoryData = organizationCategories.find((category) => category.name === selectedCategory) || null
+  const selectedCategorySubcategories = getCategorySubcategories(selectedCategoryData, activeOrganization)
+  const categoryOptions = useMemo(() => buildCategoryOptions(organizationCategories), [organizationCategories])
   const tokens = tokenizeExpression(amountExpression)
   const totalAmount = evaluateExpression(amountExpression)
   const previewAmount = evaluateExpression(getPreviewExpression(amountExpression))
   const amountDisplayValue = getAmountInputDisplay(amountExpression)
-  const selectedModuleRecord =
-    selectedModuleData ||
-    organizationModules.find((module) => translateModuleLabel(language, module.name) === selectedModule) ||
+  const selectedCategoryRecord =
+    selectedCategoryData ||
+    organizationCategories.find((category) => translateCategoryLabel(language, category.name) === selectedCategory) ||
     null
-  const derivedTransactionType = transactionDirection || getPersistedModuleTransactionType(selectedModuleRecord)
-  const canSave = previewAmount !== null && previewAmount !== 0 && selectedModule && selectedSubmodule && derivedTransactionType && note.trim() !== ''
+  const derivedTransactionType = transactionDirection || getPersistedCategoryTransactionType(selectedCategoryRecord)
+  const canSave = previewAmount !== null && previewAmount !== 0 && selectedCategory && selectedSubcategory && derivedTransactionType && note.trim() !== ''
   const selectionModalOpen = step < 4
   const saveButtonLabel = isEditMode ? text.updateTransaction : text.save
   const secondaryButtonLabel = isEditMode ? '' : text.saveAndAddAnother
@@ -161,23 +161,23 @@ export default function AddTransaction() {
   // Function: closeSelectionModal
   const closeSelectionModal = () => {
     if (isEditMode) {
-      setForceSubmoduleSelection(false)
+      setForceSubcategorySelection(false)
       setStep(4)
       return
     }
 
     if (step === 3) {
-      // If this flow was opened directly from a module card, closing should return
-      // to the previous page instead of going back to module selection.
-      if (preselectedFromModule) {
+      // If this flow was opened directly from a category card, closing should return
+      // to the previous page instead of going back to category selection.
+      if (preselectedFromCategory) {
         navigate(-1)
         return
       }
 
       setStep(1)
-      setSelectedSubmodule('')
-      setCreatingCustomSubmodule(false)
-      setCustomSubmoduleDraft('')
+      setSelectedSubcategory('')
+      setCreatingCustomSubcategory(false)
+      setCustomSubcategoryDraft('')
       setError('')
       return
     }
@@ -188,26 +188,26 @@ export default function AddTransaction() {
   // Function: navigateBackFromTransactionForm
   const navigateBackFromTransactionForm = () => {
     setError('')
-    const visitedSubmoduleStep =
-      forceSubmoduleSelection ||
-      selectedModuleSubmodules.length === 0 ||
-      selectedModuleSubmodules.length > 1
+    const visitedsubCategoriestep =
+      forceSubcategorySelection ||
+      selectedCategorySubcategories.length === 0 ||
+      selectedCategorySubcategories.length > 1
 
-    if (visitedSubmoduleStep) {
+    if (visitedsubCategoriestep) {
       setStep(3)
       return
     }
 
     setStep(1)
-    setSelectedModule('')
-    setSelectedSubmodule('')
+    setSelectedCategory('')
+    setSelectedSubcategory('')
     setTransactionDirection('')
   }
 
-  // Function: handleModuleSelection
-  const handleModuleSelection = (moduleName, submodules = [], forceSubmodule = false) => {
-    setSelectedModule(moduleName)
-    setSelectedSubmodule(submodules[0] || '')
+  // Function: handleCategorySelection
+  const handleCategorySelection = (categoryName, subcategories = [], forcesubcategory = false) => {
+    setSelectedCategory(categoryName)
+    setSelectedSubcategory(subcategories[0] || '')
     setError('')
 
     setStep(3)
@@ -245,8 +245,8 @@ export default function AddTransaction() {
     const activeBookName = loadedTransaction?.book || localStorage.getItem(`activeBookName_${activeOrgId}`) || 'Default Book'
     const transactionPayload = {
       organizationId: activeOrganization?.id || '',
-      module: selectedModule,
-      submodule: selectedSubmodule,
+      category: selectedCategory,
+      subcategory: selectedSubcategory,
       direction: transactionDirection,
       amountExpression: totalAmount !== null ? amountExpression : String(previewAmount || 0),
       amount: totalAmount !== null ? totalAmount : (previewAmount !== null ? previewAmount : 0),
@@ -326,25 +326,25 @@ export default function AddTransaction() {
       const activeId = activeOrgId || orgs[0]?.id
       const updatedOrgs = orgs.map((org) => {
         if (org.id !== activeId) return org
-        const modules = Array.isArray(org.modules) ? [...org.modules] : []
-        const existing = modules.find((module) => String(module.name) === String(selectedModule))
+        const categories = Array.isArray(org.categories) ? [...org.categories] : []
+        const existing = categories.find((category) => String(category.name) === String(selectedCategory))
         if (!existing) {
-          const newModule = {
-            name: selectedModule,
-            submodules: Array.isArray(org.submodules?.[selectedModule]) ? org.submodules[selectedModule] : [],
+          const newCategory = {
+            name: selectedCategory,
+            subcategories: Array.isArray(org.subcategories?.[selectedCategory]) ? org.subcategories[selectedCategory] : [],
           }
-          if (selectedSubmodule && !newModule.submodules.includes(selectedSubmodule)) {
-            newModule.submodules = [...newModule.submodules, selectedSubmodule]
+          if (selectedSubcategory && !newCategory.subcategories.includes(selectedSubcategory)) {
+            newCategory.subcategories = [...newCategory.subcategories, selectedSubcategory]
           }
-          modules.push(newModule)
-        } else if (selectedSubmodule) {
-          const submodules = Array.isArray(existing.submodules) ? [...existing.submodules] : []
-          if (!submodules.includes(selectedSubmodule)) {
-            existing.submodules = [...submodules, selectedSubmodule]
+          categories.push(newCategory)
+        } else if (selectedSubcategory) {
+          const subcategories = Array.isArray(existing.subcategories) ? [...existing.subcategories] : []
+          if (!subcategories.includes(selectedSubcategory)) {
+            existing.subcategories = [...subcategories, selectedSubcategory]
           }
         }
 
-        return { ...org, modules }
+        return { ...org, categories }
       })
 
       setOrganizations(updatedOrgs)
@@ -491,14 +491,14 @@ export default function AddTransaction() {
           <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 sm:px-6">
             <div>
               <h2 className="text-2xl font-light tracking-tight text-slate-800">
-                {step === 1 ? text.selectModule : text.selectSubmodule}
+                {step === 1 ? text.selectCategory : text.selectsubcategory}
               </h2>
               <p className="mt-1 text-sm text-slate-500">
                 {step === 1
-                  ? text.chooseModuleHint
-                  // : translateText(language, 'chooseSubmoduleHint', { module: selectedModuleData?.name || '' })}
-                  : translateText(language, 'chooseSubmoduleHint', {
-                    module: translateModuleLabel(language, selectedModule),
+                  ? text.chooseCategoryHint
+                  // : translateText(language, 'chooseSubcategoryHint', { category: selectedCategoryData?.name || '' })}
+                  : translateText(language, 'chooseSubcategoryHint', {
+                    category: translateCategoryLabel(language, selectedCategory),
                   })
                 }
               </p>
@@ -515,52 +515,52 @@ export default function AddTransaction() {
 
           <div className="px-5 py-5 sm:px-6">
             {step === 1 ? (
-              <ModuleSelector
-                moduleOptions={moduleOptions}
+              <CategorySelector
+                categoryOptions={categoryOptions}
                 activeOrganization={activeOrganization}
                 organizations={organizations}
                 setOrganizations={setOrganizations}
-                customModuleDraft={customModuleDraft}
-                setCustomModuleDraft={setCustomModuleDraft}
+                customCategoryDraft={customCategoryDraft}
+                setCustomCategoryDraft={setCustomCategoryDraft}
                 language={language}
                 text={text}
-                onModuleSelect={(module, category, label) => {
+                onCategorySelect={(categoryObj, category, label) => {
                   setTransactionDirection(category)
-                  handleModuleSelection(label, getModuleSubmodules(module, activeOrganization))
+                  handleCategorySelection(label, getCategorySubcategories(categoryObj, activeOrganization))
                 }}
               />
             ) : (
-              <SubmoduleSelector
-                selectedModule={selectedModule}
-                selectedModuleName={translateModuleLabel(
+              <SubCategorySelector
+                selectedCategory={selectedCategory}
+                selectedCategoryName={translateCategoryLabel(
                   language,
-                  selectedModuleData?.name,
+                  selectedCategoryData?.name,
                 )}
-                submodules={selectedModuleSubmodules}
-                selectedSubmodule={translateSubmoduleLabel(
+                subcategories={selectedCategorySubcategories}
+                selectedSubcategory={translateSubcategoryLabel(
                   language,
-                  selectedSubmodule,
+                  selectedSubcategory,
                 )}
                 organizations={organizations}
                 setOrganizations={setOrganizations}
                 activeOrganization={activeOrganization}
-                creatingCustomSubmodule={creatingCustomSubmodule}
-                setCreatingCustomSubmodule={setCreatingCustomSubmodule}
-                customSubmoduleDraft={customSubmoduleDraft}
-                setCustomSubmoduleDraft={setCustomSubmoduleDraft}
+                creatingCustomSubcategory={creatingCustomSubcategory}
+                setCreatingCustomSubcategory={setCreatingCustomSubcategory}
+                customSubcategoryDraft={customSubcategoryDraft}
+                setCustomSubcategoryDraft={setCustomSubcategoryDraft}
                 language={language}
                 text={text}
-                onSubmoduleSelect={(submodule) => {
-                  setSelectedSubmodule(submodule)
+                onSubcategorySelect={(subcategory) => {
+                  setSelectedSubcategory(subcategory)
                   setTransactionDirection(
-                    getPersistedModuleTransactionType(selectedModuleData)
+                    getPersistedCategoryTransactionType(selectedCategoryData)
                   )
-                  setForceSubmoduleSelection(false)
+                  setForceSubcategorySelection(false)
                   setStep(4)
                 }}
-                onCustomSubmoduleCreated={(submodule) => {
-                  setSelectedSubmodule(submodule)
-                  setForceSubmoduleSelection(false)
+                onCustomSubcategoryCreated={(subcategory) => {
+                  setSelectedSubcategory(subcategory)
+                  setForceSubcategorySelection(false)
                 }}
               />
             )}
@@ -581,8 +581,8 @@ export default function AddTransaction() {
               language={language}
               locale={locale}
               selectedCurrency={selectedCurrency}
-              selectedModuleName={selectedModule}
-              selectedSubmodule={selectedSubmodule}
+              selectedCategoryName={selectedCategory}
+              selectedSubcategory={selectedSubcategory}
               amountDisplayValue={amountDisplayValue}
               amountExpression={amountExpression}
               setAmountExpression={(updater) => {
@@ -607,13 +607,13 @@ export default function AddTransaction() {
               saveButtonLabel={saveButtonLabel}
               secondaryButtonLabel={secondaryButtonLabel}
               onBack={() => navigate(-1)}
-              onChangeModule={null}
+              onChangeCategory={null}
               onSave={saveTransaction}
               onSaveAndAddAnother={saveTransaction}
               transactionDirection={transactionDirection}
               setTransactionDirection={(dir) => {
                 setTransactionDirection(dir)
-                setSelectedModule(dir === 'in' ? 'revenue' : 'expenses')
+                setSelectedCategory(dir === 'in' ? 'revenue' : 'expenses')
               }}
               paymentMode={paymentMode}
               setPaymentMode={setPaymentMode}

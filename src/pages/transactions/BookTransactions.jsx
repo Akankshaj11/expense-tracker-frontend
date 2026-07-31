@@ -443,7 +443,7 @@ export default function BookTransactions() {
                   onChange={(e) => setTypeFilter(e.target.value)}
                   className="w-full bg-transparent text-sm font-medium text-slate-700 outline-none cursor-pointer"
                 >
-                  <option value="all">{text.allModulesLabel ? text.allModulesLabel.split(' ')[0] : 'All'}</option>
+                  <option value="all">{text.allCategoriesLabel ? text.allCategoriesLabel.split(' ')[0] : 'All'}</option>
                   <option value="in">{text.in}</option>
                   <option value="out">{text.out}</option>
                 </select>

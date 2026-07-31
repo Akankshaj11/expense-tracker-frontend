@@ -40,6 +40,7 @@ export default function FooterFull() {
             <ul className="space-y-3 text-xs">
               <li><Link to={'/terms'} className="hover:underline">Terms of Service</Link></li>
               <li><Link to={'/privacy'} className="hover:underline">Privacy Policy</Link></li>
+              <li><Link to={'/admin'} className="hover:underline text-white/80 hover:text-white">Admin Panel</Link></li>
             </ul>
           </div>
         </div>

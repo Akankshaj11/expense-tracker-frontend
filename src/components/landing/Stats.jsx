@@ -11,7 +11,7 @@ const stats = [
     color: 'from-emerald-400 to-teal-500'
   },
   { 
-    label: 'Custom Modules', 
+    label: 'Custom Categories', 
     value: '50+', 
     icon: CubeIcon,
     sparkline: [12, 18, 22, 19, 32, 28, 42],

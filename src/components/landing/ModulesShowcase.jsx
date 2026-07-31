@@ -8,13 +8,13 @@ const nodes = [
   { title: 'Investments', children: ['Index funds'] },
 ]
 
-export default function ModulesShowcase(){
+export default function CategoriesShowcase(){
   return (
-    <section id="modules" className="mt-16 scroll-mt-28">
+    <section id="categories" className="mt-16 scroll-mt-28">
       <div className="max-w-2xl">
         <p className="text-sm font-light uppercase tracking-[0.22em] text-primary-600">Structure</p>
-        <h3 className="mt-3 text-3xl font-light tracking-tight text-[var(--text)] sm:text-4xl">Shape your finance structure with modules and categories</h3>
-        <p className="prose-justified mt-4 text-base">Organize work into modules while tracking revenue and expenses as separate categories. The system models modules and categories independently so reporting stays flexible.</p>
+        <h3 className="mt-3 text-3xl font-light tracking-tight text-[var(--text)] sm:text-4xl">Shape your finance structure with categories and categories</h3>
+        <p className="prose-justified mt-4 text-base">Organize work into categories while tracking revenue and expenses as separate categories. The system models categories and categories independently so reporting stays flexible.</p>
       </div>
 
       <motion.div initial={{opacity:0,y:14}} whileInView={{opacity:1,y:0}} viewport={{ once:true, amount:0.35 }} transition={{duration:0.55}} className="mt-8 grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
@@ -40,7 +40,7 @@ export default function ModulesShowcase(){
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-lg font-light text-[var(--text)]">{node.title}</p>
-                    <p className="text-sm text-[var(--muted)]">{node.children.length} submodules · example activity</p>
+                    <p className="text-sm text-[var(--muted)]">{node.children.length} subcategories · example activity</p>
                   </div>
                   <ChevronRightIcon className="h-5 w-5 text-[var(--muted)]" />
                 </div>
@@ -72,15 +72,15 @@ export default function ModulesShowcase(){
 
         <div className="grid gap-4">
           <div className="card-floating rounded-[1.75rem] p-5 sm:p-6">
-            <p className="text-sm font-light uppercase tracking-[0.18em] text-primary-600">Module insights</p>
+            <p className="text-sm font-light uppercase tracking-[0.18em] text-primary-600">Category insights</p>
             <p className="mt-3 text-xl font-light text-[var(--text)]">Composable finance workflows</p>
-            <p className="mt-3 text-sm leading-6 text-[var(--muted)]">Drag-ready hierarchy, clean submodule layout, and a visual system that can expand to support permissions, budgets, and ownership levels.</p>
+            <p className="mt-3 text-sm leading-6 text-[var(--muted)]">Drag-ready hierarchy, clean subcategory layout, and a visual system that can expand to support permissions, budgets, and ownership levels.</p>
           </div>
 
           <div className="card-floating rounded-[1.75rem] p-5 sm:p-6">
-            <p className="text-sm font-light uppercase tracking-[0.18em] text-primary-600">Recent module activity</p>
+            <p className="text-sm font-light uppercase tracking-[0.18em] text-primary-600">Recent category activity</p>
             <div className="mt-4 space-y-3">
-              {['Salary module updated', 'Food expenses grouped', 'Stock allocation created'].map((item) => (
+              {['Salary category updated', 'Food expenses grouped', 'Stock allocation created'].map((item) => (
                 <div key={item} className="flex items-center justify-between rounded-2xl border border-white/6 bg-white/4 px-4 py-3 shadow-sm">
                   <span className="text-sm font-light text-[var(--text)]">{item}</span>
                   <span className="text-xs font-light text-primary-400">Synced</span>

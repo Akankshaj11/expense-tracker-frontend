@@ -5,7 +5,7 @@ import { ArrowRightIcon, BuildingOffice2Icon, Squares2X2Icon, ArrowsRightLeftIco
 export default function HowItWorks(){
   const steps = [
     {title:'Create Organization', desc:'Spin up a workspace for a company or client.', icon: BuildingOffice2Icon},
-    {title:'Customize Modules', desc:'Define revenue, expense, and investment modules.', icon: Squares2X2Icon},
+    {title:'Customize Categories', desc:'Define revenue, expense, and investment categories.', icon: Squares2X2Icon},
     {title:'Track Transactions', desc:'Record and review finances with confidence.', icon: ArrowsRightLeftIcon}
   ]
 

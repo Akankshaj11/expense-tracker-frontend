@@ -3,8 +3,8 @@ import { motion } from 'framer-motion'
 import { CheckCircleIcon } from '@heroicons/react/24/outline'
 
 const bulletPoints = [
-  'Isolate organizational settings from transactional modules.',
-  'Create custom module hierarchies for any project or team.',
+  'Isolate organizational settings from transactional categories.',
+  'Create custom category hierarchies for any project or team.',
   'Verify records with receipts, notes, and multi-currency inputs.',
   'Generate print-ready PDF summaries and CSV reports in one click.'
 ]

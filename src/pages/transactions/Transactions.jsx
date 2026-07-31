@@ -9,7 +9,7 @@ import { loadOrganizationsFromBackend, readCachedOrganizations, loadTransactions
 import translations, {
   getLocale,
   translateText,
-  translateModuleLabel,
+  translateCategoryLabel,
 } from '../../i18n/translations'
 import useLanguage from '../../hooks/useLanguage'
 
@@ -133,6 +133,10 @@ export default function Transactions() {
   const [transactionsRevision, setTransactionsRevision] = useState(0)
   const [attachmentCache, setAttachmentCache] = useState(() => readJSON('attachments', []))
   const [previewAttachment, setPreviewAttachment] = useState(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [directionFilter, setDirectionFilter] = useState('all')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
 
   useEffect(() => {
     // Function: handleStorage
@@ -222,10 +226,36 @@ export default function Transactions() {
           return false
         }
 
+        if (directionFilter !== 'all') {
+          const dir = String(transaction.direction || '').toLowerCase()
+          if (dir !== directionFilter) {
+            return false
+          }
+        }
+
+        const txnDateStr = transaction.date || (transaction.createdAt ? transaction.createdAt.split('T')[0] : '')
+        if (startDate && txnDateStr && txnDateStr < startDate) {
+          return false
+        }
+        if (endDate && txnDateStr && txnDateStr > endDate) {
+          return false
+        }
+
+        if (searchTerm) {
+          const query = searchTerm.toLowerCase()
+          const note = String(transaction.note || '').toLowerCase()
+          const category = String(transaction.category || '').toLowerCase()
+          const subcategory = String(transaction.subcategory || '').toLowerCase()
+          const amount = String(transaction.amount || '')
+          if (!note.includes(query) && !category.includes(query) && !subcategory.includes(query) && !amount.includes(query)) {
+            return false
+          }
+        }
+
         return true
       })
       .sort((left, right) => new Date(right.createdAt || right.date || 0) - new Date(left.createdAt || left.date || 0))
-  }, [transactions, activeOrganization])
+  }, [transactions, activeOrganization, searchTerm, directionFilter, startDate, endDate])
 
   // Function: handleDownloadReport
   const handleDownloadReport = async () => {
@@ -313,6 +343,65 @@ export default function Transactions() {
             </div>
           </div>
 
+          {/* Search and Filters Section */}
+          <div className="mt-6 grid grid-cols-1 gap-4 rounded-2xl border border-white/6 bg-slate-50/50 p-4 dark:bg-slate-900/40 sm:grid-cols-4">
+            {/* Search Input */}
+            <div className="sm:col-span-2">
+              <label htmlFor="search" className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1.5">
+                {language === 'hi' ? 'खोजें' : language === 'mr' ? 'शोधा' : 'Search Details'}
+              </label>
+              <input
+                id="search"
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder={language === 'hi' ? 'विवरण, श्रेणी या राशि खोजें...' : language === 'mr' ? 'तपशील, श्रेणी किंवा रक्कम शोधा...' : 'Search note, category, amount...'}
+                className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-primary-500 focus:ring-1 focus:ring-primary-200 transition"
+              />
+            </div>
+
+            {/* Flow Type Filter */}
+            <div>
+              <label htmlFor="direction" className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1.5">
+                {language === 'hi' ? 'प्रवाह प्रकार' : language === 'mr' ? 'प्रवाह प्रकार' : 'Flow Type'}
+              </label>
+              <select
+                id="direction"
+                value={directionFilter}
+                onChange={(e) => setDirectionFilter(e.target.value)}
+                className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm text-slate-700 outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-200 transition"
+              >
+                <option value="all">{language === 'hi' ? 'सभी प्रकार' : language === 'mr' ? 'सर्व प्रकार' : 'All Types'}</option>
+                <option value="in">{language === 'hi' ? 'इनफ्लो' : language === 'mr' ? 'इनफ्लो' : 'Inflow'}</option>
+                <option value="out">{language === 'hi' ? 'आउटफ्लो' : language === 'mr' ? 'आउटफ्लो' : 'Outflow'}</option>
+              </select>
+            </div>
+
+            {/* Date Range Inputs */}
+            <div>
+              <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1.5">
+                {language === 'hi' ? 'तारीख' : language === 'mr' ? 'दिनांक' : 'Date Range'}
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="date"
+                  aria-label="Start Date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-1/2 rounded-xl border border-slate-200 bg-white px-2 py-2 text-xs text-slate-700 outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-200 transition"
+                />
+                <span className="text-slate-400 text-xs">-</span>
+                <input
+                  type="date"
+                  aria-label="End Date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-1/2 rounded-xl border border-slate-200 bg-white px-2 py-2 text-xs text-slate-700 outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-200 transition"
+                />
+              </div>
+            </div>
+          </div>
+
           <div className="mt-6 flex items-center justify-between gap-4">
             <div className="inline-flex items-center gap-2 rounded-full bg-primary-50 px-4 py-2 text-sm font-light text-primary-700">
               <BuildingOffice2Icon className="h-4 w-4" />
@@ -332,8 +421,8 @@ export default function Transactions() {
 
                 return (
                   <Link
-                    // key={transaction.id || `${transaction.module || 'txn'}-${index}`}
-                    key={transaction.id || `${translateModuleLabel(language, transaction.module) || 'txn'}-${index}`}
+                    // key={transaction.id || `${transaction.category || 'txn'}-${index}`}
+                    key={transaction.id || `${translateCategoryLabel(language, transaction.category) || 'txn'}-${index}`}
                     to={editPath}
                     className="block rounded-2xl border border-white/6 bg-[var(--card)] transition hover:-translate-y-0.5 hover:shadow-md"
                   >
@@ -347,7 +436,7 @@ export default function Transactions() {
                       <div className="flex-1 space-y-1 pr-4">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-base font-semibold text-slate-800">
-                            {transaction.note?.trim() || capitalize(translateModuleLabel(language, transaction.module) || text.transaction)}
+                            {transaction.note?.trim() || capitalize(translateCategoryLabel(language, transaction.category) || text.transaction)}
                           </span>
                           {transaction.paymentMode && (
                             <span className={`inline-flex items-center rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${

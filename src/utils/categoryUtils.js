@@ -1,5 +1,5 @@
 // Repo file header
-export const transactionTypeModules = {
+export const transactionTypeCategories = {
   revenue: ['Salary', 'Business', 'Bonus', 'Commission', 'Incentives', 'Rental Income', 'Investment Returns'],
   expenses: ['Food', 'Travel', 'Shopping', 'Bills', 'Health', 'Entertainment', 'Education', 'Rent', 'Subscriptions', 'Loans', 'Taxes'],
   investments: ['Stocks', 'Mutual Funds', 'Fixed Deposit', 'Gold', 'Real Estate', 'PPF'],
@@ -24,9 +24,9 @@ export function getTransactionCategory(transaction) {
   return null
 }
 
-// Function: getModuleCategory
-export function getModuleCategory(module) {
-  const transactionType = String(module?.direction || module?.transactionType || module?.type || '').toLowerCase()
+// Function: getCategoryCategory
+export function getCategoryCategory(category) {
+  const transactionType = String(category?.direction || category?.transactionType || category?.type || '').toLowerCase()
   if (transactionType === 'revenue') {
     return 'revenue'
   }
@@ -47,37 +47,37 @@ export function getModuleCategory(module) {
     return 'custom'
   }
 
-  const moduleName = String(module?.name || '').toLowerCase()
-  if (moduleName === 'revenue' || moduleName === 'revenues') {
+  const categoryName = String(category?.name || '').toLowerCase()
+  if (categoryName === 'revenue' || categoryName === 'revenues') {
     return 'revenue'
   }
 
-  if (moduleName === 'in') {
+  if (categoryName === 'in') {
     return 'revenue'
   }
 
-  if (moduleName === 'expense' || moduleName === 'expenses') {
+  if (categoryName === 'expense' || categoryName === 'expenses') {
     return 'expenses'
   }
 
-  if (moduleName === 'out') {
+  if (categoryName === 'out') {
     return 'expenses'
   }
 
-  if (moduleName === 'investment' || moduleName === 'investments') {
+  if (categoryName === 'investment' || categoryName === 'investments') {
     return 'investments'
   }
 
-  if (moduleName === 'lend') {
+  if (categoryName === 'lend') {
     return 'expenses'
   }
 
-  if (moduleName === 'borrow') {
+  if (categoryName === 'borrow') {
     return 'revenue'
   }
 
-  for (const [category, names] of Object.entries(transactionTypeModules)) {
-    if (names.some((name) => name.toLowerCase() === moduleName)) {
+  for (const [category, names] of Object.entries(transactionTypeCategories)) {
+    if (names.some((name) => name.toLowerCase() === categoryName)) {
       return category
     }
   }
@@ -85,9 +85,9 @@ export function getModuleCategory(module) {
   return null
 }
 
-// Function: getPersistedModuleTransactionType
-export function getPersistedModuleTransactionType(module) {
-  const raw = module?.direction || module?.transactionType || getModuleCategory(module) || 'revenue'
+// Function: getPersistedCategoryTransactionType
+export function getPersistedCategoryTransactionType(category) {
+  const raw = category?.direction || category?.transactionType || getCategoryCategory(category) || 'revenue'
   const normalized = String(raw || '').toLowerCase()
   if (['in', 'income', 'revenue', 'credit', 'incoming', 'plus', '+'].includes(normalized)) return 'in'
   if (['out', 'expense', 'expenses', 'debit', 'outgoing', 'minus', '-'].includes(normalized)) return 'out'
@@ -95,31 +95,31 @@ export function getPersistedModuleTransactionType(module) {
   return 'in'
 }
 
-// Function: getModulesForCategory
-export function getModulesForCategory(category, modules) {
+// Function: getCategoriesForCategory
+export function getCategoriesForCategory(category, categories) {
   const normalizedCategory = String(category || '').toLowerCase()
-  return (modules || []).filter((module) => {
-    const moduleCategory = getModuleCategory(module)
-    return moduleCategory === normalizedCategory
+  return (categories || []).filter((category) => {
+    const categoryCategory = getCategoryCategory(category)
+    return categoryCategory === normalizedCategory
   })
 }
 
-// Function: getModuleSubmodules
-export function getModuleSubmodules(module, organization) {
-  if (Array.isArray(module?.submodules)) {
-    return module.submodules
+// Function: getCategorySubcategories
+export function getCategorySubcategories(category, organization) {
+  if (Array.isArray(category?.subcategories)) {
+    return category.subcategories
   }
 
-  if (module?.name && Array.isArray(organization?.submodules?.[module.name])) {
-    return organization.submodules[module.name]
+  if (category?.name && Array.isArray(organization?.subcategories?.[category.name])) {
+    return organization.subcategories[category.name]
   }
 
   return []
 }
 
-// Function: buildModuleOptions
-export function buildModuleOptions(organizationModules) {
-  if (!organizationModules.length) {
+// Function: buildCategoryOptions
+export function buildCategoryOptions(organizationCategories) {
+  if (!organizationCategories.length) {
     return [
       { name: 'Revenue', category: 'revenue' },
       { name: 'Expenses', category: 'expenses' },
@@ -128,8 +128,8 @@ export function buildModuleOptions(organizationModules) {
     ]
   }
 
-  return organizationModules.map((module) => ({
-    ...module,
-    category: getModuleCategory(module) || 'revenue',
+  return organizationCategories.map((category) => ({
+    ...category,
+    category: getCategoryCategory(category) || 'revenue',
   }))
 }

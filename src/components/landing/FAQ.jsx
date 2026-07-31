@@ -6,15 +6,15 @@ import { ChevronDownIcon } from '@heroicons/react/24/outline'
 const faqs = [
   {
     question: "What is PocketFlow?",
-    answer: "PocketFlow is a premium finance workspace designed for teams and professionals. It provides a lightweight, highly-structured layout for organizing multiple organizations, custom transaction modules, receipts, and reporting in real-time."
+    answer: "PocketFlow is a premium finance workspace designed for teams and professionals. It provides a lightweight, highly-structured layout for organizing multiple organizations, custom transaction categories, receipts, and reporting in real-time."
   },
   {
     question: "How does the multi-organization system work?",
-    answer: "You can create separate workspaces for different companies, projects, or branches. Each organization has its own clean, isolated list of modules, members, and transactions, allowing you to switch contexts instantly in a single click."
+    answer: "You can create separate workspaces for different companies, projects, or branches. Each organization has its own clean, isolated list of categories, members, and transactions, allowing you to switch contexts instantly in a single click."
   },
   {
     question: "Can I download or export my transaction data?",
-    answer: "Yes! You can filter transactions by date range, organization, or specific module, and instantly generate printable PDF reports to share with your accounting team, partners, or investors."
+    answer: "Yes! You can filter transactions by date range, organization, or specific category, and instantly generate printable PDF reports to share with your accounting team, partners, or investors."
   },
   {
     question: "Is my financial data secure?",

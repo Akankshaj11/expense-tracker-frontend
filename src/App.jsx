@@ -10,13 +10,15 @@ import LanguageSelect from './pages/setup/LanguageSelect'
 import ManageOrganization from './pages/management/ManageOrganization'
 import Dashboard from './pages/dashboard/Dashboard'
 import AddTransaction from './pages/transactions/AddTransaction'
-import ModuleTransactions from './pages/transactions/ModuleTransactions'
+import CategoryTransactions from './pages/transactions/CategoryTransactions'
 import BookTransactions from './pages/transactions/BookTransactions'
 import AllBooks from './pages/books/AllBooks'
 import Transactions from './pages/transactions/Transactions'
 import TermsOfService from './pages/landing/TermsOfService'
 import PrivacyPolicy from './pages/landing/PrivacyPolicy'
 import Footer from './components/Footer'
+import AdminLogin from './pages/admin/AdminLogin'
+import AdminDashboard from './pages/admin/AdminDashboard'
 
 // Function: syncDocumentLanguage
 function syncDocumentLanguage() {
@@ -109,6 +111,105 @@ function GlobalApiLoader() {
   )
 }
 
+// Helper to check JWT role on frontend
+function checkAdminRole() {
+  const token = localStorage.getItem('adminAccessToken')
+  if (!token) return false
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    return payload?.role === 'super_admin' && payload?.exp * 1000 > Date.now()
+  } catch (e) {
+    return false
+  }
+}
+
+// Protected Route Wrapper for Admin Panel
+function AdminGuard({ children }) {
+  const navigate = useNavigate()
+  
+  useEffect(() => {
+    if (!checkAdminRole()) {
+      localStorage.removeItem('adminAccessToken')
+      localStorage.removeItem('adminRefreshToken')
+      navigate('/admin/login', { replace: true })
+    }
+  }, [navigate])
+
+  return checkAdminRole() ? children : null
+}
+
+// Impersonation Banner
+function ImpersonationBanner() {
+  const [isImpersonating, setIsImpersonating] = useState(false)
+  const [email, setEmail] = useState('')
+
+  useEffect(() => {
+    const checkStatus = () => {
+      setIsImpersonating(localStorage.getItem('isImpersonating') === 'true')
+      setEmail(localStorage.getItem('impersonatedUserEmail') || '')
+    }
+    
+    checkStatus()
+    const interval = setInterval(checkStatus, 1000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const handleExitImpersonation = async () => {
+    try {
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'
+      const adminToken = localStorage.getItem('adminAccessToken')
+      
+      if (adminToken) {
+        await fetch(`${apiBaseUrl}/admin/impersonate/stop`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${adminToken}`
+          }
+        })
+      }
+    } catch (e) {
+      console.error('Failed to log impersonation stop', e)
+    }
+
+    const adminToken = localStorage.getItem('adminAccessToken')
+    const adminRefresh = localStorage.getItem('adminRefreshToken')
+    const adminUser = localStorage.getItem('adminCurrentUser')
+
+    if (adminToken) {
+      localStorage.setItem('accessToken', adminToken)
+      localStorage.setItem('refreshToken', adminRefresh)
+      localStorage.setItem('currentUser', adminUser)
+      localStorage.setItem('isAdmin', 'true')
+    } else {
+      localStorage.removeItem('accessToken')
+      localStorage.removeItem('refreshToken')
+      localStorage.removeItem('currentUser')
+      localStorage.removeItem('isAdmin')
+    }
+
+    localStorage.removeItem('isImpersonating')
+    localStorage.removeItem('impersonatedUserEmail')
+    
+    setIsImpersonating(false)
+    window.location.href = '/admin'
+  }
+
+  if (!isImpersonating) return null
+
+  return (
+    <div className="bg-gradient-to-r from-purple-800 to-indigo-800 text-white py-2.5 px-4 text-center text-xs font-light tracking-wide flex items-center justify-center gap-3 z-[999] relative">
+      <span>You are currently impersonating <strong className="font-semibold">{email}</strong>. Actions performed are logged under administrative audits.</span>
+      <button
+        onClick={handleExitImpersonation}
+        className="bg-white text-purple-800 px-2.5 py-0.5 rounded-md font-semibold hover:bg-slate-100 transition shadow-sm text-[10px]"
+      >
+        Exit Session
+      </button>
+    </div>
+  )
+}
+
 export default function App(){
   useEffect(() => {
     syncDocumentLanguage()
@@ -142,8 +243,9 @@ export default function App(){
       <GlobalApiLoader />
       <SessionExpiryListener />
       <ScrollToTop />
+      <ImpersonationBanner />
       <div className="flex min-h-screen flex-col">
-        <main className="flex-1 overflow-hidden bg-slate-50">
+        <main className="flex-1 overflow-hidden bg-transparent">
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
@@ -155,12 +257,18 @@ export default function App(){
             <Route path="/add-transaction" element={<AddTransaction />} />
             <Route path="/edit-transaction/:transactionId" element={<AddTransaction />} />
             <Route path="/transactions" element={<Transactions />} />
-            <Route path="/module/:moduleName" element={<ModuleTransactions />} />
+            <Route path="/category/:categoryName" element={<CategoryTransactions />} />
             <Route path="/book-transactions/:bookName" element={<BookTransactions />} />
             <Route path="/all-books" element={<AllBooks />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/terms" element={<TermsOfService />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/admin/login" element={<AdminLogin />} />
+            <Route path="/admin" element={
+              <AdminGuard>
+                <AdminDashboard />
+              </AdminGuard>
+            } />
           </Routes>
         </main>
         {/* Render short footer on all pages except the Landing (home) page */}

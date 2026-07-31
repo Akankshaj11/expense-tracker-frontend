@@ -4,23 +4,23 @@ import { motion } from 'framer-motion'
 import { ArrowLeftIcon, ArrowRightIcon, PlusIcon } from '@heroicons/react/24/outline'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { apiRequest } from '../../utils/api'
-import { translateModuleLabel, translateSubmoduleLabel, translateText } from '../../i18n/translations'
+import { translateCategoryLabel, translateSubcategoryLabel, translateText } from '../../i18n/translations'
 import useLanguage from '../../hooks/useLanguage'
 
-const revenueModules = ['Salary', 'Freelance', 'Bonus', 'Interest', 'Commission', 'Pocket Money']
-const expenseModules = ['Food', 'Travel', 'Shopping', 'Bills', 'Health', 'Entertainment', 'Education', 'Rent', 'Subscriptions', 'Loans', 'Taxes']
-const investmentModules = ['Mutual Funds', 'Stocks', 'Crypto', 'Fixed Deposits', 'Gold']
+const revenueCategories = ['Salary', 'Freelance', 'Bonus', 'Interest', 'Commission', 'Pocket Money']
+const expenseCategories = ['Food', 'Travel', 'Shopping', 'Bills', 'Health', 'Entertainment', 'Education', 'Rent', 'Subscriptions', 'Loans', 'Taxes']
+const investmentCategories = ['Mutual Funds', 'Stocks', 'Crypto', 'Fixed Deposits', 'Gold']
 
-// Add a predefined "Investment Returns" module (treated as an "in" type)
-const MODULE_LIST = ['Revenue', 'Expenses', 'Investments', 'Investment Returns', 'Lend', 'Borrow', 'custom']
-const defaultSelectedModules = ['Revenue', 'Expenses', 'Investments', 'Investment Returns', 'Lend', 'Borrow']
+// Add a predefined "Investment Returns" category (treated as an "in" type)
+const CATEGORY_LIST = ['Revenue', 'Expenses', 'Investments', 'Investment Returns', 'Lend', 'Borrow', 'custom']
+const defaultSelectedCategories = ['Revenue', 'Expenses', 'Investments', 'Investment Returns', 'Lend', 'Borrow']
 
-function createEmptyModuleState() {
-  return Object.fromEntries(MODULE_LIST.map((module) => [module, []]))
+function createEmptyCategoriestate() {
+  return Object.fromEntries(CATEGORY_LIST.map((category) => [category, []]))
 }
 
 function createEmptyDraftState() {
-  return Object.fromEntries(MODULE_LIST.map((module) => [module, '']))
+  return Object.fromEntries(CATEGORY_LIST.map((category) => [category, '']))
 }
 
 function createCustomCard() {
@@ -29,8 +29,8 @@ function createCustomCard() {
     checked: false,
     name: '',
     transactionType: 'in',
-    submoduleDraft: '',
-    submodules: [],
+    subcategoryDraft: '',
+    subcategories: [],
   }
 }
 
@@ -79,16 +79,16 @@ export default function CreateOrganization() {
       return
     }
 
-    const defaultModulesData = [
-      { name: 'Revenue', direction: 'in', transactionType: 'in', moduleType: 'in', isCustom: false, submodules: ['Salary', 'Freelance', 'Bonus', 'Interest', 'Commission', 'Pocket Money'] },
-      { name: 'Expenses', direction: 'out', transactionType: 'out', moduleType: 'out', isCustom: false, submodules: ['Food', 'Travel', 'Shopping', 'Bills', 'Health', 'Entertainment', 'Education', 'Rent', 'Subscriptions', 'Loans', 'Taxes'] },
-      { name: 'Investments', direction: 'out', transactionType: 'out', moduleType: 'out', isCustom: false, submodules: ['Mutual Funds', 'Stocks', 'Crypto', 'Fixed Deposit', 'Gold'] },
-      { name: 'Investment Returns', direction: 'in', transactionType: 'in', moduleType: 'in', isCustom: false, submodules: ['Mutual Funds', 'Stocks', 'Crypto', 'Fixed Deposit', 'Gold'] },
-      { name: 'Lend', direction: 'out', transactionType: 'out', moduleType: 'out', isCustom: false, submodules: ['Friends', 'Family', 'Colleagues'] },
-      { name: 'Borrow', direction: 'in', transactionType: 'in', moduleType: 'in', isCustom: false, submodules: ['Friends', 'Family', 'Colleagues'] },
+    const defaultCategoriesData = [
+      { name: 'Revenue', direction: 'in', transactionType: 'in', categoryType: 'in', isCustom: false, subcategories: ['Salary', 'Freelance', 'Bonus', 'Interest', 'Commission', 'Pocket Money'] },
+      { name: 'Expenses', direction: 'out', transactionType: 'out', categoryType: 'out', isCustom: false, subcategories: ['Food', 'Travel', 'Shopping', 'Bills', 'Health', 'Entertainment', 'Education', 'Rent', 'Subscriptions', 'Loans', 'Taxes'] },
+      { name: 'Investments', direction: 'out', transactionType: 'out', categoryType: 'out', isCustom: false, subcategories: ['Mutual Funds', 'Stocks', 'Crypto', 'Fixed Deposit', 'Gold'] },
+      { name: 'Investment Returns', direction: 'in', transactionType: 'in', categoryType: 'in', isCustom: false, subcategories: ['Mutual Funds', 'Stocks', 'Crypto', 'Fixed Deposit', 'Gold'] },
+      { name: 'Lend', direction: 'out', transactionType: 'out', categoryType: 'out', isCustom: false, subcategories: ['Friends', 'Family', 'Colleagues'] },
+      { name: 'Borrow', direction: 'in', transactionType: 'in', categoryType: 'in', isCustom: false, subcategories: ['Friends', 'Family', 'Colleagues'] },
     ]
 
-    const submodulesData = {
+    const subcategoriesData = {
       Revenue: ['Salary', 'Freelance', 'Bonus', 'Interest', 'Commission', 'Pocket Money'],
       Expenses: ['Food', 'Travel', 'Shopping', 'Bills', 'Health', 'Entertainment', 'Education', 'Rent', 'Subscriptions', 'Loans', 'Taxes'],
       Investments: ['Mutual Funds', 'Stocks', 'Crypto', 'Fixed Deposit', 'Gold'],
@@ -100,10 +100,10 @@ export default function CreateOrganization() {
     const serializedBooks = JSON.stringify(books.map((b) => ({
       name: b.name,
       description: "",
-      modules: defaultModulesData.map((m) => ({
+      categories: defaultCategoriesData.map((m) => ({
         name: m.name,
         type: m.direction,
-        submodules: m.submodules,
+        subcategories: m.subcategories,
       })),
       createdAt: b.createdAt || new Date().toISOString(),
       updatedAt: b.updatedAt || new Date().toISOString(),
@@ -116,8 +116,8 @@ export default function CreateOrganization() {
       organizationName: organizationName.trim(),
       description: finalDescription,
       currency: selectedCurrency,
-      modules: defaultModulesData,
-      submodules: submodulesData,
+      categories: defaultCategoriesData,
+      subcategories: subcategoriesData,
     }
 
     let savedOrganization = null

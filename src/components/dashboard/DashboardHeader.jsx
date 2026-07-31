@@ -527,8 +527,17 @@ function ProfileMenu({ currentUser, firstName, activeOrganization, activeCurrenc
               >
                 Dark
               </button>
-            </div>
           </div>
+        </div>
+
+          {currentUser?.role === 'super_admin' ? (
+            <Link
+              to="/admin"
+              className="mt-4 block w-full rounded-xl px-3 py-3 text-left text-sm font-light text-purple-600 hover:bg-purple-50/80 bg-purple-50/50 transition border border-purple-100 dark:border-purple-900/30 dark:bg-purple-950/20 dark:text-purple-400 dark:hover:bg-purple-950/40"
+            >
+              Admin Control Room
+            </Link>
+          ) : null}
 
           <button type="button" onClick={handleLogout} className="mt-4 w-full rounded-xl px-3 py-3 text-left text-sm font-light text-rose-600 transition hover:bg-rose-50">
             {text.logout}

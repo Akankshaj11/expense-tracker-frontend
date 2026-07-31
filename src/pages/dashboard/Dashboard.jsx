@@ -30,7 +30,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { apiRequest, authenticatedFetch, clearStoredAuth } from '../../utils/api'
 import { loadOrganizationsFromBackend, readCachedOrganizations, loadTransactionsFromBackend } from '../../utils/organizationSync'
-import { translateText, getLocale, translateModuleLabel, translateSubmoduleLabel } from '../../i18n/translations'
+import { translateText, getLocale, translateCategoryLabel, translateSubcategoryLabel } from '../../i18n/translations'
 import useLanguage from '../../hooks/useLanguage'
 import DashboardHeader from '../../components/dashboard/DashboardHeader'
 import DashboardHero from '../../components/dashboard/DashboardHero'
@@ -79,13 +79,13 @@ function formatMoney(value, currency, locale = 'en-US') {
 // Function: getTransactionCategory
 function getTransactionCategory(transaction) {
   const transactionType = String(transaction?.transactionType || '').toLowerCase()
-  const moduleName = String(transaction?.module || transaction?.moduleName || '').toLowerCase()
+  const categoryName = String(transaction?.category || transaction?.categoryName || '').toLowerCase()
 
-  if (['lend', 'loan_out', 'loanout'].includes(transactionType) || moduleName === 'lend') {
+  if (['lend', 'loan_out', 'loanout'].includes(transactionType) || categoryName === 'lend') {
     return 'lend'
   }
 
-  if (['borrow', 'loan_in', 'loanin'].includes(transactionType) || moduleName === 'borrow') {
+  if (['borrow', 'loan_in', 'loanin'].includes(transactionType) || categoryName === 'borrow') {
     return 'borrow'
   }
 
@@ -121,8 +121,8 @@ function getTransactionCategory(transaction) {
   return amount < 0 ? 'expenses' : 'revenue'
 }
 
-// Function: normalizeModuleTransactionType
-function normalizeModuleTransactionType(value) {
+// Function: normalizeCategoryTransactionType
+function normalizeCategoryTransactionType(value) {
   const normalized = String(value || '').toLowerCase()
 
   if (['revenue', 'income', 'in', 'credit', 'incoming', 'plus', '+'].includes(normalized)) {
@@ -164,7 +164,7 @@ function getSignedTransactionAmount(transaction) {
   return Math.abs(amount)
 }
 
-const moduleThemes = {
+const categoryThemes = {
   food: { label: 'Food', bg: '#FEF3C7', fg: '#D97706', iconBg: '#FEE8C3', icon: ShoppingBagIcon },
   travel: { label: 'Travel', bg: '#DBEAFE', fg: '#0284C7', iconBg: '#E0F2FE', icon: PaperAirplaneIcon },
   shopping: { label: 'Shopping', bg: '#FCE7F3', fg: '#EC4899', iconBg: '#FBCFE8', icon: ShoppingBagIcon },
@@ -182,34 +182,34 @@ const moduleThemes = {
   custom: { label: 'Custom', bg: '#F8FAFC', fg: '#0F172A', iconBg: '#E2E8F0', icon: Squares2X2Icon },
 }
 
-// Function: getModuleSubmodules
-function getModuleSubmodules(module, organization) {
-  if (Array.isArray(module?.submodules)) {
-    return module.submodules
+// Function: getCategorySubcategories
+function getCategorySubcategories(category, organization) {
+  if (Array.isArray(category?.subcategories)) {
+    return category.subcategories
   }
 
-  if (module?.name && Array.isArray(organization?.submodules?.[module.name])) {
-    return organization.submodules[module.name]
+  if (category?.name && Array.isArray(organization?.subcategories?.[category.name])) {
+    return organization.subcategories[category.name]
   }
 
   return []
 }
 
-// Function: buildModuleCards
-function buildModuleCards(activeOrganization, currency, transactions, language = 'en', locale = 'en-US') {
-  if (!activeOrganization?.modules?.length) {
+// Function: buildCategoryCards
+function buildCategoryCards(activeOrganization, currency, transactions, language = 'en', locale = 'en-US') {
+  if (!activeOrganization?.categories?.length) {
     return []
   }
 
-  const systemDefaultModuleNames = new Set(['revenue', 'expenses', 'investments', 'investment returns', 'lend', 'borrow'])
+  const systemDefaultCategoryNames = new Set(['revenue', 'expenses', 'investments', 'investment returns', 'lend', 'borrow'])
 
-  const moduleAmounts = activeOrganization.modules.map((module) => {
-    // Function: moduleTransactions
-    const moduleTransactions = (transactions || []).filter((transaction) => transaction.module === module.name)
-    const normalizedName = module.name.toLowerCase()
-    const knownTheme = moduleThemes[normalizedName]
-    const theme = knownTheme || moduleThemes.custom
-    const transactionType = String(module?.transactionType || module?.moduleType || module?.type || '').toLowerCase()
+  const categoryAmounts = activeOrganization.categories.map((category) => {
+    // Function: categoryTransactions
+    const categoryTransactions = (transactions || []).filter((transaction) => transaction.category === category.name)
+    const normalizedName = category.name.toLowerCase()
+    const knownTheme = categoryThemes[normalizedName]
+    const theme = knownTheme || categoryThemes.custom
+    const transactionType = String(category?.transactionType || category?.categoryType || category?.type || '').toLowerCase()
     const normalizedTransactionType = ['revenue', 'income', 'in', 'credit', 'incoming', 'plus', '+'].includes(transactionType)
       ? 'in'
       : ['expense', 'expenses', 'out', 'debit', 'outgoing', 'minus', '-'].includes(transactionType)
@@ -217,28 +217,28 @@ function buildModuleCards(activeOrganization, currency, transactions, language =
         : ['investment', 'investments'].includes(transactionType)
           ? 'investments'
           : null
-    const moduleCategory = normalizedTransactionType === 'in' ? 'revenue' : normalizedTransactionType === 'out' ? 'expenses' : (['investment', 'investments'].includes(normalizedName) ? 'investments' : null)
-    const amount = moduleTransactions.reduce((sum, transaction) => sum + getSignedTransactionAmount(transaction), 0)
-    const recentTransaction = [...moduleTransactions]
+    const categoryCategory = normalizedTransactionType === 'in' ? 'revenue' : normalizedTransactionType === 'out' ? 'expenses' : (['investment', 'investments'].includes(normalizedName) ? 'investments' : null)
+    const amount = categoryTransactions.reduce((sum, transaction) => sum + getSignedTransactionAmount(transaction), 0)
+    const recentTransaction = [...categoryTransactions]
       .sort((left, right) => new Date(right.createdAt || right.date || 0) - new Date(left.createdAt || left.date || 0))[0] || null
 
     const recentAmountValue = recentTransaction ? getSignedTransactionAmount(recentTransaction) : 0
-    const isDefaultSystemModule = systemDefaultModuleNames.has(normalizedName)
-    const isExplicitCustomModule = module?.isCustom === true
-    const isLegacyCustomModule = !isDefaultSystemModule
+    const isDefaultSystemCategory = systemDefaultCategoryNames.has(normalizedName)
+    const isExplicitCustomCategory = category?.isCustom === true
+    const isLegacyCustomCategory = !isDefaultSystemCategory
 
     return {
-      label: module.name,
-      rawName: module.name,
-      submodules: getModuleSubmodules(module, activeOrganization),
+      label: category.name,
+      rawName: category.name,
+      subcategories: getCategorySubcategories(category, activeOrganization),
       amount,
       theme,
-      isCustom: isExplicitCustomModule || isLegacyCustomModule,
-      category: moduleCategory,
+      isCustom: isExplicitCustomCategory || isLegacyCustomCategory,
+      category: categoryCategory,
       transactionType: normalizedTransactionType,
       recentTransaction: recentTransaction
         ? {
-            submodule: recentTransaction.submodule || 'No submodule',
+            subcategory: recentTransaction.subcategory || 'No subcategory',
             amountValue: recentAmountValue,
             amount: recentAmountValue >= 0 ? formatMoney(recentAmountValue, currency, locale) : `-${formatMoney(Math.abs(recentAmountValue), currency, locale)}`,
           }
@@ -246,18 +246,18 @@ function buildModuleCards(activeOrganization, currency, transactions, language =
     }
   })
 
-  const maxAmount = moduleAmounts.reduce((max, item) => Math.max(max, Math.abs(item.amount)), 0)
+  const maxAmount = categoryAmounts.reduce((max, item) => Math.max(max, Math.abs(item.amount)), 0)
 
-  return moduleAmounts.map((item, index) => {
+  return categoryAmounts.map((item, index) => {
     const fill = maxAmount > 0 ? Math.min(92, Math.max(0, Math.round((Math.abs(item.amount) / maxAmount) * 92))) : 0
     const displayAmountValue = item.category === 'investments' ? -Math.abs(item.amount) : item.amount
 
     return {
       id: `${item.label}-${index}`,
-      label: translateModuleLabel(language, item.label),
+      label: translateCategoryLabel(language, item.label),
       rawName: item.label,
-      rawSubmodules: [...item.submodules],
-      submodules: item.submodules.map((submodule) => translateSubmoduleLabel(language, submodule)),
+      rawsubcategories: [...item.subcategories],
+      subcategories: item.subcategories.map((subcategory) => translateSubcategoryLabel(language, subcategory)),
       amountValue: displayAmountValue,
       amount: formatMoney(Math.abs(displayAmountValue), currency, locale),
       isCustom: item.isCustom,
@@ -265,7 +265,7 @@ function buildModuleCards(activeOrganization, currency, transactions, language =
       transactionType: item.transactionType,
       recentTransaction: item.recentTransaction
         ? {
-            submodule: translateSubmoduleLabel(language, item.recentTransaction.submodule),
+            subcategory: translateSubcategoryLabel(language, item.recentTransaction.subcategory),
             amountValue: item.recentTransaction.amountValue,
             amount: item.recentTransaction.amount,
           }
@@ -289,15 +289,15 @@ function buildRecentActivity(transactions, currency, locale = 'en-US', text = {}
         ? new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(activityTime))
         : text.noDate || 'No date'
 
-      const displaySubmodule = transaction.submodule ? translateSubmoduleLabel(language, transaction.submodule) : ''
-      const displayModule = translateModuleLabel(language, transaction.module)
+      const displaysubcategory = transaction.subcategory ? translateSubcategoryLabel(language, transaction.subcategory) : ''
+      const displayCategory = translateCategoryLabel(language, transaction.category)
 
-      const fallbackTitle = displaySubmodule
-        ? `${capitalize(displaySubmodule)}`
-        : `${capitalize(displayModule || (text.transaction || 'Transaction'))} ${text.update || 'update'}`
+      const fallbackTitle = displaysubcategory
+        ? `${capitalize(displaysubcategory)}`
+        : `${capitalize(displayCategory || (text.transaction || 'Transaction'))} ${text.update || 'update'}`
 
       return {
-        id: transaction.id || `${transaction.module || 'txn'}-${idx}`,
+        id: transaction.id || `${transaction.category || 'txn'}-${idx}`,
         transaction,
         editPath: getTransactionEditPath(transaction),
         title: transaction.note?.trim() || fallbackTitle,
@@ -412,15 +412,15 @@ export default function Dashboard() {
       return true
     })
   }, [transactions, activeOrganization])
-  const moduleTypeByName = useMemo(() => {
+  const categoryTypeByName = useMemo(() => {
     const map = new Map()
-    ;(activeOrganization?.modules || []).forEach((module) => {
-      const key = String(module?.name || '').toLowerCase()
+    ;(activeOrganization?.categories || []).forEach((category) => {
+      const key = String(category?.name || '').toLowerCase()
       if (!key) {
         return
       }
 
-      const normalizedType = normalizeModuleTransactionType(module?.transactionType || module?.moduleType || module?.type)
+      const normalizedType = normalizeCategoryTransactionType(category?.transactionType || category?.categoryType || category?.type)
       if (normalizedType) {
         map.set(key, normalizedType)
       }
@@ -430,11 +430,11 @@ export default function Dashboard() {
 
   // Function: getDashboardCategory
   const getDashboardCategory = (transaction) => {
-    const moduleName = String(transaction?.module || transaction?.moduleName || '').toLowerCase()
-    const moduleBasedType = moduleTypeByName.get(moduleName)
+    const categoryName = String(transaction?.category || transaction?.categoryName || '').toLowerCase()
+    const categoryBasedType = categoryTypeByName.get(categoryName)
 
-    if (moduleBasedType) {
-      return moduleBasedType
+    if (categoryBasedType) {
+      return categoryBasedType
     }
 
     return getTransactionCategory(transaction)
@@ -442,22 +442,22 @@ export default function Dashboard() {
 
   // Function: getDashboardCardDirection
   const getDashboardCardDirection = (transaction) => {
-    const moduleName = String(transaction?.module || transaction?.moduleName || '').toLowerCase()
-    const moduleBasedType = moduleTypeByName.get(moduleName)
+    const categoryName = String(transaction?.category || transaction?.categoryName || '').toLowerCase()
+    const categoryBasedType = categoryTypeByName.get(categoryName)
 
-    if (moduleBasedType === 'revenue') {
+    if (categoryBasedType === 'revenue') {
       return 'in'
     }
 
-    if (['expenses', 'investments', 'lend'].includes(moduleName)) {
+    if (['expenses', 'investments', 'lend'].includes(categoryName)) {
       return 'out'
     }
 
-    if (moduleBasedType === 'expenses' || moduleBasedType === 'investments') {
+    if (categoryBasedType === 'expenses' || categoryBasedType === 'investments') {
       return 'out'
     }
 
-    if (moduleName === 'borrow') {
+    if (categoryName === 'borrow') {
       return 'in'
     }
 
@@ -465,7 +465,7 @@ export default function Dashboard() {
   }
 
   const firstName = deriveFirstName(currentUser)
-  const moduleCards = buildModuleCards(activeOrganization, activeCurrency, activeOrganizationTransactions, language, locale)
+  const categoryCards = buildCategoryCards(activeOrganization, activeCurrency, activeOrganizationTransactions, language, locale)
   const recentActivity = buildRecentActivity(activeOrganizationTransactions, activeCurrency, locale, text, language)
 
   const booksList = useMemo(() => {
@@ -723,7 +723,7 @@ export default function Dashboard() {
                 text={text}
                 activeOrganization={activeOrganization}
                 activeCurrency={activeCurrency}
-                moduleCards={moduleCards}
+                categoryCards={categoryCards}
                 onDownloadReport={() => {
                   setSelectedReportBook('all')
                   setShowDownloadModal(true)
@@ -759,7 +759,8 @@ export default function Dashboard() {
                   Select which report you want to download for {activeOrganization?.organizationName}.
                 </p>
               </div>
-                <form onSubmit={handleDownloadReportSubmit} className="space-y-4">
+
+                <form onSubmit={handleDownloadReportSubmit} className="space-y-4">
                 {activeOrganization?.books && activeOrganization.books.length > 0 && (
                   <div>
                     <label htmlFor="report-book" className="block text-sm font-light text-slate-700 mb-2">

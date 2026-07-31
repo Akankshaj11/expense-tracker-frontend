@@ -20,25 +20,25 @@ export const translations = {
     setupStep3Of3: "Setup Step 3 of 3",
     createOrganizationTitle: "Create Organization",
     createOrganizationDescription:
-      "Set up your organization and choose the modules you want to use.",
+      "Set up your organization and choose the categories you want to use.",
     organizationNameLabel: "Organization Name *",
     organizationNamePlaceholder: "Enter organization name",
     descriptionLabel: "Description (Optional)",
     descriptionPlaceholder: "Optional description",
-    selectModulesTitle: "Select Modules *",
-    deselectAllModules: "Deselect all modules",
-    selectAllModules: "Select all modules",
-    customModulePlaceholder: "Custom module",
-    addSubmoduleFor: "Add submodule for {module}",
-    addSubmoduleTo: "Add submodule to {module}",
-    removeSubmoduleFrom: "Remove {item} from {module}",
+    selectCategoriesTitle: "Select Categories *",
+    deselectAllCategories: "Deselect all categories",
+    selectAllCategories: "Select all categories",
+    customCategoryPlaceholder: "Custom category",
+    addsubcategoryFor: "Add subcategory for {category}",
+    addsubcategoryTo: "Add subcategory to {category}",
+    removesubcategoryFrom: "Remove {item} from {category}",
     createOrganizationButton: "Create Organization",
     organizationNameRequired: "Organization Name is required",
-    addAtLeastOneSubmoduleUnder: "Add at least one submodule under: {modules}",
-    customModuleNameRequired: "Custom module name is required",
-    pleaseSelectAtLeastOneModule: "Please select at least one module",
+    addAtLeastOnesubcategoryUnder: "Add at least one subcategory under: {categories}",
+    customCategoryNameRequired: "Custom category name is required",
+    pleaseSelectAtLeastOneCategory: "Please select at least one category",
     unableToSaveOrganization: "Unable to save organization",
-    addSubmoduleForCustom: "Add submodule for custom module",
+    addsubcategoryForCustom: "Add subcategory for custom category",
     welcomeBack: "Welcome Back",
     signInToYourAccount: "Sign in to your PocketFlow account",
     emailAddress: "Email Address",
@@ -74,20 +74,20 @@ export const translations = {
     addTransaction: "Add transaction",
     manageOrganization: "Manage Organization",
     manageOrganizationDescription:
-      "Update the organization details, edit module names, rename submodules, delete anything you no longer need, or add new items.",
-    modulesAndSubmodules: "Modules & Submodules",
-    editEveryModuleDirectly: "Edit every module directly.",
-    createNewModule: "Create a new module",
-    closeModuleForm: "Close module form",
-    moduleNameLabel: "Module Name *",
-    moduleNamePlaceholder: "Enter module name",
-    moduleTypeLabel: "Module Type *",
-    submoduleNameLabel: "Submodule Name *",
-    submoduleNamePlaceholder: "Enter submodule name",
-    addSubmodule: "Add Submodule",
-    removeSubmodule: "Remove submodule",
+      "Update the organization details, edit category names, rename subcategories, delete anything you no longer need, or add new items.",
+    categoriesAndsubcategories: "Categories & Subcategories",
+    editEveryCategoryDirectly: "Edit every category directly.",
+    createNewCategory: "Create a new category",
+    closeCategoryForm: "Close category form",
+    categoryNameLabel: "Category Name *",
+    categoryNamePlaceholder: "Enter category name",
+    categoryTypeLabel: "Category Type *",
+    subcategoryNameLabel: "Subcategory Name *",
+    subcategoryNamePlaceholder: "Enter subcategory name",
+    addsubcategory: "Add Subcategory",
+    removesubcategory: "Remove subcategory",
     cancel: "Cancel",
-    saveModule: "Save Module",
+    saveCategory: "Save Category",
     saveChanges: "Save Changes",
     delete: "Delete",
     deleting: "Deleting...",
@@ -98,16 +98,16 @@ export const translations = {
     organizationDeletedSuccessfully: "Organization deleted successfully",
     unableToDeleteOrganization: "Unable to delete organization",
     createAnOrganizationFirst: "Create an organization first",
-    needOrganizationBeforeManagingModules:
-      "You need at least one organization before managing modules.",
-    moduleNameRequired: "Module name is required",
-    addAtLeastOneSubmodule: "Add at least one submodule",
-    moduleNameAlreadyExists: "A module with this name already exists",
-    addAtLeastOneModule: "Add at least one module",
-    eachModuleNeedsAtLeastOneSubmodule:
-      "Each module needs at least one submodule",
-    moduleLabelWithNumber: "Module {number}",
-    submoduleNumberPlaceholder: "Submodule {number}",
+    needOrganizationBeforeManagingCategories:
+      "You need at least one organization before managing categories.",
+    categoryNameRequired: "Category name is required",
+    addAtLeastOnesubcategory: "Add at least one subcategory",
+    categoryNameAlreadyExists: "A category with this name already exists",
+    addAtLeastOneCategory: "Add at least one category",
+    eachCategoryNeedsAtLeastOnesubcategory:
+      "Each category needs at least one subcategory",
+    categoryLabelWithNumber: "Category {number}",
+    subcategoryNumberPlaceholder: "Subcategory {number}",
     totalBalance: "Total balance",
     balance: "Balance",
     in: "In",
@@ -115,9 +115,9 @@ export const translations = {
     revenue: "Revenue",
     expenses: "Expenses",
     investments: "Investments",
-    modules: "Modules",
-    modulesYouAdded: "Modules you added",
-    submodules: "submodules",
+    categories: "Categories",
+    categoriesYouAdded: "Categories you added",
+    subcategories: "subcategories",
     amount: "Amount",
     allocated: "Allocated",
     recentActivity: "Recent activity",
@@ -141,7 +141,7 @@ export const translations = {
     createFirstOrganizationTitle:
       "Create your first organization to get started",
     createFirstOrganizationDescription:
-      "Once you create an organization and add modules, your dashboard will automatically show balances, modules, and recent activity here.",
+      "Once you create an organization and add categories, your dashboard will automatically show balances, categories, and recent activity here.",
     createOrganization: "Create Organization",
     backToDashboard: "Back to dashboard",
     editTransaction: "Edit transaction",
@@ -157,19 +157,19 @@ export const translations = {
     enterAmount: "Enter Amount",
     back: "Back",
     close: "Close",
-    addModule: "Add module",
-    createCustomSubmodule: "Create custom submodule",
+    addCategory: "Add category",
+    createCustomsubcategory: "Create custom subcategory",
     removeAmountToken: "Remove {token}",
     saving: "Saving",
-    newModulePlaceholder: "New module name",
-    newSubmodulePlaceholder: "New submodule name",
+    newCategoryPlaceholder: "New category name",
+    newsubcategoryPlaceholder: "New subcategory name",
     // clickToContinue: "Click to continue",
-    changeModule: "Change",
+    changeCategory: "Change",
     noTransactionsYet:
       "No transactions yet. Add your first transaction to see activity here.",
     noTransactionsFound: "No transactions",
     noCategoriesFound: "No categories",
-    noSubmodulesFound: "No submodules",
+    nosubcategoriesFound: "No subcategories",
     downloadReportFailed: "Failed to download report",
     tip: "Tip",
     tipMessage: "Add a transaction first to start tracking",
@@ -178,20 +178,20 @@ export const translations = {
     transaction: "Transaction",
     update: "update",
     noDate: "No date",
-    moduleTransactionsTitle: "Module transactions",
-    moduleTransactionsDescription:
-      "A full list of every transaction in this module.",
+    categoryTransactionsTitle: "Category transactions",
+    categoryTransactionsDescription:
+      "A full list of every transaction in this category.",
     downloadPdf: "Download PDF",
-    moduleLabelPrefix: "Module:",
-    unnamedSubmodule: "Unnamed submodule",
+    categoryLabelPrefix: "Category:",
+    unnamedSubcategory: "Unnamed subcategory",
     attachmentPreview: "Attachment preview",
     closeAttachmentPreview: "Close attachment preview",
     attachmentReadyMessage: "This attachment is ready to open in a new tab.",
     openAttachment: "Open Attachment",
     noAttachmentPreview:
       "No preview data is available for this attachment yet.",
-    noTransactionsForModule: "No transactions found for {module} on {date}.",
-    moduleLabels: {
+    noTransactionsForCategory: "No transactions found for {category} on {date}.",
+    categoryLabels: {
       revenue: "Revenue",
       expenses: "Expenses",
       investments: "Investments",
@@ -214,7 +214,7 @@ export const translations = {
       insurance: "Insurance",
       custom: "Custom",
     },
-    submoduleLabels: {
+    subcategoryLabels: {
       salary: "Salary",
       freelance: "Freelance",
       bonus: "Bonus",
@@ -246,7 +246,7 @@ export const translations = {
     updateTransaction: "Update Transaction",
     saveAndAddAnother: "Save and Add Another",
     enterValidAmountChoose:
-      "Enter a valid amount, choose a module, submodule, and in or out",
+      "Enter a valid amount, choose a category, subcategory, and in or out",
     unableToSaveTransaction: "Unable to save transaction",
     notesLabel: "Notes (Optional)",
     notesPlaceholder: "Add a short note",
@@ -266,15 +266,15 @@ export const translations = {
     unableToEditTransaction: "Unable to edit this transaction",
     backToTransactions: "Back to transactions",
     selectTransactionType: "Select Transaction Type",
-    selectModule: "Select Module",
-    selectSubmodule: "Select Submodule",
-    chooseSubmoduleHint: "Choose a submodule for {module}.",
-    chooseModuleLabel: "Choose module",
+    selectCategory: "Select Category",
+    selectsubcategory: "Select Subcategory",
+    chooseSubcategoryHint: "Choose a subcategory for {category}.",
+    chooseCategoryLabel: "Choose category",
     chooseTypeLabel: "Choose type",
-    allModulesLabel: "All Modules",
-    allSubmodulesLabel: "All Submodules",
-    noModulesAssigned:
-      "No modules are assigned to this category yet. Add a custom module below or edit the organization.",
+    allCategoriesLabel: "All Categories",
+    allsubcategoriesLabel: "All Subcategories",
+    noCategoriesAssigned:
+      "No categories are assigned to this category yet. Add a custom category below or edit the organization.",
     allBooks: "All Books",
     addBook: "Add Book",
     searchBooks: "Search books...",
@@ -331,25 +331,25 @@ export const translations = {
     setupStep3Of3: "सेटअप पायरी 3/3",
     createOrganizationTitle: "संस्था तयार करा",
     createOrganizationDescription:
-      "तुमची संस्था सेट करा आणि वापरायची मॉड्यूल्स निवडा.",
+      "तुमची संस्था सेट करा आणि वापरायची श्रेणी्स निवडा.",
     organizationNameLabel: "संस्थेचे नाव *",
     organizationNamePlaceholder: "संस्थेचे नाव टाका",
     descriptionLabel: "वर्णन (ऐच्छिक)",
     descriptionPlaceholder: "ऐच्छिक वर्णन",
-    selectModulesTitle: "मॉड्यूल्स निवडा *",
-    deselectAllModules: "सर्व मॉड्यूल्स काढा",
-    selectAllModules: "सर्व मॉड्यूल्स निवडा",
-    customModulePlaceholder: "सानुकूल मॉड्यूल",
-    addSubmoduleFor: "{module} साठी उपमॉड्यूल जोडा",
-    addSubmoduleTo: "{module} मध्ये उपमॉड्यूल जोडा",
-    removeSubmoduleFrom: "{module} मधून {item} काढा",
+    selectCategoriesTitle: "श्रेणी्स निवडा *",
+    deselectAllCategories: "सर्व श्रेणी्स काढा",
+    selectAllCategories: "सर्व श्रेणी्स निवडा",
+    customCategoryPlaceholder: "सानुकूल श्रेणी",
+    addsubcategoryFor: "{category} साठी उपश्रेणी जोडा",
+    addsubcategoryTo: "{category} मध्ये उपश्रेणी जोडा",
+    removesubcategoryFrom: "{category} मधून {item} काढा",
     createOrganizationButton: "संस्था तयार करा",
     organizationNameRequired: "संस्थेचे नाव आवश्यक आहे",
-    addAtLeastOneSubmoduleUnder: "{modules} खाली किमान एक उपमॉड्यूल जोडा",
-    customModuleNameRequired: "सानुकूल मॉड्यूलचे नाव आवश्यक आहे",
-    pleaseSelectAtLeastOneModule: "कृपया किमान एक मॉड्यूल निवडा",
+    addAtLeastOnesubcategoryUnder: "{categories} खाली किमान एक उपश्रेणी जोडा",
+    customCategoryNameRequired: "सानुकूल श्रेणीचे नाव आवश्यक आहे",
+    pleaseSelectAtLeastOneCategory: "कृपया किमान एक श्रेणी निवडा",
     unableToSaveOrganization: "संस्था जतन करता आली नाही",
-    addSubmoduleForCustom: "सानुकूल मॉड्यूलसाठी उपमॉड्यूल जोडा",
+    addsubcategoryForCustom: "सानुकूल श्रेणीसाठी उपश्रेणी जोडा",
     welcomeBack: "पुन्हा स्वागत आहे",
     signInToYourAccount: "तुमच्या PocketFlow खात्यात साइन इन करा",
     emailAddress: "ईमेल पत्ता",
@@ -385,20 +385,20 @@ export const translations = {
     addTransaction: "व्यवहार जोडा",
     manageOrganization: "संस्था व्यवस्थापित करा",
     manageOrganizationDescription:
-      "संस्थेचे तपशील अपडेट करा, मॉड्यूलची नावे बदला, उपमॉड्यूल्सचे नाव बदला, नको असलेले काहीही हटवा किंवा नवे घटक जोडा.",
-    modulesAndSubmodules: "मॉड्यूल्स आणि उपमॉड्यूल्स",
-    editEveryModuleDirectly: "प्रत्येक मॉड्यूल थेट संपादित करा.",
-    createNewModule: "नवे मॉड्यूल तयार करा",
-    closeModuleForm: "मॉड्यूल फॉर्म बंद करा",
-    moduleNameLabel: "मॉड्यूलचे नाव *",
-    moduleNamePlaceholder: "मॉड्यूलचे नाव टाका",
-    moduleTypeLabel: "मॉड्यूल प्रकार *",
-    submoduleNameLabel: "उपमॉड्यूलचे नाव *",
-    submoduleNamePlaceholder: "उपमॉड्यूलचे नाव टाका",
-    addSubmodule: "उपमॉड्यूल जोडा",
-    removeSubmodule: "उपमॉड्यूल काढा",
+      "संस्थेचे तपशील अपडेट करा, श्रेणीची नावे बदला, उपश्रेणी्सचे नाव बदला, नको असलेले काहीही हटवा किंवा नवे घटक जोडा.",
+    categoriesAndsubcategories: "श्रेणी्स आणि उपश्रेणी्स",
+    editEveryCategoryDirectly: "प्रत्येक श्रेणी थेट संपादित करा.",
+    createNewCategory: "नवे श्रेणी तयार करा",
+    closeCategoryForm: "श्रेणी फॉर्म बंद करा",
+    categoryNameLabel: "श्रेणीचे नाव *",
+    categoryNamePlaceholder: "श्रेणीचे नाव टाका",
+    categoryTypeLabel: "श्रेणी प्रकार *",
+    subcategoryNameLabel: "उपश्रेणीचे नाव *",
+    subcategoryNamePlaceholder: "उपश्रेणीचे नाव टाका",
+    addsubcategory: "उपश्रेणी जोडा",
+    removesubcategory: "उपश्रेणी काढा",
     cancel: "रद्द करा",
-    saveModule: "मॉड्यूल जतन करा",
+    saveCategory: "श्रेणी जतन करा",
     saveChanges: "बदल जतन करा",
     delete: "हटवा",
     deleting: "हटवत आहे...",
@@ -409,17 +409,17 @@ export const translations = {
     organizationDeletedSuccessfully: "संस्था यशस्वीरित्या हटवली",
     unableToDeleteOrganization: "संस्था हटवता आली नाही",
     createAnOrganizationFirst: "सर्वप्रथम एक संस्था तयार करा",
-    needOrganizationBeforeManagingModules:
-      "मॉड्यूल्स व्यवस्थापित करण्यापूर्वी किमान एक संस्था आवश्यक आहे.",
-    moduleNameRequired: "मॉड्यूलचे नाव आवश्यक आहे",
-    addAtLeastOneSubmodule: "किमान एक उपमॉड्यूल जोडा",
-    moduleNameAlreadyExists: "या नावाचे मॉड्यूल आधीच अस्तित्वात आहे",
+    needOrganizationBeforeManagingCategories:
+      "श्रेणी्स व्यवस्थापित करण्यापूर्वी किमान एक संस्था आवश्यक आहे.",
+    categoryNameRequired: "श्रेणीचे नाव आवश्यक आहे",
+    addAtLeastOnesubcategory: "किमान एक उपश्रेणी जोडा",
+    categoryNameAlreadyExists: "या नावाचे श्रेणी आधीच अस्तित्वात आहे",
     organizationNameRequired: "संस्थेचे नाव आवश्यक आहे",
-    addAtLeastOneModule: "किमान एक मॉड्यूल जोडा",
-    eachModuleNeedsAtLeastOneSubmodule:
-      "प्रत्येक मॉड्यूलसाठी किमान एक उपमॉड्यूल आवश्यक आहे",
-    moduleLabelWithNumber: "मॉड्यूल {number}",
-    submoduleNumberPlaceholder: "उपमॉड्यूल {number}",
+    addAtLeastOneCategory: "किमान एक श्रेणी जोडा",
+    eachCategoryNeedsAtLeastOnesubcategory:
+      "प्रत्येक श्रेणीसाठी किमान एक उपश्रेणी आवश्यक आहे",
+    categoryLabelWithNumber: "श्रेणी {number}",
+    subcategoryNumberPlaceholder: "उपश्रेणी {number}",
     totalBalance: "एकूण शिल्लक",
     balance: "शिल्लक",
     in: "आवक",
@@ -427,9 +427,9 @@ export const translations = {
     revenue: "उत्पन्न",
     expenses: "खर्च",
     investments: "गुंतवणूक",
-    modules: "मॉड्यूल्स",
-    modulesYouAdded: "तुम्ही जोडलेली मॉड्यूल्स",
-    submodules: "उपमॉड्यूल्स",
+    categories: "श्रेणी्स",
+    categoriesYouAdded: "तुम्ही जोडलेली श्रेणी्स",
+    subcategories: "उपश्रेणी्स",
     amount: "रक्कम",
     allocated: "वाटप केलेले",
     recentActivity: "अलीकडील हालचाल",
@@ -453,7 +453,7 @@ export const translations = {
     createFirstOrganizationTitle:
       "सुरुवात करण्यासाठी तुमची पहिली संस्था तयार करा",
     createFirstOrganizationDescription:
-      "एकदा तुम्ही संस्था तयार करून मॉड्यूल्स जोडले की, इथे तुमचा डॅशबोर्ड आपोआप शिल्लक, मॉड्यूल आणि अलीकडील हालचाल दाखवेल.",
+      "एकदा तुम्ही संस्था तयार करून श्रेणी्स जोडले की, इथे तुमचा डॅशबोर्ड आपोआप शिल्लक, श्रेणी आणि अलीकडील हालचाल दाखवेल.",
     createOrganization: "संस्था तयार करा",
     backToDashboard: "डॅशबोर्डला परत जा",
     editTransaction: "व्यवहार संपादन करा",
@@ -468,18 +468,18 @@ export const translations = {
     enterAmount: "रक्कम प्रविष्ट करा",
     back: "मागे",
     close: "बंद करा",
-    addModule: "मॉड्यूल जोडा",
-    createCustomSubmodule: "सानुकूल उपमॉड्यूल तयार करा",
+    addCategory: "श्रेणी जोडा",
+    createCustomsubcategory: "सानुकूल उपश्रेणी तयार करा",
     removeAmountToken: "{token} काढा",
     saving: "जतन करत आहे",
-    newModulePlaceholder: "नवीन मॉड्यूल नाव",
-    newSubmodulePlaceholder: "नवीन उपमॉड्यूल नाव",
-    changeModule: "बदला",
+    newCategoryPlaceholder: "नवीन श्रेणी नाव",
+    newsubcategoryPlaceholder: "नवीन उपश्रेणी नाव",
+    changeCategory: "बदला",
     noTransactionsYet:
       "अजून व्यवहार नाहीत. हालचाल पाहण्यासाठी पहिला व्यवहार जोडा.",
     noTransactionsFound: "कोणतेही व्यवहार नाहीत",
     noCategoriesFound: "वर्ग नाहीत",
-    noSubmodulesFound: "उपमॉड्यूल्स नाहीत",
+    nosubcategoriesFound: "उपश्रेणी्स नाहीत",
     downloadReportFailed: "रिपोर्ट डाउनलोड करता आला नाही",
     tip: "टीप",
     tipMessage: "ट्रॅकिंग सुरू करण्यासाठी आधी व्यवहार जोडा",
@@ -488,20 +488,20 @@ export const translations = {
     transaction: "व्यवहार",
     update: "अपडेट",
     noDate: "दिनांक नाही",
-    moduleTransactionsTitle: "मॉड्यूल व्यवहार",
-    moduleTransactionsDescription:
-      "या मॉड्यूलमधील प्रत्येक व्यवहारांची संपूर्ण यादी.",
+    categoryTransactionsTitle: "श्रेणी व्यवहार",
+    categoryTransactionsDescription:
+      "या श्रेणीमधील प्रत्येक व्यवहारांची संपूर्ण यादी.",
     downloadPdf: "PDF डाउनलोड करा",
-    moduleLabelPrefix: "मॉड्यूल:",
-    unnamedSubmodule: "अज्ञात उपमॉड्यूल",
+    categoryLabelPrefix: "श्रेणी:",
+    unnamedSubcategory: "अज्ञात उपश्रेणी",
     attachmentPreview: "जोडणी पूर्वावलोकन",
     closeAttachmentPreview: "जोडणी पूर्वावलोकन बंद करा",
     attachmentReadyMessage: "ही जोडणी नवीन टॅबमध्ये उघडण्यासाठी तयार आहे.",
     openAttachment: "जोडणी उघडा",
     noAttachmentPreview: "या जोडणीसाठी अजून पूर्वावलोकन डेटा उपलब्ध नाही.",
-    noTransactionsForModule:
-      "{date} रोजी {module} साठी कोणतेही व्यवहार आढळले नाहीत.",
-    moduleLabels: {
+    noTransactionsForCategory:
+      "{date} रोजी {category} साठी कोणतेही व्यवहार आढळले नाहीत.",
+    categoryLabels: {
       revenue: "उत्पन्न",
       expenses: "खर्च",
       investments: "गुंतवणूक",
@@ -524,7 +524,7 @@ export const translations = {
       insurance: "विमा",
       custom: "सानुकूल",
     },
-    submoduleLabels: {
+    subcategoryLabels: {
       salary: "पगार",
       freelance: "फ्रीलान्स",
       bonus: "बोनस",
@@ -556,7 +556,7 @@ export const translations = {
     updateTransaction: "व्यवहार अद्यतनित करा",
     saveAndAddAnother: "जतन करा आणि आणखी जोडा",
     enterValidAmountChoose:
-      "मान्य रक्कम प्रविष्ट करा, मॉड्यूल, उपमॉड्यूल आणि इन किंवा आउट निवडा",
+      "मान्य रक्कम प्रविष्ट करा, श्रेणी, उपश्रेणी आणि इन किंवा आउट निवडा",
     unableToSaveTransaction: "व्यवहार जतन करता आला नाही",
     notesLabel: "टीप (ऐच्छिक)",
     notesPlaceholder: "लहान टीप लिहा",
@@ -576,15 +576,15 @@ export const translations = {
     unableToEditTransaction: "हा व्यवहार संपादित करणे शक्य नाही",
     backToTransactions: "व्यवहाराकडे परत जा",
     selectTransactionType: "व्यवहार प्रकार निवडा",
-    selectModule: "मॉड्यूल निवडा",
-    selectSubmodule: "उपमॉड्यूल निवडा",
-    chooseSubmoduleHint: "{module} साठी उपमॉड्यूल निवडा.",
-    chooseModuleLabel: "मॉड्यूल निवडा",
+    selectCategory: "श्रेणी निवडा",
+    selectsubcategory: "उपश्रेणी निवडा",
+    chooseSubcategoryHint: "{category} साठी उपश्रेणी निवडा.",
+    chooseCategoryLabel: "श्रेणी निवडा",
     chooseTypeLabel: "प्रकार निवडा",
-    allModulesLabel: "सर्व मॉड्यूल्स",
-    allSubmodulesLabel: "सर्व उपमॉड्यूल्स",
-    noModulesAssigned:
-      "या श्रेणीसाठी अजून मॉड्यूल्स नियुक्त केलेले नाहीत. खाली एक कस्टम मॉड्यूल जोडा किंवा संस्था संपादित करा.",
+    allCategoriesLabel: "सर्व श्रेणी्स",
+    allsubcategoriesLabel: "सर्व उपश्रेणी्स",
+    noCategoriesAssigned:
+      "या श्रेणीसाठी अजून श्रेणी्स नियुक्त केलेले नाहीत. खाली एक कस्टम श्रेणी जोडा किंवा संस्था संपादित करा.",
     allBooks: "सर्व पुस्तके",
     addBook: "पुस्तक जोडा",
     searchBooks: "पुस्तके शोधा...",
@@ -642,26 +642,26 @@ export const translations = {
     setupStep3Of3: "सेटअप चरण 3 में से 3",
     createOrganizationTitle: "संगठन बनाएं",
     createOrganizationDescription:
-      "अपना संगठन सेट करें और उपयोग करने के लिए मॉड्यूल चुनें।",
+      "अपना संगठन सेट करें और उपयोग करने के लिए श्रेणी चुनें।",
     organizationNameLabel: "संगठन का नाम *",
     organizationNamePlaceholder: "संगठन का नाम दर्ज करें",
     descriptionLabel: "विवरण (वैकल्पिक)",
     descriptionPlaceholder: "वैकल्पिक विवरण",
-    selectModulesTitle: "मॉड्यूल चुनें *",
-    deselectAllModules: "सभी मॉड्यूल हटाएं",
-    selectAllModules: "सभी मॉड्यूल चुनें",
-    customModulePlaceholder: "कस्टम मॉड्यूल",
-    addSubmoduleFor: "{module} के लिए उपमॉड्यूल जोड़ें",
-    addSubmoduleTo: "{module} में उपमॉड्यूल जोड़ें",
-    removeSubmoduleFrom: "{module} से {item} हटाएं",
+    selectCategoriesTitle: "श्रेणी चुनें *",
+    deselectAllCategories: "सभी श्रेणी हटाएं",
+    selectAllCategories: "सभी श्रेणी चुनें",
+    customCategoryPlaceholder: "कस्टम श्रेणी",
+    addsubcategoryFor: "{category} के लिए उपश्रेणी जोड़ें",
+    addsubcategoryTo: "{category} में उपश्रेणी जोड़ें",
+    removesubcategoryFrom: "{category} से {item} हटाएं",
     createOrganizationButton: "संगठन बनाएं",
     organizationNameRequired: "संगठन का नाम आवश्यक है",
-    addAtLeastOneSubmoduleUnder:
-      "इनके अंतर्गत कम से कम एक उपमॉड्यूल जोड़ें: {modules}",
-    customModuleNameRequired: "कस्टम मॉड्यूल का नाम आवश्यक है",
-    pleaseSelectAtLeastOneModule: "कृपया कम से कम एक मॉड्यूल चुनें",
+    addAtLeastOnesubcategoryUnder:
+      "इनके अंतर्गत कम से कम एक उपश्रेणी जोड़ें: {categories}",
+    customCategoryNameRequired: "कस्टम श्रेणी का नाम आवश्यक है",
+    pleaseSelectAtLeastOneCategory: "कृपया कम से कम एक श्रेणी चुनें",
     unableToSaveOrganization: "संगठन सहेजा नहीं जा सका",
-    addSubmoduleForCustom: "कस्टम मॉड्यूल के लिए उपमॉड्यूल जोड़ें",
+    addsubcategoryForCustom: "कस्टम श्रेणी के लिए उपश्रेणी जोड़ें",
     welcomeBack: "फिर से स्वागत है",
     signInToYourAccount: "अपने PocketFlow खाते में साइन इन करें",
     emailAddress: "ईमेल पता",
@@ -697,20 +697,20 @@ export const translations = {
     addTransaction: "लेनदेन जोड़ें",
     manageOrganization: "संगठन प्रबंधित करें",
     manageOrganizationDescription:
-      "संगठन का विवरण अपडेट करें, मॉड्यूल नाम बदलें, सबमॉड्यूल का नाम बदलें, अनावश्यक चीज़ें हटाएँ, या नए आइटम जोड़ें।",
-    modulesAndSubmodules: "मॉड्यूल और सबमॉड्यूल",
-    editEveryModuleDirectly: "हर मॉड्यूल को सीधे संपादित करें।",
-    createNewModule: "नया मॉड्यूल बनाएं",
-    closeModuleForm: "मॉड्यूल फ़ॉर्म बंद करें",
-    moduleNameLabel: "मॉड्यूल का नाम *",
-    moduleNamePlaceholder: "मॉड्यूल का नाम दर्ज करें",
-    moduleTypeLabel: "मॉड्यूल प्रकार *",
-    submoduleNameLabel: "सबमॉड्यूल का नाम *",
-    submoduleNamePlaceholder: "सबमॉड्यूल का नाम दर्ज करें",
-    addSubmodule: "सबमॉड्यूल जोड़ें",
-    removeSubmodule: "सबमॉड्यूल हटाएँ",
+      "संगठन का विवरण अपडेट करें, श्रेणी नाम बदलें, उपश्रेणी का नाम बदलें, अनावश्यक चीज़ें हटाएँ, या नए आइटम जोड़ें।",
+    categoriesAndsubcategories: "श्रेणी और उपश्रेणी",
+    editEveryCategoryDirectly: "हर श्रेणी को सीधे संपादित करें।",
+    createNewCategory: "नया श्रेणी बनाएं",
+    closeCategoryForm: "श्रेणी फ़ॉर्म बंद करें",
+    categoryNameLabel: "श्रेणी का नाम *",
+    categoryNamePlaceholder: "श्रेणी का नाम दर्ज करें",
+    categoryTypeLabel: "श्रेणी प्रकार *",
+    subcategoryNameLabel: "उपश्रेणी का नाम *",
+    subcategoryNamePlaceholder: "उपश्रेणी का नाम दर्ज करें",
+    addsubcategory: "उपश्रेणी जोड़ें",
+    removesubcategory: "उपश्रेणी हटाएँ",
     cancel: "रद्द करें",
-    saveModule: "मॉड्यूल सहेजें",
+    saveCategory: "श्रेणी सहेजें",
     saveChanges: "परिवर्तन सहेजें",
     delete: "हटाएँ",
     deleting: "हटा रहा है...",
@@ -721,17 +721,17 @@ export const translations = {
     organizationDeletedSuccessfully: "संगठन सफलतापूर्वक हटाया गया",
     unableToDeleteOrganization: "संगठन हटाया नहीं जा सका",
     createAnOrganizationFirst: "पहले एक संगठन बनाएं",
-    needOrganizationBeforeManagingModules:
-      "मॉड्यूल प्रबंधित करने से पहले कम से कम एक संगठन आवश्यक है।",
-    moduleNameRequired: "मॉड्यूल का नाम आवश्यक है",
-    addAtLeastOneSubmodule: "कम से कम एक सबमॉड्यूल जोड़ें",
-    moduleNameAlreadyExists: "इस नाम का मॉड्यूल पहले से मौजूद है",
+    needOrganizationBeforeManagingCategories:
+      "श्रेणी प्रबंधित करने से पहले कम से कम एक संगठन आवश्यक है।",
+    categoryNameRequired: "श्रेणी का नाम आवश्यक है",
+    addAtLeastOnesubcategory: "कम से कम एक उपश्रेणी जोड़ें",
+    categoryNameAlreadyExists: "इस नाम का श्रेणी पहले से मौजूद है",
     organizationNameRequired: "संगठन का नाम आवश्यक है",
-    addAtLeastOneModule: "कम से कम एक मॉड्यूल जोड़ें",
-    eachModuleNeedsAtLeastOneSubmodule:
-      "हर मॉड्यूल के लिए कम से कम एक सबमॉड्यूल आवश्यक है",
-    moduleLabelWithNumber: "मॉड्यूल {number}",
-    submoduleNumberPlaceholder: "सबमॉड्यूल {number}",
+    addAtLeastOneCategory: "कम से कम एक श्रेणी जोड़ें",
+    eachCategoryNeedsAtLeastOnesubcategory:
+      "हर श्रेणी के लिए कम से कम एक उपश्रेणी आवश्यक है",
+    categoryLabelWithNumber: "श्रेणी {number}",
+    subcategoryNumberPlaceholder: "उपश्रेणी {number}",
     totalBalance: "कुल शेष",
     balance: "शेष",
     in: "आवक",
@@ -739,9 +739,9 @@ export const translations = {
     revenue: "आय",
     expenses: "खर्च",
     investments: "निवेश",
-    modules: "मॉड्यूल",
-    modulesYouAdded: "आपके द्वारा जोड़े गए मॉड्यूल",
-    submodules: "सबमॉड्यूल",
+    categories: "श्रेणी",
+    categoriesYouAdded: "आपके द्वारा जोड़े गए श्रेणी",
+    subcategories: "उपश्रेणी",
     amount: "राशि",
     allocated: "आवंटित",
     recentActivity: "हाल की गतिविधि",
@@ -764,7 +764,7 @@ export const translations = {
     noOrganizationYet: "अभी कोई संगठन नहीं है",
     createFirstOrganizationTitle: "शुरू करने के लिए अपना पहला संगठन बनाएं",
     createFirstOrganizationDescription:
-      "एक बार जब आप एक संगठन बना लेते हैं और मॉड्यूल जोड़ लेते हैं, तो आपका डैशबोर्ड स्वचालित रूप से शेष राशि, मॉड्यूल और हाल की गतिविधि यहाँ दिखाएगा।",
+      "एक बार जब आप एक संगठन बना लेते हैं और श्रेणी जोड़ लेते हैं, तो आपका डैशबोर्ड स्वचालित रूप से शेष राशि, श्रेणी और हाल की गतिविधि यहाँ दिखाएगा।",
     createOrganization: "संगठन बनाएं",
     backToDashboard: "डैशबोर्ड पर वापस जाएँ",
     editTransaction: "लेनदेन संपादित करें",
@@ -779,18 +779,18 @@ export const translations = {
     enterAmount: "राशि दर्ज करें",
     back: "वापस",
     close: "बंद करें",
-    addModule: "मॉड्यूल जोड़ें",
-    createCustomSubmodule: "कस्टम सबमॉड्यूल बनाएं",
+    addCategory: "श्रेणी जोड़ें",
+    createCustomsubcategory: "कस्टम उपश्रेणी बनाएं",
     removeAmountToken: "{token} हटाएँ",
     saving: "सहेज रहा है",
-    newModulePlaceholder: "नया मॉड्यूल नाम",
-    newSubmodulePlaceholder: "नया सबमॉड्यूल नाम",
-    changeModule: "बदलें",
+    newCategoryPlaceholder: "नया श्रेणी नाम",
+    newsubcategoryPlaceholder: "नया उपश्रेणी नाम",
+    changeCategory: "बदलें",
     noTransactionsYet:
       "अभी कोई लेनदेन नहीं है। गतिविधि देखने के लिए अपना पहला लेनदेन जोड़ें।",
     noTransactionsFound: "कोई लेनदेन नहीं मिला",
     noCategoriesFound: "कोई श्रेणी नहीं मिली",
-    noSubmodulesFound: "कोई सबमॉड्यूल नहीं मिला",
+    nosubcategoriesFound: "कोई उपश्रेणी नहीं मिला",
     downloadReportFailed: "रिपोर्ट डाउनलोड विफल रही",
     tip: "सलाह",
     tipMessage: "ट्रैकिंग शुरू करने के लिए पहले एक लेनदेन जोड़ें",
@@ -799,19 +799,19 @@ export const translations = {
     transaction: "लेनदेन",
     update: "अपडेट",
     noDate: "कोई तारीख नहीं",
-    moduleTransactionsTitle: "मॉड्यूल लेनदेन",
-    moduleTransactionsDescription: "इस मॉड्यूल के हर लेनदेन की पूरी सूची।",
+    categoryTransactionsTitle: "श्रेणी लेनदेन",
+    categoryTransactionsDescription: "इस श्रेणी के हर लेनदेन की पूरी सूची।",
     downloadPdf: "PDF डाउनलोड करें",
-    moduleLabelPrefix: "मॉड्यूल:",
-    unnamedSubmodule: "बिना नाम का सबमॉड्यूल",
+    categoryLabelPrefix: "श्रेणी:",
+    unnamedSubcategory: "बिना नाम का उपश्रेणी",
     attachmentPreview: "संलग्नक पूर्वावलोकन",
     closeAttachmentPreview: "पूर्वावलोकन बंद करें",
     attachmentReadyMessage: "यह संलग्नक नए टैब में खुलने के लिए तैयार है।",
     openAttachment: "संलग्नक खोलें",
     noAttachmentPreview:
       "इस संलग्नक के लिए अभी कोई पूर्वावलोकन उपलब्ध नहीं है।",
-    noTransactionsForModule: "{date} को {module} के लिए कोई लेनदेन नहीं मिला।",
-    moduleLabels: {
+    noTransactionsForCategory: "{date} को {category} के लिए कोई लेनदेन नहीं मिला।",
+    categoryLabels: {
       revenue: "आय",
       expenses: "खर्च",
       investments: "निवेश",
@@ -835,7 +835,7 @@ export const translations = {
       custom: "कस्टम",
     },
     // Hindi
-    submoduleLabels: {
+    subcategoryLabels: {
       salary: "वेतन",
       freelance: "फ्रीलांस",
       bonus: "बोनस",
@@ -867,7 +867,7 @@ export const translations = {
     updateTransaction: "लेनदेन अपडेट करें",
     saveAndAddAnother: "सहेजें और दूसरा जोड़ें",
     enterValidAmountChoose:
-      "एक वैध राशि दर्ज करें, मॉड्यूल, सबमॉड्यूल और इन या आउट चुनें",
+      "एक वैध राशि दर्ज करें, श्रेणी, उपश्रेणी और इन या आउट चुनें",
     unableToSaveTransaction: "लेनदेन सहेजा नहीं जा सका",
     notesLabel: "नोट (वैकल्पिक)",
     notesPlaceholder: "एक संक्षिप्त नोट जोड़ें",
@@ -887,15 +887,15 @@ export const translations = {
     unableToEditTransaction: "इस लेनदेन को संपादित नहीं किया जा सकता",
     backToTransactions: "लेनदेन पर वापस जाएं",
     selectTransactionType: "लेनदेन का प्रकार चुनें",
-    selectModule: "मॉड्यूल चुनें",
-    selectSubmodule: "सबमॉड्यूल चुनें",
-    chooseSubmoduleHint: "{module} के लिए एक सबमॉड्यूल चुनें।",
-    chooseModuleLabel: "मॉड्यूल चुनें",
+    selectCategory: "श्रेणी चुनें",
+    selectsubcategory: "उपश्रेणी चुनें",
+    chooseSubcategoryHint: "{category} के लिए एक उपश्रेणी चुनें।",
+    chooseCategoryLabel: "श्रेणी चुनें",
     chooseTypeLabel: "प्रकार चुनें",
-    allModulesLabel: "सभी मॉड्यूल",
-    allSubmodulesLabel: "सभी सबमॉड्यूल",
-    noModulesAssigned:
-      "इस श्रेणी के लिए अभी कोई मॉड्यूल निर्दिष्ट नहीं है। नीचे एक कस्टम मॉड्यूल जोड़ें या संगठन को संपादित करें।",
+    allCategoriesLabel: "सभी श्रेणी",
+    allsubcategoriesLabel: "सभी उपश्रेणी",
+    noCategoriesAssigned:
+      "इस श्रेणी के लिए अभी कोई श्रेणी निर्दिष्ट नहीं है। नीचे एक कस्टम श्रेणी जोड़ें या संगठन को संपादित करें।",
     allBooks: "सभी पुस्तकें",
     addBook: "पुस्तक जोड़ें",
     searchBooks: "पुस्तकें खोजें...",
@@ -951,35 +951,35 @@ export function getLocale(language) {
   return "en-US";
 }
 
-// Toggle: set to `true` to enable translating module names via the
-// `translations.moduleLabels` map; set to `false` to always display the
-// raw module name provided by the application.
-export const TRANSLATE_MODULE_NAMES = true;
+// Toggle: set to `true` to enable translating category names via the
+// `translations.categoryLabels` map; set to `false` to always display the
+// raw category name provided by the application.
+export const TRANSLATE_CATEGORY_NAMES = true;
 
-// Function: translateModuleLabel
-export function translateModuleLabel(language, moduleName) {
-  // If translation of module names is disabled, return the raw name
+// Function: translateCategoryLabel
+export function translateCategoryLabel(language, categoryName) {
+  // If translation of category names is disabled, return the raw name
   // exactly as provided by the app (preserves user/organization labels).
-  if (!TRANSLATE_MODULE_NAMES) return moduleName;
+  if (!TRANSLATE_CATEGORY_NAMES) return categoryName;
 
-  const key = String(moduleName || "").toLowerCase();
+  const key = String(categoryName || "").toLowerCase();
   return (
-    translations[language]?.moduleLabels?.[key] ||
-    translations.en.moduleLabels?.[key] ||
-    moduleName
+    translations[language]?.categoryLabels?.[key] ||
+    translations.en.categoryLabels?.[key] ||
+    categoryName
   );
 }
 
-// Function: translateSubmoduleLabel
-export function translateSubmoduleLabel(language, submodule) {
-  const raw = String(submodule || "").trim()
+// Function: translateSubcategoryLabel
+export function translateSubcategoryLabel(language, subcategory) {
+  const raw = String(subcategory || "").trim()
   if (!raw) return raw
 
-  // Normalize the incoming submodule value to compare against
+  // Normalize the incoming subcategory value to compare against
   // translation map keys in a forgiving way (lowercase, remove spaces).
   const normalizedInput = raw.toLowerCase().replace(/\s+/g, "")
 
-  const labels = translations[language]?.submoduleLabels || translations.en.submoduleLabels || {}
+  const labels = translations[language]?.subcategoryLabels || translations.en.subcategoryLabels || {}
 
   // Try to find a matching key by normalizing the translation keys too
   for (const k of Object.keys(labels)) {
@@ -990,7 +990,7 @@ export function translateSubmoduleLabel(language, submodule) {
   }
 
   // Fallback to direct lookup (if keys are already normalized) or the raw value
-  return labels[raw] || labels[submodule] || submodule
+  return labels[raw] || labels[subcategory] || subcategory
 }
 
 export default translations;

@@ -20,7 +20,7 @@ const features = [
     glow: 'group-hover:border-primary-500/30'
   },
   {
-    title: 'Custom Modules & Submodules',
+    title: 'Custom Categories & Subcategories',
     desc: 'Build deep hierarchy flows tailored exactly to your business model. Structure revenues, overhead expenses, capital investments, and departments your way without restrictions.',
     icon: Square3Stack3DIcon,
     glow: 'group-hover:border-cyan-500/30'
@@ -45,7 +45,7 @@ const features = [
   },
   {
     title: 'Download Custom Reports',
-    desc: 'Select a workspace module, date range, or tag, and export beautifully formatted PDF summaries or raw CSV logs for your accounting team, partners, or audits.',
+    desc: 'Select a workspace category, date range, or tag, and export beautifully formatted PDF summaries or raw CSV logs for your accounting team, partners, or audits.',
     icon: ArrowDownTrayIcon,
     glow: 'group-hover:border-emerald-500/30'
   },

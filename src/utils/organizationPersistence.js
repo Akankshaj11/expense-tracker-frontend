@@ -1,10 +1,10 @@
 // Repo file header
 import { apiRequest } from './api'
 import { loadOrganizationsFromBackend } from './organizationSync'
-import { getPersistedModuleTransactionType } from './moduleUtils'
+import { getPersistedCategoryTransactionType } from './categoryUtils'
 import { normalizeCurrency } from './currencies'
 
-export async function persistOrganizationModules(activeOrganizationId, nextOrgs, setOrganizations) {
+export async function persistOrganizationCategories(activeOrganizationId, nextOrgs, setOrganizations) {
   setOrganizations(nextOrgs)
   try {
     localStorage.setItem('organizations', JSON.stringify(nextOrgs))
@@ -18,21 +18,21 @@ export async function persistOrganizationModules(activeOrganizationId, nextOrgs,
       return
     }
 
-    // Function: modulesForBackend
-    const modulesForBackend = (active.modules || []).map((module) => ({
-      name: module.name,
-      direction: getPersistedModuleTransactionType(module),
-      isCustom: module?.isCustom === true,
-      submodules: Array.isArray(module.submodules) ? module.submodules : [],
+    // Function: categoriesForBackend
+    const categoriesForBackend = (active.categories || []).map((category) => ({
+      name: category.name,
+      direction: getPersistedCategoryTransactionType(category),
+      isCustom: category?.isCustom === true,
+      subcategories: Array.isArray(category.subcategories) ? category.subcategories : [],
     }))
-    const submodulesMap = {}
-    modulesForBackend.forEach((module) => {
-      submodulesMap[module.name] = Array.isArray(module.submodules) ? module.submodules : []
+    const subcategoriesMap = {}
+    categoriesForBackend.forEach((category) => {
+      subcategoriesMap[category.name] = Array.isArray(category.subcategories) ? category.subcategories : []
     })
 
     await apiRequest(`/organizations/${encodeURIComponent(activeOrganizationId)}`, {
       method: 'PATCH',
-      body: JSON.stringify({ modules: modulesForBackend, submodules: submodulesMap }),
+      body: JSON.stringify({ categories: categoriesForBackend, subcategories: subcategoriesMap }),
     })
 
     const refreshed = await loadOrganizationsFromBackend()
@@ -84,9 +84,9 @@ export async function persistOrganizationCurrency(activeOrganizationId, nextCurr
   }
 }
 
-// Function: appendCustomModule
-export function appendCustomModule(organizations, activeOrganizationId, moduleName, direction = 'in') {
-  const name = moduleName.trim()
+// Function: appendCustomCategory
+export function appendCustomCategory(organizations, activeOrganizationId, categoryName, direction = 'in') {
+  const name = categoryName.trim()
   if (!name) {
     return organizations
   }
@@ -96,18 +96,18 @@ export function appendCustomModule(organizations, activeOrganizationId, moduleNa
       return org
     }
 
-    const nextModules = Array.isArray(org.modules) ? [...org.modules] : []
-    if (!nextModules.find((module) => module.name === name)) {
-      nextModules.push({ name, submodules: [], direction, transactionType: direction, moduleType: direction, isCustom: true })
+    const nextCategories = Array.isArray(org.categories) ? [...org.categories] : []
+    if (!nextCategories.find((category) => category.name === name)) {
+      nextCategories.push({ name, subcategories: [], direction, transactionType: direction, categoryType: direction, isCustom: true })
     }
 
-    return { ...org, modules: nextModules }
+    return { ...org, categories: nextCategories }
   })
 }
 
-// Function: appendSubmoduleToModule
-export function appendSubmoduleToModule(organizations, activeOrganizationId, moduleName, submoduleName) {
-  const name = submoduleName.trim()
+// Function: appendsubcategoryToCategory
+export function appendsubcategoryToCategory(organizations, activeOrganizationId, categoryName, subcategoryName) {
+  const name = subcategoryName.trim()
   if (!name) {
     return organizations
   }
@@ -117,20 +117,20 @@ export function appendSubmoduleToModule(organizations, activeOrganizationId, mod
       return org
     }
 
-    // Function: nextModules
-    const nextModules = (org.modules || []).map((module) => {
-      if (module.name !== moduleName) {
-        return module
+    // Function: nextCategories
+    const nextCategories = (org.categories || []).map((category) => {
+      if (category.name !== categoryName) {
+        return category
       }
 
-      const nextSubmodules = Array.isArray(module.submodules) ? [...module.submodules] : []
-      if (!nextSubmodules.includes(name)) {
-        nextSubmodules.push(name)
+      const nextsubcategories = Array.isArray(category.subcategories) ? [...category.subcategories] : []
+      if (!nextsubcategories.includes(name)) {
+        nextsubcategories.push(name)
       }
 
-      return { ...module, submodules: nextSubmodules }
+      return { ...category, subcategories: nextsubcategories }
     })
 
-    return { ...org, modules: nextModules }
+    return { ...org, categories: nextCategories }
   })
 }

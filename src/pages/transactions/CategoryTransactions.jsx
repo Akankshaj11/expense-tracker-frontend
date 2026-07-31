@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import { ArrowLeftIcon, PaperClipIcon, TagIcon, XMarkIcon, ArrowDownTrayIcon, PlusIcon } from '@heroicons/react/24/outline'
 import { authenticatedFetch } from '../../utils/api'
 import { loadOrganizationsFromBackend, readCachedOrganizations, loadTransactionsFromBackend } from '../../utils/organizationSync'
-import translations, { translateText, getLocale, translateModuleLabel, translateSubmoduleLabel } from '../../i18n/translations'
+import translations, { translateText, getLocale, translateCategoryLabel, translateSubcategoryLabel } from '../../i18n/translations'
 import useLanguage from '../../hooks/useLanguage'
 
 // Read JSON from localStorage
@@ -131,10 +131,10 @@ function base64ToBlob(base64, contentType = 'application/pdf') {
 }
 
 // All transactions listing
-export default function ModuleTransactions() {
+export default function CategoryTransactions() {
   const navigate = useNavigate()
-  const { moduleName: encodedModuleName } = useParams()
-  const moduleName = decodeURIComponent(encodedModuleName || '')
+  const { categoryName: encodedCategoryName } = useParams()
+  const categoryName = decodeURIComponent(encodedCategoryName || '')
   const [organizations, setOrganizations] = useState(() => readCachedOrganizations())
   
   // Reload organizations from localStorage on component mount to ensure fresh data
@@ -196,16 +196,16 @@ export default function ModuleTransactions() {
   const [selectedDate, setSelectedDate] = useState(getTodayDate())
   const [previewAttachment, setPreviewAttachment] = useState(null)
 
-  const moduleData =
-    activeOrganization?.modules?.find((module) => module.name === moduleName) ||
-    activeOrganization?.modules?.find((module) => translateModuleLabel(language, module.name) === moduleName) ||
+  const categoryData =
+    activeOrganization?.categories?.find((category) => category.name === categoryName) ||
+    activeOrganization?.categories?.find((category) => translateCategoryLabel(language, category.name) === categoryName) ||
     null
 
-  const resolvedModuleName = moduleData?.name || moduleName
-  const displayModuleName = translateModuleLabel(language, resolvedModuleName)
+  const resolvedCategoryName = categoryData?.name || categoryName
+  const displayCategoryName = translateCategoryLabel(language, resolvedCategoryName)
 
-  const moduleTransactions = useMemo(() => {
-    if (!activeOrganization || !moduleName) {
+  const categoryTransactions = useMemo(() => {
+    if (!activeOrganization || !categoryName) {
       return []
     }
 
@@ -215,10 +215,10 @@ export default function ModuleTransactions() {
           return false
         }
 
-        return transaction.module === resolvedModuleName && transaction.date === selectedDate
+        return transaction.category === resolvedCategoryName && transaction.date === selectedDate
       })
       .sort((left, right) => new Date(right.createdAt || right.date || 0) - new Date(left.createdAt || left.date || 0))
-  }, [transactions, activeOrganization, resolvedModuleName, selectedDate, language])
+  }, [transactions, activeOrganization, resolvedCategoryName, selectedDate, language])
 
   // Function: resolveAttachmentPreview
   const resolveAttachmentPreview = (transaction) => {
@@ -249,24 +249,24 @@ export default function ModuleTransactions() {
   const handleDownloadPDF = async () => {
     try {
       const response = await authenticatedFetch(
-        `/transactions/report?organizationId=${encodeURIComponent(activeOrganization.id)}&module=${encodeURIComponent(moduleName)}&date=${encodeURIComponent(selectedDate)}`,
+        `/transactions/report?organizationId=${encodeURIComponent(activeOrganization.id)}&category=${encodeURIComponent(categoryName)}&date=${encodeURIComponent(selectedDate)}`,
       )
 
       const payload = await response.json().catch(() => null)
       if (!response.ok) {
-        throw new Error(payload?.message || 'Unable to download module report')
+        throw new Error(payload?.message || 'Unable to download category report')
       }
 
       const reportData = payload?.data || {}
       if (!reportData.base64) {
-        throw new Error('Module report data is empty')
+        throw new Error('Category report data is empty')
       }
 
       const blob = base64ToBlob(reportData.base64, reportData.contentType || 'application/pdf')
       const objectUrl = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = objectUrl
-      link.download = reportData.filename || `${moduleName}-${selectedDate}.pdf`
+      link.download = reportData.filename || `${categoryName}-${selectedDate}.pdf`
       document.body.appendChild(link)
       link.click()
       link.remove()
@@ -309,23 +309,23 @@ export default function ModuleTransactions() {
           </button>
 
           <div className="rounded-full bg-primary-50 px-4 py-2 text-sm font-light text-primary-700">
-            {displayModuleName}
+            {displayCategoryName}
           </div>
         </div>
 
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="inner-card-accent rounded-[2rem] border border-white bg-[var(--card)] p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-8">
           <div className="flex flex-col gap-4 border-b border-white/4 pb-6 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-sm font-light uppercase tracking-[0.22em] text-primary-600">{text.moduleTransactionsTitle}</p>
-              <h1 className="mt-2 text-3xl font-light tracking-tight text-[var(--text)]">{displayModuleName}</h1>
-              <p className="mt-2 text-sm text-slate-500">{text.moduleTransactionsDescription}</p>
+              <p className="text-sm font-light uppercase tracking-[0.22em] text-primary-600">{text.categoryTransactionsTitle}</p>
+              <h1 className="mt-2 text-3xl font-light tracking-tight text-[var(--text)]">{displayCategoryName}</h1>
+              <p className="mt-2 text-sm text-slate-500">{text.categoryTransactionsDescription}</p>
             </div>
 
             <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-end sm:justify-end sm:gap-4">
               <div className="w-full sm:w-auto flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => navigate('/add-transaction', { state: { preselectedModule: resolvedModuleName } })}
+                  onClick={() => navigate('/add-transaction', { state: { preselectedCategory: resolvedCategoryName } })}
                   aria-label={text.addTransaction}
                   className="inline-flex h-11 w-11 items-center justify-center rounded-full accent-cta text-white shadow-lg shadow-primary-500/25 transition hover:-translate-y-0.5"
                 >
@@ -345,14 +345,14 @@ export default function ModuleTransactions() {
             <div className="mb-4 flex items-center justify-between gap-4">
               <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-sm font-light text-slate-700">
                 <TagIcon className="h-4 w-4 text-primary-600" />
-                {moduleData?.submodules?.length || 0} {text.submodules}
+                {categoryData?.subcategories?.length || 0} {text.subcategories}
               </div>
               <div className="text-sm text-slate-500">{formatDateLabel(selectedDate, locale)}</div>
             </div>
 
             <div className="space-y-3">
-              {moduleTransactions.length > 0 ? (
-                moduleTransactions.map((transaction) => (
+              {categoryTransactions.length > 0 ? (
+                categoryTransactions.map((transaction) => (
                   <motion.div
                     key={transaction.id}
                     initial={{ opacity: 0, y: 10 }}
@@ -362,8 +362,8 @@ export default function ModuleTransactions() {
                   >
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                       <div className="min-w-0 flex-1">
-                        <p className="text-lg font-light text-[var(--text)]">{transaction.submodule ? translateSubmoduleLabel(language, transaction.submodule) : text.unnamedSubmodule}</p>
-                        <p className="mt-1 text-sm text-slate-500">{text.moduleLabelPrefix} {translateModuleLabel(language, transaction.module)}</p>
+                        <p className="text-lg font-light text-[var(--text)]">{transaction.subcategory ? translateSubcategoryLabel(language, transaction.subcategory) : text.unnamedSubcategory}</p>
+                        <p className="mt-1 text-sm text-slate-500">{text.categoryLabelPrefix} {translateCategoryLabel(language, transaction.category)}</p>
                       </div>
 
                       <div className="text-left sm:text-right">
@@ -413,7 +413,7 @@ export default function ModuleTransactions() {
                 ))
               ) : (
                 <div className="rounded-[1.5rem] border border-dashed border-white/6 bg-[var(--card)] px-5 py-10 text-center text-sm text-slate-500">
-                  {translateText(language, 'noTransactionsForModule', { module: displayModuleName, date: formatDateLabel(selectedDate) })}
+                  {translateText(language, 'noTransactionsForCategory', { category: displayCategoryName, date: formatDateLabel(selectedDate) })}
                 </div>
               )}
             </div>
