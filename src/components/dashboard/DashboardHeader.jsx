@@ -1,6 +1,8 @@
 // Repo file header
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { createPortal } from 'react-dom'
+import { motion } from 'framer-motion'
 import {
   BuildingOffice2Icon,
   ChevronDownIcon,
@@ -270,13 +272,103 @@ function OrganizationMenu({ activeOrgId, activeOrganization, organizations, orgM
 }
 
 // Function: ProfileMenu
-function ProfileMenu({ currentUser, firstName, activeOrganization, activeCurrency, profileOpen, setProfileOpen, setOrgMenuOpen, language, setLanguage, handleLogout, handleChangeCurrency, text, mobile = false, onUpdateProfilePic }) {
+function ProfileMenu({ currentUser, firstName, activeOrganization, activeCurrency, profileOpen, setProfileOpen, setOrgMenuOpen, language, setLanguage, handleLogout, handleChangeCurrency, text, mobile = false, onUpdateProfilePic, onUpdateUser }) {
   const containerRef = useRef(null)
   const isDesktop = useIsDesktop()
   const isActiveView = mobile ? !isDesktop : isDesktop
   const [currencyMenuOpen, setCurrencyMenuOpen] = useState(false)
   const [isUpdatingCurrency, setIsUpdatingCurrency] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
+
+  // Profile fields editing states
+  const [isEditingProfile, setIsEditingProfile] = useState(false)
+  const [editName, setEditName] = useState(currentUser?.name || '')
+  const [editAddress, setEditAddress] = useState(currentUser?.address || '')
+  const [editMobile, setEditMobile] = useState(currentUser?.mobile || '')
+  const [isSavingProfile, setIsSavingProfile] = useState(false)
+  const [profileError, setProfileError] = useState('')
+
+  // Change Password states
+  const [isChangingPassword, setIsChangingPassword] = useState(false)
+  const [oldPassword, setOldPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [passwordError, setPasswordError] = useState('')
+  const [passwordSuccess, setPasswordSuccess] = useState('')
+  const [isSavingPassword, setIsSavingPassword] = useState(false)
+
+  useEffect(() => {
+    if (!isEditingProfile && currentUser) {
+      setEditName(currentUser.name || '')
+      setEditAddress(currentUser.address || '')
+      setEditMobile(currentUser.mobile || '')
+    }
+  }, [currentUser, isEditingProfile])
+
+  const handleProfileEditSubmit = async (e) => {
+    e.preventDefault()
+    if (!editName.trim()) return setProfileError('Name is required')
+    if (!editAddress.trim()) return setProfileError('Address is required')
+    if (!editMobile.trim()) return setProfileError('Mobile number is required')
+
+    setIsSavingProfile(true)
+    setProfileError('')
+    try {
+      const payload = await apiRequest('/auth/profile', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          name: editName.trim(),
+          address: editAddress.trim(),
+          mobile: editMobile.trim()
+        })
+      })
+      const updatedUser = payload?.data?.user
+      if (updatedUser) {
+        if (onUpdateUser) onUpdateUser(updatedUser)
+        setIsEditingProfile(false)
+      } else {
+        setProfileError('Failed to update profile details')
+      }
+    } catch (err) {
+      console.error(err)
+      setProfileError(err.message || 'Error updating profile')
+    } finally {
+      setIsSavingProfile(false)
+    }
+  }
+
+  const handleChangePasswordSubmit = async (e) => {
+    e.preventDefault()
+    if (!oldPassword) return setPasswordError('Current password is required')
+    if (!newPassword) return setPasswordError('New password is required')
+    if (newPassword !== confirmPassword) return setPasswordError('New passwords do not match')
+
+    setIsSavingPassword(true)
+    setPasswordError('')
+    setPasswordSuccess('')
+    try {
+      await apiRequest('/auth/change-password', {
+        method: 'POST',
+        body: JSON.stringify({
+          old_password: oldPassword,
+          new_password: newPassword
+        })
+      })
+      setPasswordSuccess('Password updated successfully!')
+      setOldPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+      setTimeout(() => {
+        setIsChangingPassword(false)
+        setPasswordSuccess('')
+      }, 2000)
+    } catch (err) {
+      console.error(err)
+      setPasswordError(err.message || 'Failed to change password')
+    } finally {
+      setIsSavingPassword(false)
+    }
+  }
 
   const getThemeForCurrentUser = () => {
     if (currentUser && currentUser.email) {
@@ -328,37 +420,17 @@ function ProfileMenu({ currentUser, firstName, activeOrganization, activeCurrenc
     }
     reader.readAsDataURL(file)
   }
-  const panelClassName = mobile
-    ? 'absolute right-0 mt-3 w-[calc(100vw-2rem)] max-w-sm rounded-2xl border border-white/6 bg-[var(--card)] p-4 shadow-2xl shadow-slate-200/80'
-    : 'absolute right-0 mt-3 w-72 rounded-2xl border border-white/6 bg-[var(--card)] p-4 shadow-2xl shadow-slate-200/80'
-
   useEffect(() => {
-    if (!profileOpen) {
+    if (profileOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
       setCurrencyMenuOpen(false)
     }
-  }, [profileOpen])
-
-  useEffect(() => {
-    if (!profileOpen || !isActiveView) {
-      return undefined
-    }
-
-    // Function: handlePointerDown
-    const handlePointerDown = (event) => {
-      if (containerRef.current && !containerRef.current.contains(event.target)) {
-        setProfileOpen(false)
-        setOrgMenuOpen(false)
-      }
-    }
-
-    document.addEventListener('mousedown', handlePointerDown)
-    document.addEventListener('touchstart', handlePointerDown)
-
     return () => {
-      document.removeEventListener('mousedown', handlePointerDown)
-      document.removeEventListener('touchstart', handlePointerDown)
+      document.body.style.overflow = ''
     }
-  }, [profileOpen, isActiveView, setProfileOpen, setOrgMenuOpen])
+  }, [profileOpen])
 
   // Function: onCurrencyChange
   const onCurrencyChange = async (currency) => {
@@ -393,35 +465,58 @@ function ProfileMenu({ currentUser, firstName, activeOrganization, activeCurrenc
         )}
       </button>
 
-      {profileOpen ? (
-        <div className={panelClassName}>
-          <div className="flex items-center gap-3">
-            <div className="relative group h-12 w-12 flex-shrink-0">
-              {currentUser?.profile_pic ? (
-                <img src={currentUser.profile_pic} alt="Profile" className="h-12 w-12 rounded-2xl object-cover" />
-              ) : (
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 text-lg font-light text-white">
-                  {firstName.charAt(0)}
-                </div>
-              )}
-              <label className="absolute inset-0 flex items-center justify-center bg-black/45 text-white rounded-2xl opacity-0 group-hover:opacity-100 transition cursor-pointer text-[10px] font-light">
-                {isUploading ? '...' : 'Edit'}
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  disabled={isUploading}
-                  className="hidden"
-                />
-              </label>
+      {profileOpen && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/20 backdrop-blur-[3px]">
+          <div className="absolute inset-0" onClick={() => setProfileOpen(false)} />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: 'easeOut' }}
+            className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto modern-scrollbar bg-[var(--card)] border border-slate-200 dark:border-white/5 rounded-3xl p-6 shadow-2xl shadow-slate-200/50 dark:shadow-none text-[var(--text)] space-y-4"
+          >
+            
+            {/* Modal Dialog Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-3">
+              <h3 className="text-md font-semibold text-[var(--text)]">User Settings</h3>
+              <button 
+                type="button" 
+                onClick={() => setProfileOpen(false)}
+                className="text-[var(--muted)] hover:text-[var(--text)]"
+              >
+                <span className="sr-only">Close</span>
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
-            <div className="min-w-0 flex-1">
-              <p className={`font-light text-[var(--text)] ${mobile ? 'truncate text-sm' : 'text-sm'}`}>{firstName}</p>
-              <p className="truncate text-xs text-slate-500">{currentUser?.email || text.noEmailFound}</p>
-            </div>
-          </div>
 
-          <div className="mt-4 space-y-3 rounded-2xl bg-[var(--card)] p-3 text-sm text-[var(--muted)]">
+            <div className="flex items-center gap-3">
+              <div className="relative group h-12 w-12 flex-shrink-0">
+                {currentUser?.profile_pic ? (
+                  <img src={currentUser.profile_pic} alt="Profile" className="h-12 w-12 rounded-2xl object-cover" />
+                ) : (
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 text-lg font-light text-white">
+                    {firstName.charAt(0)}
+                  </div>
+                )}
+                <label className="absolute inset-0 flex items-center justify-center bg-black/45 text-white rounded-2xl opacity-0 group-hover:opacity-100 transition cursor-pointer text-[10px] font-light">
+                  {isUploading ? '...' : 'Edit'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    disabled={isUploading}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-[var(--text)] text-sm">{firstName}</p>
+                <p className="truncate text-xs text-[var(--muted)]">{currentUser?.email || text.noEmailFound}</p>
+              </div>
+            </div>
+
+          <div className="mt-4 space-y-3 rounded-2xl bg-[var(--bg-2)]/80 p-3 text-sm text-[var(--muted)]">
             {mobile ? null : (
               <div className="flex items-center justify-between">
                 <span>{text.organization}</span>
@@ -437,7 +532,157 @@ function ProfileMenu({ currentUser, firstName, activeOrganization, activeCurrenc
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-3">
+          {/* Profile Fields View/Edit Section */}
+          <div className="mt-4 rounded-2xl border border-slate-200 bg-[var(--bg-2)]/80 p-3 space-y-3 dark:border-white/5">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/5 pb-2">
+              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text)]">Profile Details</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsEditingProfile(!isEditingProfile)
+                  setProfileError('')
+                }}
+                className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                {isEditingProfile ? 'Cancel' : 'Edit'}
+              </button>
+            </div>
+
+            {profileError && (
+              <p className="text-[10px] text-red-500 font-medium">{profileError}</p>
+            )}
+
+            {isEditingProfile ? (
+              <form onSubmit={handleProfileEditSubmit} className="space-y-3">
+                <div>
+                  <label htmlFor="edit-name-inp" className="block text-[9px] font-medium text-slate-400 uppercase tracking-wider mb-1">Full Name</label>
+                  <input
+                    id="edit-name-inp"
+                    type="text"
+                    required
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="w-full px-3 py-1.5 bg-[var(--bg)] border border-slate-200/60 dark:border-white/5 rounded-xl text-xs text-[var(--text)] focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="edit-mobile-inp" className="block text-[9px] font-medium text-[var(--muted)] uppercase tracking-wider mb-1">Mobile Number</label>
+                  <input
+                    id="edit-mobile-inp"
+                    type="text"
+                    required
+                    value={editMobile}
+                    onChange={(e) => setEditMobile(e.target.value)}
+                    className="w-full px-3 py-1.5 bg-[var(--bg)] border border-slate-200/60 dark:border-white/5 rounded-xl text-xs text-[var(--text)] focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="edit-address-inp" className="block text-[9px] font-medium text-[var(--muted)] uppercase tracking-wider mb-1">Address</label>
+                  <textarea
+                    id="edit-address-inp"
+                    required
+                    rows={2}
+                    value={editAddress}
+                    onChange={(e) => setEditAddress(e.target.value)}
+                    className="w-full px-3 py-1.5 bg-[var(--bg)] border border-slate-200/60 dark:border-white/5 rounded-xl text-xs text-[var(--text)] focus:outline-none resize-none"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={isSavingProfile}
+                  className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold transition disabled:opacity-50"
+                >
+                  {isSavingProfile ? 'Saving...' : 'Save Profile'}
+                </button>
+              </form>
+            ) : (
+              <div className="space-y-2 text-xs text-[var(--muted)]">
+                <div className="flex justify-between gap-2">
+                  <span>Name</span>
+                  <span className="font-medium text-[var(--text)] text-right">{currentUser?.name || 'Not filled'}</span>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <span>Mobile</span>
+                  <span className="font-medium text-[var(--text)] text-right">{currentUser?.mobile || 'Not filled'}</span>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <span>Address</span>
+                  <span className="font-medium text-[var(--text)] text-right max-w-[140px] truncate" title={currentUser?.address}>{currentUser?.address || 'Not filled'}</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Change Password Section */}
+          <div className="mt-4 rounded-2xl border border-slate-200 bg-[var(--bg-2)]/80 p-3 space-y-3 dark:border-white/5">
+            <button
+              type="button"
+              onClick={() => {
+                setIsChangingPassword(!isChangingPassword)
+                setPasswordError('')
+                setPasswordSuccess('')
+              }}
+              className="flex w-full items-center justify-between text-xs font-semibold uppercase tracking-wider text-[var(--text)] text-left hover:underline"
+            >
+              <span>Security & Password</span>
+              <span className="text-[10px] font-normal text-blue-600 dark:text-blue-400">
+                {isChangingPassword ? 'Hide' : 'Change Password'}
+              </span>
+            </button>
+
+            {isChangingPassword && (
+              <form onSubmit={handleChangePasswordSubmit} className="space-y-3 pt-2 border-t border-slate-200 dark:border-white/5">
+                {passwordError && (
+                  <p className="text-[10px] text-red-500 font-medium">{passwordError}</p>
+                )}
+                {passwordSuccess && (
+                  <p className="text-[10px] text-emerald-500 font-medium">{passwordSuccess}</p>
+                )}
+                <div>
+                  <label htmlFor="chg-old" className="block text-[9px] font-medium text-[var(--muted)] uppercase tracking-wider mb-1">Current Password</label>
+                  <input
+                    id="chg-old"
+                    type="password"
+                    required
+                    value={oldPassword}
+                    onChange={(e) => setOldPassword(e.target.value)}
+                    className="w-full px-3 py-1.5 bg-[var(--bg)] border border-slate-200/60 dark:border-white/5 rounded-xl text-xs text-[var(--text)] focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="chg-new" className="block text-[9px] font-medium text-[var(--muted)] uppercase tracking-wider mb-1">New Password</label>
+                  <input
+                    id="chg-new"
+                    type="password"
+                    required
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full px-3 py-1.5 bg-[var(--bg)] border border-slate-200/60 dark:border-white/5 rounded-xl text-xs text-[var(--text)] focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="chg-confirm" className="block text-[9px] font-medium text-[var(--muted)] uppercase tracking-wider mb-1">Confirm New Password</label>
+                  <input
+                    id="chg-confirm"
+                    type="password"
+                    required
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="w-full px-3 py-1.5 bg-[var(--bg)] border border-slate-200/60 dark:border-white/5 rounded-xl text-xs text-[var(--text)] focus:outline-none"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={isSavingPassword}
+                  className="w-full py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-semibold transition disabled:opacity-50"
+                >
+                  {isSavingPassword ? 'Updating...' : 'Update Password'}
+                </button>
+              </form>
+            )}
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-[var(--bg-2)]/80 p-3">
             <button
               type="button"
               onClick={() => setCurrencyMenuOpen((current) => !current)}
@@ -464,7 +709,7 @@ function ProfileMenu({ currentUser, firstName, activeOrganization, activeCurrenc
                       className={`relative flex items-center justify-between rounded-xl border px-3 py-2 text-left transition ${
                         isSelected
                           ? 'border-primary-300 bg-primary-50 text-primary-700'
-                          : 'border-slate-200 bg-white text-[var(--text)] hover:border-primary-200 hover:bg-slate-100'
+                          : 'border-slate-200/60 dark:border-white/5 bg-[var(--bg)] text-[var(--text)] hover:border-primary-200 hover:bg-slate-100'
                       } ${isUpdatingCurrency ? 'cursor-not-allowed opacity-70' : ''}`}
                     >
                       <div>
@@ -487,7 +732,7 @@ function ProfileMenu({ currentUser, firstName, activeOrganization, activeCurrenc
             ) : null}
           </div>
 
-          <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-3">
+          <div className="mt-4 rounded-2xl border border-slate-200 bg-[var(--bg-2)]/80 p-3">
             <div className="mb-3 flex items-center gap-2">
               <GlobeAltIcon className="h-4 w-4 text-primary-600" />
               <p className="text-sm font-light text-[var(--text)]">{text.languageLabel}</p>
@@ -495,7 +740,7 @@ function ProfileMenu({ currentUser, firstName, activeOrganization, activeCurrenc
             <LanguageRow language={language} setLanguage={setLanguage} text={text} />
           </div>
 
-          <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/80 dark:border-white/6 dark:bg-white/4 p-3">
+          <div className="mt-4 rounded-2xl border border-slate-200 bg-[var(--bg-2)]/80 dark:border-white/5 p-3">
             <div className="mb-3 flex items-center gap-2">
               {theme === 'light' ? (
                 <SunIcon className="h-4 w-4 text-amber-500" />
@@ -511,7 +756,7 @@ function ProfileMenu({ currentUser, firstName, activeOrganization, activeCurrenc
                 className={`flex-1 rounded-xl px-2 py-2 text-center text-xs font-light border transition ${
                   theme === 'light'
                     ? 'bg-primary-50 border-primary-200 text-primary-700 font-normal shadow-sm'
-                    : 'bg-[var(--bg-2)] border-slate-200 dark:border-white/8 text-[var(--text)] hover:opacity-85'
+                    : 'bg-[var(--bg)] border-slate-200/60 dark:border-white/5 text-[var(--text)] hover:opacity-85'
                 }`}
               >
                 Light
@@ -522,7 +767,7 @@ function ProfileMenu({ currentUser, firstName, activeOrganization, activeCurrenc
                 className={`flex-1 rounded-xl px-2 py-2 text-center text-xs font-light border transition ${
                   theme === 'dark'
                     ? 'bg-primary-50 border-primary-200 text-primary-700 font-normal shadow-sm'
-                    : 'bg-[var(--bg-2)] border-slate-200 dark:border-white/8 text-[var(--text)] hover:opacity-85'
+                    : 'bg-[var(--bg)] border-slate-200/60 dark:border-white/5 text-[var(--text)] hover:opacity-85'
                 }`}
               >
                 Dark
@@ -542,8 +787,10 @@ function ProfileMenu({ currentUser, firstName, activeOrganization, activeCurrenc
           <button type="button" onClick={handleLogout} className="mt-4 w-full rounded-xl px-3 py-3 text-left text-sm font-light text-rose-600 transition hover:bg-rose-50">
             {text.logout}
           </button>
-        </div>
-      ) : null}
+        </motion.div>
+      </div>,
+      document.body
+    )}
     </div>
   )
 }
@@ -567,6 +814,7 @@ export default function DashboardHeader({
   handleLogout,
   handleChangeCurrency,
   onUpdateProfilePic,
+  onUpdateUser,
 }) {
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-white/6/80 bg-[var(--card)]/90 backdrop-blur-xl">
@@ -606,6 +854,7 @@ export default function DashboardHeader({
               handleChangeCurrency={handleChangeCurrency}
               text={text}
               onUpdateProfilePic={onUpdateProfilePic}
+              onUpdateUser={onUpdateUser}
             />
           </div>
 
@@ -638,6 +887,7 @@ export default function DashboardHeader({
               text={text}
               mobile
               onUpdateProfilePic={onUpdateProfilePic}
+              onUpdateUser={onUpdateUser}
             />
           </div>
         </div>

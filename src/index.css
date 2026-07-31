@@ -159,6 +159,25 @@ html[lang='hi'] h6{
   display: none;
 }
 
+.modern-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.modern-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.modern-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.35);
+  border-radius: 10px;
+}
+.modern-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.55);
+}
+.modern-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.35) transparent;
+}
+
 /* Inner-system shared accents (used on register and other system pages) */
 .inner-card-accent{ position:relative; overflow:hidden }
 .inner-card-accent::before{

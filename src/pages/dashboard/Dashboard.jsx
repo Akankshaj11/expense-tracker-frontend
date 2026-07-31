@@ -39,6 +39,7 @@ import DashboardBooksSection from '../../components/dashboard/DashboardBooksSect
 import DashboardRecentActivity from '../../components/dashboard/DashboardRecentActivity'
 import DashboardWorkspaceSummary from '../../components/dashboard/DashboardWorkspaceSummary'
 import DashboardEmptyState from '../../components/dashboard/DashboardEmptyState'
+import CompleteProfileModal from '../../components/dashboard/CompleteProfileModal'
 import { persistOrganizationCurrency } from '../../utils/organizationPersistence'
 import { getBooksFromOrganization } from '../../utils/bookUtils'
 
@@ -465,6 +466,7 @@ export default function Dashboard() {
   }
 
   const firstName = deriveFirstName(currentUser)
+  const isProfileIncomplete = !currentUser?.name || !currentUser?.address || !currentUser?.mobile || !currentUser?.profile_pic;
   const categoryCards = buildCategoryCards(activeOrganization, activeCurrency, activeOrganizationTransactions, language, locale)
   const recentActivity = buildRecentActivity(activeOrganizationTransactions, activeCurrency, locale, text, language)
 
@@ -683,7 +685,28 @@ export default function Dashboard() {
           localStorage.setItem('currentUser', JSON.stringify(updatedUser))
           setCurrentUser(updatedUser)
         }}
+        onUpdateUser={(updated) => {
+          localStorage.setItem('currentUser', JSON.stringify(updated))
+          setCurrentUser(updated)
+        }}
       />
+
+      {isProfileIncomplete && !(
+        localStorage.getItem('profilePromptSkippedAt') &&
+        (Date.now() - Number(localStorage.getItem('profilePromptSkippedAt')) < 24 * 60 * 60 * 1000)
+      ) && (
+        <CompleteProfileModal
+          currentUser={currentUser}
+          onUpdateUser={(updated) => {
+            localStorage.setItem('currentUser', JSON.stringify(updated))
+            setCurrentUser(updated)
+          }}
+          onSkip={() => {
+            localStorage.setItem('profilePromptSkippedAt', Date.now().toString())
+            setTransactionsRevision(r => r + 1)
+          }}
+        />
+      )}
 
       <main className="mx-auto max-w-7xl px-10 pb-12 pt-28 sm:px-12 lg:px-16">
         <DashboardHero
