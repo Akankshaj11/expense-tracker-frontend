@@ -219,7 +219,7 @@ export default function App(){
       syncDocumentLanguage()
       const currentTheme = getThemeForCurrentUser()
       const body = document.body
-      if (window.location.pathname === '/') {
+      if (window.location.pathname === '/' || window.location.pathname === '/index.html') {
         body.classList.remove('theme-light-violet')
         body.classList.add('dark')
       } else {
@@ -291,7 +291,7 @@ function ThemeRouterSync() {
     const body = document.body
     const savedTheme = getThemeForCurrentUser()
 
-    if (location.pathname === '/') {
+    if (location.pathname === '/' || location.pathname === '/index.html') {
       body.classList.remove('theme-light-violet')
       body.classList.add('dark')
     } else {
