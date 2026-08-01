@@ -42,7 +42,10 @@
             path.indexOf('/edit-transaction/') === 0 ||
             path === '/add-transaction';
 
-          if (isInnerRoute && savedTheme === 'dark') {
+          if (path === '/') {
+            document.body.classList.remove('theme-light-violet');
+            document.body.classList.add('dark');
+          } else if (isInnerRoute && savedTheme === 'dark') {
             document.body.classList.remove('theme-light-violet');
             document.body.classList.add('dark');
           } else {

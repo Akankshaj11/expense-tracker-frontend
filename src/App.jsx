@@ -219,12 +219,17 @@ export default function App(){
       syncDocumentLanguage()
       const currentTheme = getThemeForCurrentUser()
       const body = document.body
-      if (currentTheme === 'dark') {
+      if (window.location.pathname === '/') {
         body.classList.remove('theme-light-violet')
         body.classList.add('dark')
       } else {
-        body.classList.add('theme-light-violet')
-        body.classList.remove('dark')
+        if (currentTheme === 'dark') {
+          body.classList.remove('theme-light-violet')
+          body.classList.add('dark')
+        } else {
+          body.classList.add('theme-light-violet')
+          body.classList.remove('dark')
+        }
       }
     }
     // Function: handleLanguageChanged
@@ -286,12 +291,17 @@ function ThemeRouterSync() {
     const body = document.body
     const savedTheme = getThemeForCurrentUser()
 
-    if (savedTheme === 'dark') {
+    if (location.pathname === '/') {
       body.classList.remove('theme-light-violet')
       body.classList.add('dark')
     } else {
-      body.classList.add('theme-light-violet')
-      body.classList.remove('dark')
+      if (savedTheme === 'dark') {
+        body.classList.remove('theme-light-violet')
+        body.classList.add('dark')
+      } else {
+        body.classList.add('theme-light-violet')
+        body.classList.remove('dark')
+      }
     }
   }, [location])
 
