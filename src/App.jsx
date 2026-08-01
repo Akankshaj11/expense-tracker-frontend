@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import Landing from './pages/landing/Landing'
+import { getStoredAccessToken } from './utils/api'
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
 import CurrencySelect from './pages/setup/CurrencySelect'
@@ -138,6 +139,19 @@ function AdminGuard({ children }) {
   return checkAdminRole() ? children : null
 }
 
+// Protected Route Wrapper for Standard App Users
+function RequireAuth({ children }) {
+  const navigate = useNavigate()
+  
+  useEffect(() => {
+    if (!getStoredAccessToken()) {
+      navigate('/login', { replace: true })
+    }
+  }, [navigate])
+
+  return getStoredAccessToken() ? children : null
+}
+
 // Impersonation Banner
 function ImpersonationBanner() {
   const [isImpersonating, setIsImpersonating] = useState(false)
@@ -257,17 +271,17 @@ export default function App(){
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            <Route path="/select-currency" element={<CurrencySelect />} />
-            <Route path="/select-language" element={<LanguageSelect />} />
-            <Route path="/create-organization" element={<CreateOrganization />} />
-            <Route path="/manage-organization" element={<ManageOrganization />} />
-            <Route path="/add-transaction" element={<AddTransaction />} />
-            <Route path="/edit-transaction/:transactionId" element={<AddTransaction />} />
-            <Route path="/transactions" element={<Transactions />} />
-            <Route path="/category/:categoryName" element={<CategoryTransactions />} />
-            <Route path="/book-transactions/:bookName" element={<BookTransactions />} />
-            <Route path="/all-books" element={<AllBooks />} />
-            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/select-currency" element={<RequireAuth><CurrencySelect /></RequireAuth>} />
+            <Route path="/select-language" element={<RequireAuth><LanguageSelect /></RequireAuth>} />
+            <Route path="/create-organization" element={<RequireAuth><CreateOrganization /></RequireAuth>} />
+            <Route path="/manage-organization" element={<RequireAuth><ManageOrganization /></RequireAuth>} />
+            <Route path="/add-transaction" element={<RequireAuth><AddTransaction /></RequireAuth>} />
+            <Route path="/edit-transaction/:transactionId" element={<RequireAuth><AddTransaction /></RequireAuth>} />
+            <Route path="/transactions" element={<RequireAuth><Transactions /></RequireAuth>} />
+            <Route path="/category/:categoryName" element={<RequireAuth><CategoryTransactions /></RequireAuth>} />
+            <Route path="/book-transactions/:bookName" element={<RequireAuth><BookTransactions /></RequireAuth>} />
+            <Route path="/all-books" element={<RequireAuth><AllBooks /></RequireAuth>} />
+            <Route path="/dashboard" element={<RequireAuth><Dashboard /></RequireAuth>} />
             <Route path="/terms" element={<TermsOfService />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/admin/login" element={<AdminLogin />} />
