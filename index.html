@@ -42,7 +42,9 @@
             path.indexOf('/edit-transaction/') === 0 ||
             path === '/add-transaction';
 
-          if (path === '/' || path === '/index.html') {
+          const isAdminRoute = path === '/admin' || path === '/admin/login';
+
+          if (path === '/' || path === '/index.html' || isAdminRoute) {
             document.body.classList.remove('theme-light-violet');
             document.body.classList.add('dark');
           } else if (isInnerRoute && savedTheme === 'dark') {

@@ -219,7 +219,9 @@ export default function App(){
       syncDocumentLanguage()
       const currentTheme = getThemeForCurrentUser()
       const body = document.body
-      if (window.location.pathname === '/' || window.location.pathname === '/index.html') {
+      const path = window.location.pathname
+      const isAdminRoute = path === '/admin' || path === '/admin/login'
+      if (path === '/' || path === '/index.html' || isAdminRoute) {
         body.classList.remove('theme-light-violet')
         body.classList.add('dark')
       } else {
@@ -291,7 +293,10 @@ function ThemeRouterSync() {
     const body = document.body
     const savedTheme = getThemeForCurrentUser()
 
-    if (location.pathname === '/' || location.pathname === '/index.html') {
+    const path = location.pathname
+    const isAdminRoute = path === '/admin' || path === '/admin/login'
+
+    if (path === '/' || path === '/index.html' || isAdminRoute) {
       body.classList.remove('theme-light-violet')
       body.classList.add('dark')
     } else {
