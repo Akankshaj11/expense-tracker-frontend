@@ -42,6 +42,7 @@ export default function Navbar(){
               {label: 'Home', to: '/#top'},
               {label: 'About', to: '/#about'},
               {label: 'Features', to: '/#features'},
+              {label: 'Pricing', to: '/#pricing'},
               {label: 'Ratings', to: '/#ratings'},
               {label: 'FAQ', to: '/#faq'},
             ].map((item) => (
@@ -90,6 +91,7 @@ export default function Navbar(){
                 {label: 'Home', to: '/#top'},
                 {label: 'About', to: '/#about'},
                 {label: 'Features', to: '/#features'},
+                {label: 'Pricing', to: '/#pricing'},
                 {label: 'Ratings', to: '/#ratings'},
                 {label: 'FAQ', to: '/#faq'},
               ].map((item) => (

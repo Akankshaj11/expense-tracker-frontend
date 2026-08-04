@@ -160,22 +160,35 @@ html[lang='hi'] h6{
 }
 
 .modern-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 .modern-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
+  background: rgba(9, 9, 11, 0.15);
 }
 .modern-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(156, 163, 175, 0.35);
-  border-radius: 10px;
+  background: rgba(139, 92, 246, 0.25);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
 .modern-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(156, 163, 175, 0.55);
+  background: rgba(139, 92, 246, 0.5);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+body.theme-light-violet .modern-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(15, 74, 166, 0.25);
+}
+body.theme-light-violet .modern-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(15, 74, 166, 0.5);
 }
 .modern-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: rgba(156, 163, 175, 0.35) transparent;
+  scrollbar-color: rgba(139, 92, 246, 0.25) rgba(9, 9, 11, 0.15);
+}
+body.theme-light-violet .modern-scrollbar {
+  scrollbar-color: rgba(15, 74, 166, 0.25) rgba(240, 240, 240, 0.15);
 }
 
 /* Inner-system shared accents (used on register and other system pages) */
@@ -631,4 +644,45 @@ body.theme-light-violet .text-yellow-500 {
 
 body.theme-light-violet .bg-yellow-500\/10 {
   background-color: #fffbeb !important;
+}
+
+/* Premium Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(9, 9, 11, 0.15);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.25);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 92, 246, 0.5);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+body.theme-light-violet ::-webkit-scrollbar-thumb {
+  background: rgba(15, 74, 166, 0.25);
+}
+
+body.theme-light-violet ::-webkit-scrollbar-thumb:hover {
+  background: rgba(15, 74, 166, 0.5);
+}
+
+/* Firefox scrollbar support */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139, 92, 246, 0.25) rgba(9, 9, 11, 0.15);
+}
+
+body.theme-light-violet {
+  scrollbar-color: rgba(15, 74, 166, 0.25) rgba(240, 240, 240, 0.15);
 }

@@ -10,10 +10,11 @@ export default function DashboardMetricCards({ cards, totalBalanceValue, revenue
     investments: ChartBarIcon,
     lend: BanknotesIcon,
     borrow: BuildingLibraryIcon,
+    savings: ChartBarIcon,
   }
 
   return (
-    <section className={`mt-8 grid items-stretch gap-4 sm:grid-cols-2 xl:grid-cols-3 ${className || ''}`}>
+    <section className={`mt-8 grid items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-4 ${className || ''}`}>
       {cards.map((card, index) => {
         const isBalanceCard = card.kind === 'balance'
         const isRevenueCard = card.kind === 'revenue'

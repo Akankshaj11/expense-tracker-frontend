@@ -6,6 +6,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { apiRequest } from '../../utils/api'
 import { translateCategoryLabel, translateSubcategoryLabel, translateText } from '../../i18n/translations'
 import useLanguage from '../../hooks/useLanguage'
+import UpgradeModal from '../../components/common/UpgradeModal'
 
 const revenueCategories = ['Salary', 'Freelance', 'Bonus', 'Interest', 'Commission', 'Pocket Money']
 const expenseCategories = ['Food', 'Travel', 'Shopping', 'Bills', 'Health', 'Entertainment', 'Education', 'Rent', 'Subscriptions', 'Loans', 'Taxes']
@@ -44,6 +45,9 @@ export default function CreateOrganization() {
   const [newBookName, setNewBookName] = useState('')
   const [error, setError] = useState('')
 
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [upgradeMessage, setUpgradeMessage] = useState('')
+
   const backPath = location.state?.from || '/select-language'
 
   const handleAddBook = (e) => {
@@ -68,6 +72,16 @@ export default function CreateOrganization() {
   const handleCreateOrganization = async (e) => {
     e.preventDefault()
     setError('')
+
+    const storedOrganizations = JSON.parse(localStorage.getItem('organizations') || '[]')
+    const currentUserStr = localStorage.getItem('currentUser')
+    const currentUser = JSON.parse(currentUserStr || '{}')
+
+    if ((currentUser.plan_id === 'free' || !currentUser.plan_id) && storedOrganizations.length >= 1) {
+      setUpgradeMessage('Organization Limit Reached: Free plan is limited to 1 organization. Please upgrade your plan below to create more workspace environments.')
+      setShowUpgradeModal(true)
+      return
+    }
 
     if (!organizationName.trim()) {
       setError(text.organizationNameRequired || 'Organization name is required')
@@ -147,7 +161,6 @@ export default function CreateOrganization() {
       localStorage.setItem('currentUser', JSON.stringify(onboardingUser))
       sessionStorage.removeItem('onboardingUser')
     }
-    const storedOrganizations = JSON.parse(localStorage.getItem('organizations') || '[]')
     const existingOrganization = JSON.parse(localStorage.getItem('organization') || 'null')
     const normalizedExistingOrganizations = storedOrganizations.length > 0
       ? storedOrganizations
@@ -163,7 +176,7 @@ export default function CreateOrganization() {
   }
 
   return (
-    <div className="theme-light-violet relative min-h-screen overflow-hidden bg-gradient-to-br from-primary-50 via-white to-sky-100 px-4 py-12 sm:px-6 lg:px-8">
+    <div className="theme-light-violet relative min-h-screen overflow-hidden bg-gradient-to-br from-primary-50 via-white to-sky-100 px-4 py-6 sm:px-6 lg:px-8">
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute -top-24 left-0 h-72 w-72 rounded-full bg-primary-200/35 blur-3xl" />
         <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-sky-200/30 blur-3xl" />
@@ -172,59 +185,59 @@ export default function CreateOrganization() {
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative mx-auto flex w-full min-h-[calc(100vh-6rem)] items-center justify-center px-2 sm:px-4 lg:px-0"
+        className="relative mx-auto flex w-full min-h-[calc(100vh-4rem)] items-center justify-center px-2 sm:px-4 lg:px-0"
       >
-        <div className="inner-card-accent w-full max-w-3xl rounded-[2rem] border border-white/80 bg-[var(--card)] p-5 shadow-glass sm:p-8">
-          <div className="mb-6 flex justify-start">
+        <div className="inner-card-accent w-full max-w-3xl rounded-3xl border border-white/80 bg-[var(--card)] p-4 shadow-glass sm:p-6">
+          <div className="mb-3 flex justify-start">
             <button
               type="button"
               onClick={() => navigate(backPath)}
-              className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white px-4 py-2 text-sm font-light text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+              className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white px-3 py-1.5 text-xs font-light text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
             >
-              <ArrowLeftIcon className="h-4 w-4" />
+              <ArrowLeftIcon className="h-3 w-3" />
               {text.backLabel}
             </button>
           </div>
 
           <div className="mx-auto max-w-3xl text-center">
-            <p className="text-xs font-light uppercase tracking-[0.3em] text-primary-600">{text.setupStep3Of3}</p>
-            <h1 className="mt-3 text-3xl font-light tracking-tight text-[var(--text)] sm:text-4xl">{text.createOrganizationTitle}</h1>
-            <p className="mt-3 text-base leading-7 text-[var(--muted)]">{text.createOrganizationDescription}</p>
+            <p className="text-[10px] font-light uppercase tracking-[0.3em] text-primary-600">{text.setupStep3Of3}</p>
+            <h1 className="mt-1.5 text-xl font-normal tracking-tight text-[var(--text)] sm:text-2xl">{text.createOrganizationTitle}</h1>
+            <p className="mt-1.5 text-sm leading-relaxed text-[var(--muted)]">{text.createOrganizationDescription}</p>
           </div>
 
-          <form onSubmit={handleCreateOrganization} className="mt-8 space-y-8">
-            <div className="grid gap-6 lg:grid-cols-2">
+          <form onSubmit={handleCreateOrganization} className="mt-5 space-y-4">
+            <div className="grid gap-4 lg:grid-cols-2">
               <div>
-                <label className="mb-2 block text-sm font-light text-slate-700">{text.organizationNameLabel}</label>
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700">{text.organizationNameLabel}</label>
                 <input
                   type="text"
                   value={organizationName}
                   onChange={(e) => setOrganizationName(e.target.value)}
-                  className="w-full rounded-xl border border-white/6 bg-[var(--card)] px-4 py-3 text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 input-glass"
+                  className="w-full rounded-xl border border-white/6 bg-[var(--card)] px-3.5 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 input-glass placeholder:text-slate-400"
                   placeholder={text.organizationNamePlaceholder}
                 />
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-light text-slate-700">{text.descriptionLabel}</label>
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700">{text.descriptionLabel}</label>
                 <input
                   type="text"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full rounded-xl border border-white/6 bg-[var(--card)] px-4 py-3 text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 input-glass"
+                  className="w-full rounded-xl border border-white/6 bg-[var(--card)] px-3.5 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 input-glass placeholder:text-slate-400"
                   placeholder={text.descriptionPlaceholder}
                 />
               </div>
             </div>
 
-            <div className="border-t border-slate-100 pt-6">
-              <div className="mb-4 flex items-center justify-between">
+            <div className="border-t border-slate-100 pt-4">
+              <div className="mb-2 flex items-center justify-between">
                 <label className="block text-sm font-semibold text-slate-700">
-                  Books <span className="text-xs font-light text-rose-500">(At least 1 required)</span>
+                  Books <span className="text-xs font-normal text-rose-500">(At least 1 required)</span>
                 </label>
               </div>
 
-              <div className="flex gap-3 mb-4">
+              <div className="flex gap-3 mb-2.5">
                 <input
                   type="text"
                   value={newBookName}
@@ -236,12 +249,12 @@ export default function CreateOrganization() {
                     }
                   }}
                   placeholder="Enter book name (e.g. Personal, Business)"
-                  className="w-full rounded-xl border border-white/6 bg-[var(--card)] px-4 py-2.5 text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 input-glass"
+                  className="w-full rounded-xl border border-white/6 bg-[var(--card)] px-3.5 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 input-glass placeholder:text-slate-400"
                 />
                 <button
                   type="button"
                   onClick={handleAddBook}
-                  className="inline-flex items-center gap-2 rounded-xl bg-primary-600 px-5 py-2.5 text-sm font-medium text-white shadow-md hover:bg-primary-700 transition shrink-0"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-medium text-white shadow-md hover:bg-primary-700 transition shrink-0"
                 >
                   <PlusIcon className="h-4 w-4" />
                   Add Book
@@ -249,31 +262,31 @@ export default function CreateOrganization() {
               </div>
 
               {books.length === 0 ? (
-                <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 p-8 text-center bg-slate-50/50">
-                  <svg fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-10 h-10 text-slate-400 mb-2">
+                <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 p-4 text-center bg-slate-50/50">
+                  <svg fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-7 h-7 text-slate-400 mb-1">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
                   </svg>
-                  <span className="text-sm font-light text-slate-500">No books added yet</span>
+                  <span className="text-xs font-light text-slate-500">No books added yet</span>
                 </div>
               ) : (
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-2 sm:grid-cols-2">
                   {books.map((book, index) => (
-                    <div key={index} className="flex items-center justify-between rounded-xl border border-white/6 bg-[var(--card)] p-3 shadow-sm">
-                      <div className="flex items-center gap-3">
-                        <div className="rounded-lg bg-primary-50 p-2 text-primary-600">
-                          <svg fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-5 h-5">
+                    <div key={index} className="flex items-center justify-between rounded-xl border border-white/6 bg-[var(--card)] p-2 shadow-sm">
+                      <div className="flex items-center gap-2">
+                        <div className="rounded-lg bg-primary-50 p-1.5 text-primary-600">
+                          <svg fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-4 h-4">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
                           </svg>
                         </div>
-                        <span className="text-sm font-medium text-[var(--text)]">{book.name}</span>
+                        <span className="text-xs font-medium text-[var(--text)]">{book.name}</span>
                       </div>
                       <button
                         type="button"
                         onClick={() => setBooks(books.filter((_, i) => i !== index))}
-                        className="rounded-lg p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition"
+                        className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition"
                         aria-label="Delete book"
                       >
-                        <svg fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-5 h-5">
+                        <svg fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-4 h-4">
                           <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
                         </svg>
                       </button>
@@ -283,20 +296,25 @@ export default function CreateOrganization() {
               )}
             </div>
 
-            {error ? <p className="text-sm text-red-600">{error}</p> : null}
+            {error ? <p className="text-xs text-red-600">{error}</p> : null}
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:justify-end pt-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:justify-end pt-2">
               <button
                 type="submit"
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-primary-500 to-primary-600 px-6 py-3 text-sm font-light text-white shadow-lg shadow-primary-500/25 transition hover:-translate-y-0.5"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-primary-500 to-primary-600 px-4 py-2 text-xs font-medium text-white shadow-lg shadow-primary-500/25 transition hover:-translate-y-0.5"
               >
                 {text.createOrganizationButton || 'Create Organization'}
-                <PlusIcon className="h-4 w-4" />
+                <PlusIcon className="h-3.5 w-3.5" />
               </button>
             </div>
           </form>
         </div>
       </motion.div>
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        message={upgradeMessage}
+      />
     </div>
   )
 }

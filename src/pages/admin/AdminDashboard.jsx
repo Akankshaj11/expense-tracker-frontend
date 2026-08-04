@@ -32,6 +32,8 @@ import logo from '../../assets/logo.png'
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
+  const adminCurrentUser = JSON.parse(localStorage.getItem('adminCurrentUser') || '{}')
+  const currentAdminRole = adminCurrentUser?.role || 'admin'
   const [activeTab, setActiveTab] = useState('dashboard')
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isDarkMode, setIsDarkMode] = useState(true)
@@ -717,12 +719,13 @@ export default function AdminDashboard() {
                         {/* Role selection dropdown */}
                         <td className="px-6 py-4">
                           <select
-                            disabled={user.role === 'super_admin' && users.filter(u => u.role === 'super_admin').length <= 1}
+                            disabled={(user.role === 'super_admin' && users.filter(u => u.role === 'super_admin').length <= 1) || currentAdminRole !== 'super_admin'}
                             value={user.role}
                             onChange={(e) => handleUpdateRole(user, e.target.value)}
                             className="bg-slate-950 border border-slate-800 text-slate-300 rounded-lg px-2 py-1 text-[11px] focus:outline-none"
                           >
                             <option value="user">User</option>
+                            <option value="admin">Admin</option>
                             <option value="super_admin">Super Admin</option>
                           </select>
                         </td>
@@ -755,11 +758,12 @@ export default function AdminDashboard() {
 
                             {/* Reset Password */}
                             <button
+                              disabled={user.role !== 'user' && currentAdminRole !== 'super_admin'}
                               onClick={() => {
                                 setSelectedUser(user)
                                 setShowResetModal(true)
                               }}
-                              className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-200 transition"
+                              className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-200 transition disabled:opacity-30"
                               title="Reset security password"
                             >
                               <Key className="h-4 w-4" />
@@ -767,7 +771,7 @@ export default function AdminDashboard() {
 
                             {/* Suspend/Unsuspend */}
                             <button
-                              disabled={user.role === 'super_admin'}
+                              disabled={user.role === 'super_admin' || (user.role === 'admin' && currentAdminRole !== 'super_admin')}
                               onClick={() => handleToggleSuspend(user)}
                               className={`p-1.5 rounded-lg transition disabled:opacity-30 ${
                                 user.status === 'suspended'
@@ -781,7 +785,7 @@ export default function AdminDashboard() {
 
                             {/* Impersonation action */}
                             <button
-                              disabled={user.status === 'suspended' || user.role === 'super_admin'}
+                              disabled={user.status === 'suspended' || user.role === 'super_admin' || (user.role === 'admin' && currentAdminRole !== 'super_admin')}
                               onClick={() => handleStartImpersonate(user)}
                               className="px-2 py-1 bg-purple-600/10 border border-purple-500/20 hover:bg-purple-600/20 text-purple-400 rounded-lg text-[10px] font-medium disabled:opacity-30"
                               title="Impersonate user session"
@@ -791,7 +795,7 @@ export default function AdminDashboard() {
 
                             {/* Delete User */}
                             <button
-                              disabled={user.role === 'super_admin'}
+                              disabled={user.role === 'super_admin' || (user.role === 'admin' && currentAdminRole !== 'super_admin')}
                               onClick={() => handleDeleteUser(user)}
                               className="p-1.5 hover:bg-red-950/20 text-red-500/60 hover:text-red-400 rounded-lg transition disabled:opacity-30"
                               title="Permanently Delete User"
@@ -1385,17 +1389,20 @@ export default function AdminDashboard() {
                 />
               </div>
 
-              <div>
-                <label className="block text-[10px] font-medium text-slate-400 mb-2">Access Role</label>
-                <select
-                  value={createUserForm.role}
-                  onChange={(e) => setCreateUserForm({ ...createUserForm, role: e.target.value })}
-                  className="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs focus:outline-none"
-                >
-                  <option value="user">User</option>
-                  <option value="super_admin">Super Admin</option>
-                </select>
-              </div>
+              {currentAdminRole === 'super_admin' && (
+                <div>
+                  <label className="block text-[10px] font-medium text-slate-400 mb-2">Access Role</label>
+                  <select
+                    value={createUserForm.role}
+                    onChange={(e) => setCreateUserForm({ ...createUserForm, role: e.target.value })}
+                    className="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs focus:outline-none"
+                  >
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                    <option value="super_admin">Super Admin</option>
+                  </select>
+                </div>
+              )}
             </div>
 
             <div className="flex gap-3 pt-4">

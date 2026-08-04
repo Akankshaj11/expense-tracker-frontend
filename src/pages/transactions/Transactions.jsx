@@ -448,8 +448,13 @@ export default function Transactions() {
                             </span>
                           )}
                         </div>
-                        <div className="text-xs text-slate-500">
+                        <div className="text-xs text-slate-500 flex flex-wrap items-center gap-2">
                           <span>{formatDateTime(transaction.createdAt || transaction.date, locale)}</span>
+                          {transaction.createdBy?.name && (
+                            <span className="inline-flex items-center rounded bg-slate-100 text-slate-600 px-1.5 py-0.5 text-[10px] font-medium leading-none">
+                              by: {transaction.createdBy.name}
+                            </span>
+                          )}
                           {(() => {
                             const att = resolveAttachmentPreview(transaction)
                             if (!att) return null

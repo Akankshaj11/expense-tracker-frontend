@@ -20,6 +20,10 @@ export default function Register() {
   const [showOtp, setShowOtp] = useState(false)
   const [otp, setOtp] = useState('')
 
+  const [showGoogleModal, setShowGoogleModal] = useState(false)
+  const [showCustomGoogleInput, setShowCustomGoogleInput] = useState(false)
+  const [customGoogleEmail, setCustomGoogleEmail] = useState('')
+
   // Function: isPasswordValid
   const isPasswordValid = (val) => {
     if (!val) return true
@@ -44,10 +48,16 @@ export default function Register() {
       return
     }
 
-    const seededEmail = sessionStorage.getItem('signupEmail')
-    if (seededEmail) {
-      setEmail(seededEmail)
-      sessionStorage.removeItem('signupEmail')
+    const params = new URLSearchParams(window.location.search)
+    const urlEmail = params.get('email')
+    if (urlEmail) {
+      setEmail(urlEmail)
+    } else {
+      const seededEmail = sessionStorage.getItem('signupEmail')
+      if (seededEmail) {
+        setEmail(seededEmail)
+        sessionStorage.removeItem('signupEmail')
+      }
     }
   }, [navigate])
 
@@ -135,6 +145,39 @@ export default function Register() {
       }
     } catch (err) {
       setError(err?.message || 'Registration failed. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleGoogleLogin = async (gmailEmail, gmailName = '') => {
+    setError('')
+    setLoading(true)
+    setShowGoogleModal(false)
+    try {
+      const payload = await apiRequest('/auth/google-login', {
+        method: 'POST',
+        body: JSON.stringify({ email: gmailEmail.trim(), name: gmailName }),
+      })
+
+      const user = payload?.data?.user
+      const accessToken = payload?.data?.accessToken || ''
+      const refreshToken = payload?.data?.refreshToken || ''
+
+      setStoredAccessToken(accessToken)
+      setStoredRefreshToken(refreshToken)
+
+      if (user) {
+        localStorage.setItem('currentUser', JSON.stringify(user))
+        sessionStorage.setItem('onboardingUser', JSON.stringify(user))
+      }
+
+      setSuccess(true)
+      setTimeout(() => {
+        navigate('/select-currency')
+      }, 1200)
+    } catch (err) {
+      setError(err?.message || 'Google Login failed. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -332,18 +375,10 @@ export default function Register() {
             </button>
           </form>
 
-          {/* Divider */}
-          <div className="relative my-5">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-white/8" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-transparent text-[var(--muted)]">or</span>
-            </div>
-          </div>
+
 
           {/* Footer */}
-          <p className="text-center text-[var(--muted)]">
+          <p className="text-center text-[var(--muted)] mt-6">
             Already have an account?{' '}
             <Link to="/login" className="text-primary-600 font-light hover:text-primary-700">
               Sign in
@@ -351,6 +386,7 @@ export default function Register() {
           </p>
         </div>
       </motion.div>
+
     </div>
   )
 }

@@ -12,8 +12,10 @@ import {
   ChevronDownIcon,
   CircleStackIcon,
   EllipsisVerticalIcon,
+  EnvelopeIcon,
   GlobeAltIcon,
   PlusIcon,
+  XMarkIcon,
   Squares2X2Icon,
   UserCircleIcon,
   ShieldCheckIcon,
@@ -42,6 +44,7 @@ import DashboardEmptyState from '../../components/dashboard/DashboardEmptyState'
 import CompleteProfileModal from '../../components/dashboard/CompleteProfileModal'
 import { persistOrganizationCurrency } from '../../utils/organizationPersistence'
 import { getBooksFromOrganization } from '../../utils/bookUtils'
+import UpgradeModal from '../../components/common/UpgradeModal'
 
 // Function: readJSON
 function readJSON(key, fallback) {
@@ -344,6 +347,66 @@ export default function Dashboard() {
   const [showDownloadModal, setShowDownloadModal] = useState(false)
   const [selectedReportBook, setSelectedReportBook] = useState('all')
   const [downloadingReport, setDownloadingReport] = useState(false)
+  const [reportFormat, setReportFormat] = useState('pdf')
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [upgradeMessage, setUpgradeMessage] = useState('')
+  
+  const [isAddMemberOpen, setIsAddMemberOpen] = useState(false)
+  const [memberEmail, setMemberEmail] = useState('')
+  const [isInviting, setIsInviting] = useState(false)
+  const [inviteError, setInviteError] = useState('')
+  const [showMockContacts, setShowMockContacts] = useState(false)
+  const [invitations, setInvitations] = useState([])
+
+  const loadInvitations = async () => {
+    try {
+      const response = await apiRequest('/organizations/invitations')
+      if (response?.data?.items) {
+        setInvitations(response.data.items)
+      }
+    } catch (err) {
+      console.error('Failed to load invitations:', err)
+    }
+  }
+
+  const handleAcceptInvitation = async (orgId) => {
+    try {
+      const response = await apiRequest(`/organizations/${orgId}/invitations/accept`, {
+        method: 'POST'
+      })
+      if (response?.success) {
+        alert('Invitation accepted successfully!')
+        const refreshedOrgs = await loadOrganizationsFromBackend()
+        setOrganizations(refreshedOrgs)
+        if (refreshedOrgs.length > 0) {
+          setActiveOrgId(orgId)
+          const user = readJSON('currentUser', null)
+          if (user) {
+            localStorage.setItem(`activeOrgId_${user.email || user.id}`, orgId)
+          }
+          localStorage.setItem('activeOrgId', orgId)
+        }
+        await loadInvitations()
+      }
+    } catch (err) {
+      alert(err.message || 'Failed to accept invitation')
+    }
+  }
+
+  const handleDeclineInvitation = async (orgId) => {
+    if (!window.confirm('Are you sure you want to decline this invitation?')) return
+    try {
+      const response = await apiRequest(`/organizations/${orgId}/invitations/decline`, {
+        method: 'POST'
+      })
+      if (response?.success) {
+        alert('Invitation declined.')
+        await loadInvitations()
+      }
+    } catch (err) {
+      alert(err.message || 'Failed to decline invitation')
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -362,10 +425,126 @@ export default function Dashboard() {
       setActiveOrgId(localStorage.getItem(key) || localStorage.getItem('activeOrgId') || fallbackId)
     })
 
+    // Sync current user state with database on mount to correct plans/details
+    apiRequest('/auth/me')
+      .then((res) => {
+        if (!cancelled && res?.data?.user) {
+          const freshUser = res.data.user
+          localStorage.setItem('currentUser', JSON.stringify(freshUser))
+          setCurrentUser(freshUser)
+        }
+      })
+      .catch(() => {
+        // Fallback silently if offline or token expired
+      })
+
+    loadInvitations()
+
     return () => {
       cancelled = true
     }
   }, [])
+
+  useEffect(() => {
+    const handleOpenAddMember = () => {
+      setIsAddMemberOpen(true)
+      setMemberEmail('')
+      setInviteError('')
+      setShowMockContacts(false)
+    }
+    window.addEventListener('dashboard:add-member', handleOpenAddMember)
+    return () => {
+      window.removeEventListener('dashboard:add-member', handleOpenAddMember)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (isAddMemberOpen) {
+      document.body.classList.add('overflow-hidden')
+    } else {
+      document.body.classList.remove('overflow-hidden')
+    }
+    return () => {
+      document.body.classList.remove('overflow-hidden')
+    }
+  }, [isAddMemberOpen])
+
+  const activeOrganization = useMemo(() => {
+    return organizations.find((item) => item.id === activeOrgId) || organizations[0] || null
+  }, [organizations, activeOrgId])
+
+  const activeOrgMembersCount = Array.isArray(activeOrganization?.members) ? activeOrganization.members.length : 0
+
+  const handleContactsPick = async () => {
+    if ('contacts' in navigator && 'ContactsManager' in window) {
+      try {
+        const props = ['name', 'email']
+        const contacts = await navigator.contacts.select(props, { multiple: false })
+        if (contacts && contacts.length > 0) {
+          const contact = contacts[0]
+          const email = contact.email && contact.email[0] ? contact.email[0] : ''
+          if (email) {
+            setMemberEmail(email)
+            setShowMockContacts(false)
+            return
+          }
+        }
+      } catch (err) {
+        console.log('Native contact picker skipped/failed:', err)
+      }
+    }
+    setShowMockContacts(prev => !prev)
+  }
+
+  const handleAddMemberSubmit = async (e) => {
+    e.preventDefault()
+    if (!memberEmail.trim()) {
+      setInviteError('Email address is required')
+      return
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(memberEmail.trim())) {
+      setInviteError('Please enter a valid email address')
+      return
+    }
+
+    if ((currentUser.plan_id === 'free' || !currentUser.plan_id) && activeOrgMembersCount >= 3) {
+      setIsAddMemberOpen(false)
+      setUpgradeMessage('Member Limit Reached: Free plan is limited to 3 members to track expenses in groups. Please upgrade your plan below to invite more members!')
+      setShowUpgradeModal(true)
+      return
+    }
+
+    setIsInviting(true)
+    setInviteError('')
+
+    try {
+      const response = await apiRequest(`/organizations/${activeOrganization.id}/members`, {
+        method: 'POST',
+        body: JSON.stringify({ email: memberEmail.toLowerCase().trim() })
+      })
+
+      if (response?.data) {
+        const updatedOrg = response.data
+        const updatedOrgs = organizations.map(o => o.id === updatedOrg.id ? updatedOrg : o)
+        setOrganizations(updatedOrgs)
+        localStorage.setItem('organizations', JSON.stringify(updatedOrgs))
+        localStorage.setItem('organization', JSON.stringify(updatedOrg))
+        setIsAddMemberOpen(false)
+        setMemberEmail('')
+        alert('Member invited successfully!')
+      }
+    } catch (err) {
+      if (err?.message && (err.message.includes('limit reached') || err.message.includes('Limit reached') || err.message.includes('3 members'))) {
+        setIsAddMemberOpen(false)
+        setUpgradeMessage('Member Limit Reached: Free plan is limited to 3 members to track expenses in groups. Please upgrade your plan below to invite more members!')
+        setShowUpgradeModal(true)
+      } else {
+        setInviteError(err.message || 'Failed to invite member')
+      }
+    } finally {
+      setIsInviting(false)
+    }
+  }
 
   useEffect(() => {
     localStorage.setItem('organizations', JSON.stringify(organizations))
@@ -393,10 +572,6 @@ export default function Dashboard() {
       window.removeEventListener('transactions:updated', handleTransactionsUpdated)
     }
   }, [])
-
-  const activeOrganization = useMemo(() => {
-    return organizations.find((item) => item.id === activeOrgId) || organizations[0] || null
-  }, [organizations, activeOrgId])
 
   const activeCurrency = activeOrganization?.currency || selectedCurrency
   const transactions = useMemo(() => readJSON('transactions', []), [transactionsRevision])
@@ -655,10 +830,64 @@ export default function Dashboard() {
     }
   }
 
+  const yearlyTrendData = useMemo(() => {
+    const months = [
+      { key: '01', label: 'Jan' },
+      { key: '02', label: 'Feb' },
+      { key: '03', label: 'Mar' },
+      { key: '04', label: 'Apr' },
+      { key: '05', label: 'May' },
+      { key: '06', label: 'Jun' },
+      { key: '07', label: 'Jul' },
+      { key: '08', label: 'Aug' },
+      { key: '09', label: 'Sep' },
+      { key: '10', label: 'Oct' },
+      { key: '11', label: 'Nov' },
+      { key: '12', label: 'Dec' },
+    ]
+
+    const currentYear = new Date().getFullYear()
+    const monthlySummary = months.map((m) => {
+      let income = 0
+      let expense = 0
+      
+      activeOrganizationTransactions.forEach((t) => {
+        const tDate = new Date(t.createdAt || t.date)
+        if (tDate.getFullYear() === currentYear) {
+          const monthStr = String(tDate.getMonth() + 1).padStart(2, '0')
+          if (monthStr === m.key) {
+            const amount = Math.abs(Number(t.amount || 0))
+            const dir = getDashboardCardDirection(t)
+            if (dir === 'in') {
+              income += amount
+            } else if (dir === 'out') {
+              expense += amount
+            }
+          }
+        }
+      })
+
+      return {
+        ...m,
+        income,
+        expense
+      }
+    })
+
+    return monthlySummary
+  }, [activeOrganizationTransactions, getDashboardCardDirection])
+
+  const savingsRate = (() => {
+    if (!inAmountValue || inAmountValue <= 0) return 0
+    const rate = ((inAmountValue - outAmountValue) / inAmountValue) * 100
+    return Math.max(-999, Math.min(100, Math.round(rate)))
+  })()
+
   const summaryCards = [
     { kind: 'balance', label: text.balance, value: totalBalance, accent: 'text-[var(--text)]' },
     { kind: 'revenue', label: text.in, value: inAmount, accent: 'text-emerald-600' },
     { kind: 'expenses', label: text.out, value: outAmount, accent: 'text-rose-600' },
+    { kind: 'savings', label: 'Savings Rate', value: `${savingsRate >= 0 ? '+' : ''}${savingsRate}%`, accent: savingsRate >= 0 ? 'text-emerald-600' : 'text-rose-600' },
   ]
   return (
     <div className="theme-light-violet min-h-screen text-[var(--text)]">
@@ -689,6 +918,15 @@ export default function Dashboard() {
           localStorage.setItem('currentUser', JSON.stringify(updated))
           setCurrentUser(updated)
         }}
+        onUpdateOrganizations={(updatedOrgs) => {
+          setOrganizations(updatedOrgs)
+          localStorage.setItem('organizations', JSON.stringify(updatedOrgs))
+          const active = updatedOrgs.find(o => o.id === activeOrgId) || updatedOrgs[0] || null
+          if (active) {
+            localStorage.setItem('organization', JSON.stringify(active))
+          }
+        }}
+        setShowUpgradeModal={setShowUpgradeModal}
       />
 
       {isProfileIncomplete && !(
@@ -718,6 +956,40 @@ export default function Dashboard() {
           onManageOrganization={() => navigate('/manage-organization')}
         />
 
+        {invitations.length > 0 && (
+          <div className="mt-6 mb-6 space-y-4">
+            {invitations.map(invite => (
+              <div key={invite.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 rounded-3xl bg-gradient-to-r from-violet-500/10 to-indigo-500/10 border border-violet-200/50 dark:border-violet-500/20 p-5 text-slate-800 dark:text-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-violet-600 text-white">
+                    <EnvelopeIcon className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-semibold">Workspace Invitation</h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      You have been invited to join the workspace <strong className="text-slate-700 dark:text-slate-200">{invite.organizationName}</strong>.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <button
+                    onClick={() => handleAcceptInvitation(invite.id)}
+                    className="px-4 py-2 rounded-xl bg-violet-600 text-white hover:bg-violet-700 text-xs font-semibold shadow-sm transition"
+                  >
+                    Accept
+                  </button>
+                  <button
+                    onClick={() => handleDeclineInvitation(invite.id)}
+                    className="px-4 py-2 rounded-xl border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 text-xs font-semibold transition"
+                  >
+                    Decline
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         {activeOrganization ? (
           <>
             <DashboardMetricCards
@@ -740,6 +1012,68 @@ export default function Dashboard() {
               locale={locale}
             />
 
+            {/* Custom CSS vertical double-bar chart showing monthly Income vs Expense comparison */}
+            <section className="mt-8 rounded-[2rem] border border-white/6 bg-[var(--card)] p-6 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                <div>
+                  <h3 className="text-lg font-light tracking-tight text-[var(--text)]">
+                    Yearly Trend ({new Date().getFullYear()})
+                  </h3>
+                  <p className="text-xs font-light text-slate-500 mt-0.5">
+                    Side-by-side comparison of monthly income and expenses
+                  </p>
+                </div>
+                
+                {/* Legend */}
+                <div className="flex gap-4 items-center text-xs font-light text-slate-500">
+                  <div className="flex items-center gap-1.5">
+                    <div className="h-3 w-3 rounded-full bg-emerald-500" />
+                    <span>Income</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="h-3 w-3 rounded-full bg-rose-500" />
+                    <span>Expenses</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex items-end justify-between gap-2 overflow-x-auto pb-4 pt-8 h-56 select-none">
+                {yearlyTrendData.map((data) => {
+                  const maxVal = Math.max(...yearlyTrendData.map(d => Math.max(d.income, d.expense)), 1)
+                  const incomeHeight = `${(data.income / maxVal) * 100}%`
+                  const expenseHeight = `${(data.expense / maxVal) * 100}%`
+
+                  return (
+                    <div key={data.key} className="flex-1 flex flex-col items-center min-w-[50px] group relative">
+                      {/* Bars Container */}
+                      <div className="h-36 w-full flex items-end justify-center gap-1 relative">
+                        {/* Tooltip */}
+                        <div className="absolute bottom-full mb-2 bg-slate-950/95 backdrop-blur-sm text-white text-[9px] rounded-lg p-2 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 shadow-xl z-20 flex flex-col gap-0.5 whitespace-nowrap">
+                          <span className="font-semibold text-slate-300">{data.label} {new Date().getFullYear()}</span>
+                          <span className="text-emerald-400">Income: {formatMoney(data.income, activeCurrency, locale)}</span>
+                          <span className="text-rose-400">Expense: {formatMoney(data.expense, activeCurrency, locale)}</span>
+                        </div>
+
+                        {/* Income Bar */}
+                        <div 
+                          style={{ height: incomeHeight }} 
+                          className="w-2.5 bg-emerald-500 rounded-t-sm transition-all duration-300 hover:bg-emerald-400"
+                        />
+                        {/* Expense Bar */}
+                        <div 
+                          style={{ height: expenseHeight }} 
+                          className="w-2.5 bg-rose-500 rounded-t-sm transition-all duration-300 hover:bg-rose-400"
+                        />
+                      </div>
+                      
+                      {/* Month Label */}
+                      <span className="text-[10px] text-slate-500 mt-3 font-light">{data.label}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+
             <section className="mt-8 grid gap-6 lg:grid-cols-[1.5fr_1fr]">
               <DashboardRecentActivity text={text} recentActivity={recentActivity} />
               <DashboardWorkspaceSummary
@@ -749,6 +1083,7 @@ export default function Dashboard() {
                 categoryCards={categoryCards}
                 onDownloadReport={() => {
                   setSelectedReportBook('all')
+                  setReportFormat('pdf')
                   setShowDownloadModal(true)
                 }}
               />
@@ -808,6 +1143,40 @@ export default function Dashboard() {
                   </div>
                 )}
 
+                <div>
+                  <label htmlFor="report-format" className="block text-sm font-light text-slate-700 mb-2">
+                    File Format
+                  </label>
+                  <select
+                    id="report-format"
+                    value={reportFormat}
+                    onChange={(e) => setReportFormat(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl border border-white/6 bg-[var(--card)] text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+                  >
+                    <option value="pdf">PDF Document (.pdf)</option>
+                    <option value="excel">Excel Spreadsheet (.xlsx) 🔒 Pro</option>
+                    <option value="csv">CSV (Comma-Separated Values) (.csv) 🔒 Pro</option>
+                  </select>
+                </div>
+
+                {currentUser?.plan_id === 'free' && (reportFormat === 'excel' || reportFormat === 'csv') && (
+                  <div className="rounded-2xl bg-amber-50 border border-amber-100 p-3 text-xs text-amber-800 space-y-1.5 text-left">
+                    <p className="font-semibold">🔒 Premium Feature</p>
+                    <p>Exporting in CSV and Excel formats is only available on the Pro and Enterprise plans.</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowDownloadModal(false)
+                        setUpgradeMessage('Premium Report Export: Exporting reports in Excel (.xlsx) and CSV (.csv) formats is exclusive to Pro and Enterprise workspaces. Upgrade your plan below to unlock all formats!')
+                        setShowUpgradeModal(true)
+                      }}
+                      className="text-violet-700 font-bold hover:underline"
+                    >
+                      Upgrade Plan Now &rarr;
+                    </button>
+                  </div>
+                )}
+
                 <div className="flex gap-3 pt-2">
                   <button
                     type="button"
@@ -818,8 +1187,8 @@ export default function Dashboard() {
                   </button>
                   <button
                     type="submit"
-                    disabled={downloadingReport}
-                    className="flex-1 px-4 py-2.5 rounded-xl bg-rose-600 font-light text-white shadow-sm hover:bg-rose-700 transition disabled:opacity-70 disabled:cursor-not-allowed"
+                    disabled={downloadingReport || (currentUser?.plan_id === 'free' && reportFormat !== 'pdf')}
+                    className="flex-1 px-4 py-2.5 rounded-xl bg-rose-600 font-light text-white shadow-sm hover:bg-rose-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {downloadingReport ? 'Downloading...' : 'Download'}
                   </button>
@@ -829,6 +1198,72 @@ export default function Dashboard() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Add Member Modal */}
+      <AnimatePresence>
+        {isAddMemberOpen && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
+            onClick={() => setIsAddMemberOpen(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl border border-slate-100 text-slate-800"
+            >
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                <h3 className="text-lg font-bold text-slate-850">Add Member</h3>
+                <button
+                  type="button"
+                  onClick={() => setIsAddMemberOpen(false)}
+                  className="rounded-full p-1.5 hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition"
+                >
+                  <XMarkIcon className="h-5 w-5" />
+                </button>
+              </div>
+              <form onSubmit={handleAddMemberSubmit} className="space-y-4 text-left">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Member Email</label>
+                  <input
+                    type="email"
+                    required
+                    value={memberEmail}
+                    onChange={(e) => setMemberEmail(e.target.value)}
+                    placeholder="e.g. colleague@example.com"
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10 transition"
+                  />
+                </div>
+
+                {inviteError && <p className="text-xs text-rose-600 bg-rose-50 border border-rose-100 p-2 rounded-xl">{inviteError}</p>}
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddMemberOpen(false)}
+                    className="flex-1 rounded-2xl border border-slate-200 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isInviting}
+                    className="flex-1 rounded-2xl bg-primary-600 py-2.5 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50 transition"
+                  >
+                    {isInviting ? 'Inviting...' : 'Add Member'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        message={upgradeMessage}
+      />
     </div>
   )
 }

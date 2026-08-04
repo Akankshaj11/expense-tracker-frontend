@@ -272,7 +272,7 @@ function OrganizationMenu({ activeOrgId, activeOrganization, organizations, orgM
 }
 
 // Function: ProfileMenu
-function ProfileMenu({ currentUser, firstName, activeOrganization, activeCurrency, profileOpen, setProfileOpen, setOrgMenuOpen, language, setLanguage, handleLogout, handleChangeCurrency, text, mobile = false, onUpdateProfilePic, onUpdateUser }) {
+function ProfileMenu({ currentUser, firstName, activeOrganization, activeCurrency, profileOpen, setProfileOpen, setOrgMenuOpen, language, setLanguage, handleLogout, handleChangeCurrency, text, mobile = false, onUpdateProfilePic, onUpdateUser, organizations, onUpdateOrganizations, setShowUpgradeModal }) {
   const containerRef = useRef(null)
   const isDesktop = useIsDesktop()
   const isActiveView = mobile ? !isDesktop : isDesktop
@@ -296,6 +296,65 @@ function ProfileMenu({ currentUser, firstName, activeOrganization, activeCurrenc
   const [passwordError, setPasswordError] = useState('')
   const [passwordSuccess, setPasswordSuccess] = useState('')
   const [isSavingPassword, setIsSavingPassword] = useState(false)
+
+  const [showMembersPopup, setShowMembersPopup] = useState(false)
+  const [activeMemberMenuEmail, setActiveMemberMenuEmail] = useState(null)
+
+  const isOwner = activeOrganization && (
+    (currentUser?.id && String(currentUser.id) === String(activeOrganization.ownerId)) ||
+    (currentUser?._id && String(currentUser._id) === String(activeOrganization.ownerId))
+  );
+
+  const handleRemoveMember = async (email) => {
+    if (!window.confirm(`Are you sure you want to remove ${email}?`)) return
+    try {
+      const response = await apiRequest(`/organizations/${activeOrganization.id}/members`, {
+        method: 'DELETE',
+        body: JSON.stringify({ email })
+      })
+      if (response?.success) {
+        alert('Member removed successfully.')
+        window.location.reload()
+      }
+    } catch (err) {
+      alert(err.message || 'Failed to remove member')
+    }
+  }
+
+  const handleQuitOrganization = async () => {
+    if (!window.confirm(`Are you sure you want to quit the "${activeOrganization.organizationName}" workspace?`)) return
+    try {
+      const response = await apiRequest(`/organizations/${activeOrganization.id}/members`, {
+        method: 'DELETE',
+        body: JSON.stringify({ email: currentUser.email })
+      })
+      if (response?.success) {
+        alert('You have left the workspace.')
+        setShowMembersPopup(false)
+        if (onUpdateOrganizations && organizations) {
+          const nextOrgs = organizations.filter(o => o.id !== activeOrganization.id)
+          onUpdateOrganizations(nextOrgs)
+          
+          const personal = nextOrgs.find(o => 
+            (currentUser?.id && String(o.ownerId) === String(currentUser.id)) ||
+            (currentUser?._id && String(o.ownerId) === String(currentUser?._id))
+          ) || nextOrgs[0] || null;
+          
+          if (personal) {
+            localStorage.setItem('organization', JSON.stringify(personal))
+            localStorage.setItem('activeOrgId', personal.id)
+            window.location.reload()
+          } else {
+            window.location.reload()
+          }
+        } else {
+          window.location.reload()
+        }
+      }
+    } catch (err) {
+      alert(err.message || 'Failed to quit organization')
+    }
+  }
 
   useEffect(() => {
     if (!isEditingProfile && currentUser) {
@@ -465,8 +524,9 @@ function ProfileMenu({ currentUser, firstName, activeOrganization, activeCurrenc
         )}
       </button>
 
-      {profileOpen && createPortal(
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/20 backdrop-blur-[3px]">
+      {profileOpen && createPortal((
+        <>
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/20 backdrop-blur-[3px]">
           <div className="absolute inset-0" onClick={() => setProfileOpen(false)} />
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 10 }}
@@ -530,6 +590,59 @@ function ProfileMenu({ currentUser, firstName, activeOrganization, activeCurrenc
                 {text.active}
               </span>
             </div>
+
+            {/* Active Plan Row */}
+            <div className="flex items-center justify-between gap-3 pt-3 border-t border-slate-200/60 dark:border-white/5 text-xs">
+              <span className="text-slate-500 dark:text-slate-400 font-medium">Active Plan</span>
+              <div className="flex items-center gap-1.5 font-light">
+                <span className="font-bold text-slate-900 dark:text-white uppercase">
+                  {currentUser?.plan_id || 'free'}
+                </span>
+                {setShowUpgradeModal && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProfileOpen(false);
+                      setShowUpgradeModal(true);
+                    }}
+                    className="font-semibold text-violet-600 dark:text-violet-400 hover:text-violet-750 dark:hover:text-violet-300 hover:underline cursor-pointer"
+                  >
+                    (Plans)
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {activeOrganization && (
+              <div className="flex items-center justify-between gap-3 pt-3 border-t border-slate-200/60 dark:border-white/5 text-xs">
+                <span>Workspace Members</span>
+                <button
+                  type="button"
+                  onClick={() => setShowMembersPopup(true)}
+                  className="font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  See All Members
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Security & Password Row */}
+          <div className="mt-4 rounded-2xl border border-slate-200 bg-[var(--bg-2)]/80 p-3 dark:border-white/5">
+            <button
+              type="button"
+              onClick={() => {
+                setIsChangingPassword(true)
+                setPasswordError('')
+                setPasswordSuccess('')
+              }}
+              className="flex w-full items-center justify-between text-xs font-semibold uppercase tracking-wider text-[var(--text)] text-left hover:underline"
+            >
+              <span>Security & Password</span>
+              <span className="text-[10px] font-normal text-blue-600 dark:text-blue-400 cursor-pointer">
+                Change Password
+              </span>
+            </button>
           </div>
 
           {/* Profile Fields View/Edit Section */}
@@ -613,74 +726,7 @@ function ProfileMenu({ currentUser, firstName, activeOrganization, activeCurrenc
             )}
           </div>
 
-          {/* Change Password Section */}
-          <div className="mt-4 rounded-2xl border border-slate-200 bg-[var(--bg-2)]/80 p-3 space-y-3 dark:border-white/5">
-            <button
-              type="button"
-              onClick={() => {
-                setIsChangingPassword(!isChangingPassword)
-                setPasswordError('')
-                setPasswordSuccess('')
-              }}
-              className="flex w-full items-center justify-between text-xs font-semibold uppercase tracking-wider text-[var(--text)] text-left hover:underline"
-            >
-              <span>Security & Password</span>
-              <span className="text-[10px] font-normal text-blue-600 dark:text-blue-400">
-                {isChangingPassword ? 'Hide' : 'Change Password'}
-              </span>
-            </button>
 
-            {isChangingPassword && (
-              <form onSubmit={handleChangePasswordSubmit} className="space-y-3 pt-2 border-t border-slate-200 dark:border-white/5">
-                {passwordError && (
-                  <p className="text-[10px] text-red-500 font-medium">{passwordError}</p>
-                )}
-                {passwordSuccess && (
-                  <p className="text-[10px] text-emerald-500 font-medium">{passwordSuccess}</p>
-                )}
-                <div>
-                  <label htmlFor="chg-old" className="block text-[9px] font-medium text-[var(--muted)] uppercase tracking-wider mb-1">Current Password</label>
-                  <input
-                    id="chg-old"
-                    type="password"
-                    required
-                    value={oldPassword}
-                    onChange={(e) => setOldPassword(e.target.value)}
-                    className="w-full px-3 py-1.5 bg-[var(--bg)] border border-slate-200/60 dark:border-white/5 rounded-xl text-xs text-[var(--text)] focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="chg-new" className="block text-[9px] font-medium text-[var(--muted)] uppercase tracking-wider mb-1">New Password</label>
-                  <input
-                    id="chg-new"
-                    type="password"
-                    required
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full px-3 py-1.5 bg-[var(--bg)] border border-slate-200/60 dark:border-white/5 rounded-xl text-xs text-[var(--text)] focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="chg-confirm" className="block text-[9px] font-medium text-[var(--muted)] uppercase tracking-wider mb-1">Confirm New Password</label>
-                  <input
-                    id="chg-confirm"
-                    type="password"
-                    required
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full px-3 py-1.5 bg-[var(--bg)] border border-slate-200/60 dark:border-white/5 rounded-xl text-xs text-[var(--text)] focus:outline-none"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={isSavingPassword}
-                  className="w-full py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-semibold transition disabled:opacity-50"
-                >
-                  {isSavingPassword ? 'Updating...' : 'Update Password'}
-                </button>
-              </form>
-            )}
-          </div>
 
           <div className="rounded-2xl border border-slate-200 bg-[var(--bg-2)]/80 p-3">
             <button
@@ -788,7 +834,220 @@ function ProfileMenu({ currentUser, firstName, activeOrganization, activeCurrenc
             {text.logout}
           </button>
         </motion.div>
-      </div>,
+      </div>
+
+      {/* Workspace Members Modal Popup */}
+      {showMembersPopup && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm text-slate-800 dark:text-white">
+          <div className="absolute inset-0" onClick={() => setShowMembersPopup(false)} />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="relative w-full max-w-md rounded-3xl bg-white dark:bg-slate-900 p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4 z-10 text-left"
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+              <h4 className="text-sm font-bold text-slate-900 dark:text-white">Workspace Members</h4>
+              <button
+                type="button"
+                onClick={() => setShowMembersPopup(false)}
+                className="text-slate-400 hover:text-slate-650 dark:hover:text-white transition"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="space-y-3 pt-1 pb-6 max-h-60 overflow-y-auto modern-scrollbar pr-1.5 text-left">
+              {/* Owner Item */}
+              {activeOrganization?.ownerDetails && (
+                <div className="flex items-center gap-3 py-1">
+                  {activeOrganization.ownerDetails.profile_pic ? (
+                    <img
+                      src={activeOrganization.ownerDetails.profile_pic}
+                      alt="Owner Profile"
+                      className="h-8 w-8 rounded-xl object-cover shrink-0"
+                    />
+                  ) : (
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-700 dark:bg-violet-950/30 dark:text-violet-400 text-xs font-semibold">
+                      {activeOrganization.ownerDetails.name?.charAt(0).toUpperCase() || 'O'}
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-slate-900 dark:text-slate-100 text-xs truncate">
+                      {activeOrganization.ownerDetails.name}
+                    </p>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+                      {activeOrganization.ownerDetails.email} • Owner
+                    </p>
+                  </div>
+                </div>
+              )}
+              
+              {/* Members Iteration */}
+              {activeOrganization?.members
+                ?.filter(m => m.email?.toLowerCase() !== (activeOrganization?.ownerDetails?.email || '').toLowerCase())
+                .map((m) => {
+                  const isMemberMenuOpen = activeMemberMenuEmail === m.email;
+                  return (
+                    <div key={m.email} className="flex justify-between items-center gap-3 py-2 border-t border-slate-100 dark:border-white/5 relative">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        {m.profile_pic ? (
+                          <img
+                            src={m.profile_pic}
+                            alt="Member Profile"
+                            className="h-8 w-8 rounded-xl object-cover shrink-0"
+                          />
+                        ) : (
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700 dark:bg-white/5 dark:text-slate-300 text-xs font-semibold">
+                            {m.name?.charAt(0).toUpperCase() || 'M'}
+                          </div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-slate-900 dark:text-slate-100 text-xs truncate">
+                            {m.name}
+                          </p>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+                            {m.email} • {m.accepted ? 'Member' : 'Pending Invite'}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {isOwner && (
+                        <div className="relative shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => setActiveMemberMenuEmail(isMemberMenuOpen ? null : m.email)}
+                            className="p-1 rounded-full hover:bg-slate-100 dark:hover:bg-white/5 text-slate-400 hover:text-slate-655 transition"
+                          >
+                            <EllipsisVerticalIcon className="h-4 w-4" />
+                          </button>
+                          {isMemberMenuOpen && (
+                            <>
+                              <div className="fixed inset-0 z-[205]" onClick={(e) => { e.stopPropagation(); setActiveMemberMenuEmail(null); }} />
+                              <div className="absolute right-6 -top-2 z-[210] w-32 overflow-hidden rounded-xl border border-slate-100 bg-white dark:bg-[var(--card)] dark:border-white/5 shadow-xl py-1">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleRemoveMember(m.email);
+                                    }}
+                                    className="flex w-full items-center px-3 py-2 text-xs text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition font-medium text-left"
+                                  >
+                                    Remove Member
+                                  </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              }
+            </div>
+
+            {!isOwner && (
+              <div className="border-t border-slate-100 dark:border-slate-800 pt-3">
+                <button
+                  type="button"
+                  onClick={handleQuitOrganization}
+                  className="w-full py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-semibold transition dark:bg-rose-950/20 dark:hover:bg-rose-950/40 text-center"
+                >
+                  Quit Workspace
+                </button>
+              </div>
+            )}
+          </motion.div>
+        </div>
+      )}
+
+      {/* Change Password Modal Popup */}
+      {isChangingPassword && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm text-slate-800 dark:text-white">
+          <div className="absolute inset-0" onClick={() => setIsChangingPassword(false)} />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="relative w-full max-w-sm rounded-3xl bg-white dark:bg-slate-900 p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4 z-10 text-left"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Security & Password</h3>
+              <button 
+                type="button" 
+                onClick={() => setIsChangingPassword(false)}
+                className="text-slate-400 hover:text-slate-650 dark:hover:text-white transition"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleChangePasswordSubmit} className="space-y-4">
+              {passwordError && (
+                <div className="p-2 rounded-lg bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-500/10 text-xs text-rose-600 dark:text-rose-400 font-medium">
+                  {passwordError}
+                </div>
+              )}
+              {passwordSuccess && (
+                <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-500/10 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                  {passwordSuccess}
+                </div>
+              )}
+              <div>
+                <label htmlFor="chg-old" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Current Password
+                </label>
+                <input
+                  id="chg-old"
+                  type="password"
+                  required
+                  value={oldPassword}
+                  onChange={(e) => setOldPassword(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-blue-500/20 focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label htmlFor="chg-new" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  New Password
+                </label>
+                <input
+                  id="chg-new"
+                  type="password"
+                  required
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-blue-500/20 focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label htmlFor="chg-confirm" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Confirm New Password
+                </label>
+                <input
+                  id="chg-confirm"
+                  type="password"
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-700 focus:outline-none focus:ring-1 focus:ring-blue-500/20 focus:border-blue-500"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={isSavingPassword}
+                className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-semibold transition disabled:opacity-50"
+              >
+                {isSavingPassword ? 'Updating...' : 'Update Password'}
+              </button>
+            </form>
+          </motion.div>
+        </div>
+      )}
+      </>),
       document.body
     )}
     </div>
@@ -815,6 +1074,8 @@ export default function DashboardHeader({
   handleChangeCurrency,
   onUpdateProfilePic,
   onUpdateUser,
+  onUpdateOrganizations,
+  setShowUpgradeModal,
 }) {
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-white/6/80 bg-[var(--card)]/90 backdrop-blur-xl">
@@ -855,6 +1116,9 @@ export default function DashboardHeader({
               text={text}
               onUpdateProfilePic={onUpdateProfilePic}
               onUpdateUser={onUpdateUser}
+              organizations={organizations}
+              onUpdateOrganizations={onUpdateOrganizations}
+              setShowUpgradeModal={setShowUpgradeModal}
             />
           </div>
 
@@ -888,6 +1152,9 @@ export default function DashboardHeader({
               mobile
               onUpdateProfilePic={onUpdateProfilePic}
               onUpdateUser={onUpdateUser}
+              organizations={organizations}
+              onUpdateOrganizations={onUpdateOrganizations}
+              setShowUpgradeModal={setShowUpgradeModal}
             />
           </div>
         </div>

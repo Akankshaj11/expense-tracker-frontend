@@ -498,8 +498,13 @@ export default function BookTransactions() {
                             )}
                           </div>
                           
-                          <div className="flex items-center gap-3 text-xs text-slate-500">
+                          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
                             <span>{formatTime(t.time)}</span>
+                            {t.createdBy?.name && (
+                              <span className="inline-flex items-center rounded bg-slate-100 text-slate-600 px-1.5 py-0.5 text-[10px] font-medium leading-none">
+                                by: {t.createdBy.name}
+                              </span>
+                            )}
                             {t.attachmentDataUrl && (
                               <button
                                 onClick={(e) => {

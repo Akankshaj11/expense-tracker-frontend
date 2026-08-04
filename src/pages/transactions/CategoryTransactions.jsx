@@ -381,6 +381,11 @@ export default function CategoryTransactions() {
                           )
                         })()}
                         <p className="text-sm text-slate-500">{formatTime(transaction.createdAt, locale)}</p>
+                        {transaction.createdBy?.name && (
+                          <span className="inline-flex items-center rounded bg-slate-100 text-slate-600 px-1.5 py-0.5 text-[10px] font-medium leading-none mt-1">
+                            by: {transaction.createdBy.name}
+                          </span>
+                        )}
                       </div>
 
                     </div>

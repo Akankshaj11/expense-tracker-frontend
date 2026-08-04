@@ -29,7 +29,7 @@ export default function AdminLogin() {
     if (adminToken) {
       try {
         const payload = JSON.parse(atob(adminToken.split('.')[1]))
-        if (payload?.role === 'super_admin' && payload?.exp * 1000 > Date.now()) {
+        if ((payload?.role === 'super_admin' || payload?.role === 'admin') && payload?.exp * 1000 > Date.now()) {
           navigate('/admin')
         }
       } catch (e) {

@@ -3,6 +3,7 @@ import Navbar from '../../components/landing/Navbar'
 import Hero from '../../components/landing/Hero'
 import About from '../../components/landing/About'
 import Features from '../../components/landing/Features'
+import Pricing from '../../components/landing/Pricing'
 import Ratings from '../../components/landing/Ratings'
 import FAQ from '../../components/landing/FAQ'
 import CTA from '../../components/landing/CTA'
@@ -34,6 +35,7 @@ export default function Landing(){
         <section className="container-max mx-auto px-4 pb-16 sm:px-6">
           <About />
           <Features />
+          <Pricing />
           <Ratings />
           <FAQ />
           <CTA />

@@ -27,7 +27,6 @@ export default function CompleteProfileModal({ currentUser, onUpdateUser, onSkip
     if (!name.trim()) return setErrorMsg('Name is required')
     if (!address.trim()) return setErrorMsg('Address is required')
     if (!mobile.trim()) return setErrorMsg('Mobile number is required')
-    if (!profilePic) return setErrorMsg('Profile picture is required')
 
     setIsSaving(true)
     setErrorMsg('')
@@ -97,7 +96,7 @@ export default function CompleteProfileModal({ currentUser, onUpdateUser, onSkip
                 />
               </label>
             </div>
-            <span className="text-[10px] font-medium text-slate-400">Profile Image (Required)</span>
+            <span className="text-[10px] font-medium text-slate-400">Profile Image (Optional)</span>
           </div>
 
           {/* Name Field */}

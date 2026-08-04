@@ -67,6 +67,21 @@ function ScrollToTop() {
   const location = useLocation()
 
   useEffect(() => {
+    if (location.hash) {
+      const id = location.hash.replace('#', '')
+      if (id === 'top') {
+        window.scrollTo({ top: 0, left: 0, behavior: 'smooth' })
+        return
+      }
+      const element = document.getElementById(id)
+      if (element) {
+        // Wait a brief tick for render and execute a modern smooth scroll
+        const timer = setTimeout(() => {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }, 100)
+        return () => clearTimeout(timer)
+      }
+    }
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
   }, [location.pathname, location.search, location.hash])
 
@@ -118,7 +133,7 @@ function checkAdminRole() {
   if (!token) return false
   try {
     const payload = JSON.parse(atob(token.split('.')[1]))
-    return payload?.role === 'super_admin' && payload?.exp * 1000 > Date.now()
+    return (payload?.role === 'super_admin' || payload?.role === 'admin') && payload?.exp * 1000 > Date.now()
   } catch (e) {
     return false
   }

@@ -74,7 +74,7 @@ export const translations = {
     addTransaction: "Add transaction",
     manageOrganization: "Manage Organization",
     manageOrganizationDescription:
-      "Update the organization details, edit category names, rename subcategories, delete anything you no longer need, or add new items.",
+      "Update the organization details.",
     categoriesAndsubcategories: "Categories & Subcategories",
     editEveryCategoryDirectly: "Edit every category directly.",
     createNewCategory: "Create a new category",

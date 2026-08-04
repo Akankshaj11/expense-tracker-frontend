@@ -45,6 +45,17 @@ export default function DashboardHero({ text, firstName, activeOrganization, lan
             {text.addBook || 'Add Book'}
             <PlusIcon className="h-4 w-4" />
           </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              window.dispatchEvent(new Event('dashboard:add-member'))
+            }}
+            className="inline-flex items-center justify-center w-full sm:w-auto gap-2 rounded-full bg-violet-600 hover:bg-violet-700 text-white shadow-lg shadow-violet-500/25 px-5 py-3 text-sm font-light transition hover:-translate-y-0.5"
+          >
+            Add Member
+            <PlusIcon className="h-4 w-4" />
+          </button>
         </div>
       </div>
     </section>

@@ -18,6 +18,10 @@ export default function Login() {
   const [showOtp, setShowOtp] = useState(false)
   const [otp, setOtp] = useState('')
 
+  const [showGoogleModal, setShowGoogleModal] = useState(false)
+  const [showCustomGoogleInput, setShowCustomGoogleInput] = useState(false)
+  const [customGoogleEmail, setCustomGoogleEmail] = useState('')
+
   const [showForgotModal, setShowForgotModal] = useState(false)
   const [forgotEmail, setForgotEmail] = useState('')
   const [forgotLoading, setForgotLoading] = useState(false)
@@ -57,6 +61,12 @@ export default function Login() {
     if (getStoredAccessToken()) {
       navigate('/dashboard', { replace: true })
       return
+    }
+
+    const params = new URLSearchParams(window.location.search)
+    const urlEmail = params.get('email')
+    if (urlEmail) {
+      setEmail(urlEmail)
     }
 
     const storedNotice = sessionStorage.getItem('authNotice')
@@ -123,6 +133,35 @@ export default function Login() {
       }
     } catch (err) {
       setError(err?.message || 'Login failed. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleGoogleLogin = async (gmailEmail, gmailName = '') => {
+    setError('')
+    setLoading(true)
+    setShowGoogleModal(false)
+    try {
+      const payload = await apiRequest('/auth/google-login', {
+        method: 'POST',
+        body: JSON.stringify({ email: gmailEmail.trim(), name: gmailName }),
+      })
+
+      const user = payload?.data?.user
+      const accessToken = payload?.data?.accessToken || ''
+      const refreshToken = payload?.data?.refreshToken || ''
+
+      setStoredAccessToken(accessToken)
+      setStoredRefreshToken(refreshToken)
+
+      if (user) {
+        localStorage.setItem('currentUser', JSON.stringify(user))
+      }
+
+      navigate('/dashboard')
+    } catch (err) {
+      setError(err?.message || 'Google Login failed. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -277,18 +316,10 @@ export default function Login() {
             </button>
           </form>
 
-          {/* Divider */}
-          <div className="relative my-5">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-white/6" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-[var(--card)] text-slate-500">or</span>
-            </div>
-          </div>
+
 
           {/* Footer */}
-          <p className="text-center text-[var(--muted)]">
+          <p className="text-center text-[var(--muted)] mt-6">
             Don't have an account?{' '}
             <Link to="/register" className="text-primary-600 font-light hover:text-primary-700">
               Create one
@@ -367,6 +398,8 @@ export default function Login() {
           </div>
         )}
       </AnimatePresence>
+
+
     </div>
   )
 }

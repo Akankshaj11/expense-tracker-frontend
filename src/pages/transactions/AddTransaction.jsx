@@ -9,6 +9,7 @@ import TransactionForm from '../../components/transaction/TransactionForm'
 import { apiRequest } from '../../utils/api'
 import { loadOrganizationsFromBackend, readCachedOrganizations } from '../../utils/organizationSync'
 import { buildCategoryOptions, getCategorySubcategories, getPersistedCategoryTransactionType } from '../../utils/categoryUtils'
+import UpgradeModal from '../../components/common/UpgradeModal'
 import {
   evaluateExpression,
   getAmountInputDisplay,
@@ -85,6 +86,8 @@ export default function AddTransaction() {
   const [error, setError] = useState('')
   const [savedMessage, setSavedMessage] = useState('')
   const [isSaving, setIsSaving] = useState(false)
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [upgradeMessage, setUpgradeMessage] = useState('')
   const [isHydrated, setIsHydrated] = useState(!isEditMode)
   const [loadedTransaction, setLoadedTransaction] = useState(null)
   const [forceSubcategorySelection, setForceSubcategorySelection] = useState(false)
@@ -408,7 +411,19 @@ export default function AddTransaction() {
 
       setIsSaving(false)
       setSavedMessage('')
-      setError(syncError?.message || text.unableToSaveTransaction)
+
+      const isLimitReached = syncError?.message && (
+        syncError.message.includes('limit reached') || 
+        syncError.message.includes('Limit reached') ||
+        syncError.message.includes('500 transactions')
+      )
+
+      if (isLimitReached) {
+        setUpgradeMessage('Transaction Limit Reached: Free plan is limited to 500 transactions per month. Please upgrade your plan below to log unlimited transactions!')
+        setShowUpgradeModal(true)
+      } else {
+        setError(syncError?.message || text.unableToSaveTransaction)
+      }
       return
     }
 
@@ -621,6 +636,11 @@ export default function AddTransaction() {
           ) : null}
         </motion.div>
       </div>
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        message={upgradeMessage}
+      />
     </div>
   )
 }
