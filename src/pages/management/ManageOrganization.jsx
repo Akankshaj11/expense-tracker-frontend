@@ -1,7 +1,7 @@
 // Repo file header
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeftIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { apiRequest } from '../../utils/api'
 import UpgradeModal from '../../components/common/UpgradeModal'
@@ -80,6 +80,16 @@ export default function ManageOrganization() {
   
   // Determine if active user is organization owner
   const isOwner = !activeOrganization || activeOrganization.ownerId === currentUser.id || activeOrganization.ownerId === currentUser._id
+
+  const isUserAdmin = useMemo(() => {
+    if (isOwner) return true
+    const currentMember = members.find(m => m.email?.toLowerCase() === currentUser?.email?.toLowerCase() && m.accepted)
+    return currentMember?.role === 'admin'
+  }, [isOwner, members, currentUser])
+
+  const [selectedMemberToEdit, setSelectedMemberToEdit] = useState(null)
+  const [editingRole, setEditingRole] = useState('member')
+  const [updatingRole, setUpdatingRole] = useState(false)
 
   if (!activeOrganization) {
     return (
@@ -510,14 +520,28 @@ export default function ManageOrganization() {
                   {members.map((member, index) => {
                     const isPending = member.name === 'Pending Invite'
                     return (
-                      <div key={index} className="flex items-center justify-between rounded-xl border border-white/6 bg-[var(--card)] p-2 shadow-sm">
+                      <div 
+                        key={index} 
+                        onClick={() => {
+                          if ((isOwner || isUserAdmin) && !isPending) {
+                            setSelectedMemberToEdit(member)
+                            setEditingRole(member.role || 'member')
+                          }
+                        }}
+                        className={`flex items-center justify-between rounded-xl border border-white/6 bg-[var(--card)] p-2 shadow-sm ${
+                          (isOwner || isUserAdmin) && !isPending ? 'cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5 transition-all duration-200' : ''
+                        }`}
+                      >
                         <div className="flex flex-col gap-0.5 text-left">
                           <div className="flex items-center gap-2">
                             <span className="text-xs font-semibold text-slate-800">{member.name}</span>
                             <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider ${
-                              isPending ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-blue-600'
+                              isPending ? 'bg-amber-50 text-amber-600' : 
+                              member.role === 'admin' ? 'bg-purple-50 text-purple-600' :
+                              member.role === 'manager' ? 'bg-blue-50 text-blue-600' :
+                              'bg-slate-100 text-slate-600'
                             }`}>
-                              {isPending ? 'Pending' : 'Member'}
+                              {isPending ? 'Pending' : (member.role || 'member')}
                             </span>
                           </div>
                           <span className="text-[10px] text-slate-500">{member.email}</span>
@@ -526,7 +550,10 @@ export default function ManageOrganization() {
                           <button
                             type="button"
                             disabled={memberLoading}
-                            onClick={() => handleRemoveMember(member.email)}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleRemoveMember(member.email)
+                            }}
                             className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition disabled:opacity-50"
                             aria-label="Remove member"
                           >
@@ -602,6 +629,115 @@ export default function ManageOrganization() {
           </motion.div>
         </div>
       ) : null}
+
+      {/* Member Role Settings Modal */}
+      <AnimatePresence>
+        {selectedMemberToEdit && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative w-full max-w-md bg-[var(--card)] rounded-3xl shadow-glass p-6 border border-white/10 text-slate-800 dark:text-white"
+            >
+              <div className="flex items-center justify-between border-b border-slate-150 dark:border-white/10 pb-3 mb-4">
+                <h3 className="text-lg font-bold">Member Settings</h3>
+                <button
+                  type="button"
+                  onClick={() => setSelectedMemberToEdit(null)}
+                  className="rounded-full p-1.5 hover:bg-slate-100 dark:hover:bg-white/5 text-slate-400"
+                >
+                  <svg fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-5 h-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="space-y-4 text-left">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-450 uppercase tracking-wider mb-1">Name</label>
+                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">{selectedMemberToEdit.name}</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-450 uppercase tracking-wider mb-1">Email</label>
+                  <p className="text-sm text-slate-550 dark:text-slate-400">{selectedMemberToEdit.email}</p>
+                </div>
+
+                <div>
+                  <label htmlFor="member-role-select" className="block text-xs font-semibold text-slate-450 uppercase tracking-wider mb-1">Role</label>
+                  <select
+                    id="member-role-select"
+                    value={editingRole}
+                    onChange={(e) => setEditingRole(e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-white/10 bg-[var(--card)] text-[var(--text)] text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 transition"
+                  >
+                    <option value="member">Member</option>
+                    <option value="manager">Manager</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+
+                {/* Role description card */}
+                <div className="bg-slate-50 dark:bg-white/5 border border-slate-200/50 dark:border-white/10 rounded-2xl p-4 text-xs space-y-2">
+                  <p className="font-semibold text-slate-700 dark:text-slate-300">
+                    {editingRole === 'admin' ? '👑 Admin Permissions' :
+                     editingRole === 'manager' ? '💼 Manager Permissions' :
+                     '👤 Member Permissions'}
+                  </p>
+                  <p className="text-slate-500 dark:text-slate-400 leading-relaxed">
+                    {editingRole === 'admin' ? 'Has full administration rights. Can invite and remove members, change roles, create books, edit categories, and manage all transactions.' :
+                     editingRole === 'manager' ? 'Can manage transactions, books, and categories. Cannot manage members, roles, or delete the organization.' :
+                     'Can add transactions and modify/delete transactions they created. Cannot manage books, categories, or members.'}
+                  </p>
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedMemberToEdit(null)}
+                    className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 text-slate-650 hover:bg-slate-50 dark:hover:bg-white/5 transition text-sm"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setUpdatingRole(true)
+                      try {
+                        const response = await apiRequest(`/organizations/${activeOrganization.id}/members/role`, {
+                          method: 'PATCH',
+                          body: JSON.stringify({
+                            email: selectedMemberToEdit.email,
+                            role: editingRole
+                          })
+                        })
+                        if (response?.data) {
+                          const updatedOrg = response.data
+                          setMembers(updatedOrg.members || [])
+                          const updatedOrgs = organizations.map(o => o.id === updatedOrg.id ? updatedOrg : o)
+                          setOrganizations(updatedOrgs)
+                          localStorage.setItem('organizations', JSON.stringify(updatedOrgs))
+                          setSelectedMemberToEdit(null)
+                          alert('Role updated successfully!')
+                        }
+                      } catch (err) {
+                        alert(err.message || 'Failed to update role')
+                      } finally {
+                        setUpdatingRole(false)
+                      }
+                    }}
+                    disabled={updatingRole}
+                    className="flex-1 px-4 py-2.5 rounded-xl bg-violet-650 font-bold text-white shadow-sm hover:bg-violet-750 transition text-sm disabled:opacity-50"
+                  >
+                    {updatingRole ? 'Updating...' : 'Save Role'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       <UpgradeModal
         isOpen={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}

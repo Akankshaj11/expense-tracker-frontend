@@ -93,6 +93,16 @@ export default function AddTransaction() {
   const [forceSubcategorySelection, setForceSubcategorySelection] = useState(false)
   const [preselectedFromCategory, setPreselectedFromCategory] = useState('')
   const [openedFromCategory] = useState(false)
+  const [attachments, setAttachments] = useState([])
+  const [isPendingBill, setIsPendingBill] = useState(false)
+  const [dueDate, setDueDate] = useState('1h')
+  const currentUser = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem('currentUser') || '{}')
+    } catch {
+      return {}
+    }
+  }, [])
 
 
 
@@ -127,6 +137,9 @@ export default function AddTransaction() {
     setAmountExpression(existingTransaction.amountExpression || String(Math.abs(Number(existingTransaction.amount || 0))))
     setNote(existingTransaction.note || '')
     setAttachment(null)
+    setAttachments(existingTransaction.attachments || [])
+    setIsPendingBill(existingTransaction.isPendingBill || false)
+    setDueDate(existingTransaction.dueDate || '')
     setDate(existingTransaction.date || getTodayDate())
     setTime(existingTransaction.time || getCurrentTimeValue())
     setError('')
@@ -232,18 +245,11 @@ export default function AddTransaction() {
 
     const transactions = readJSON('transactions', [])
     const existingTransactionId = String(loadedTransaction?.id || loadedTransaction?._id || transactionId || '')
-    const existingAttachmentDataUrl = loadedTransaction?.attachmentDataUrl || ''
-    let attachmentDataUrl = existingAttachmentDataUrl
 
-    if (attachment) {
-      try {
-        attachmentDataUrl = await readFileAsDataUrl(attachment)
-      } catch {
-        setError(text.unableToSaveTransaction)
-        setIsSaving(false)
-        return
-      }
-    }
+    const firstAttachment = attachments.length > 0 ? attachments[0] : null
+    const attachmentName = firstAttachment ? firstAttachment.name : ''
+    const attachmentType = firstAttachment ? firstAttachment.type : ''
+    const attachmentDataUrl = firstAttachment ? firstAttachment.url : ''
 
     const activeBookName = loadedTransaction?.book || localStorage.getItem(`activeBookName_${activeOrgId}`) || 'Default Book'
     const transactionPayload = {
@@ -254,9 +260,13 @@ export default function AddTransaction() {
       amountExpression: totalAmount !== null ? amountExpression : String(previewAmount || 0),
       amount: totalAmount !== null ? totalAmount : (previewAmount !== null ? previewAmount : 0),
       note: note.trim(),
-      attachmentName: attachment?.name || '',
-      attachmentType: attachment?.type || '',
+      attachmentName,
+      attachmentType,
       attachmentDataUrl,
+      attachments,
+      isPendingBill,
+      dueDate: isPendingBill ? dueDate : '',
+      status: isPendingBill ? 'pending' : 'paid',
       date,
       time,
       currency: selectedCurrency?.code || 'USD',
@@ -632,6 +642,17 @@ export default function AddTransaction() {
               }}
               paymentMode={paymentMode}
               setPaymentMode={setPaymentMode}
+              attachments={attachments}
+              setAttachments={setAttachments}
+              currentUser={currentUser}
+              dueDate={dueDate}
+              setDueDate={setDueDate}
+              isPendingBill={isPendingBill}
+              setIsPendingBill={setIsPendingBill}
+              activeOrganization={activeOrganization}
+              organizations={organizations}
+              setOrganizations={setOrganizations}
+              onSubcategorySelect={setSelectedSubcategory}
             />
           ) : null}
         </motion.div>

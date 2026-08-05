@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { ArrowLeftIcon, BuildingOffice2Icon, CalendarDaysIcon, ArrowDownTrayIcon, PaperClipIcon, XMarkIcon, PlusIcon } from '@heroicons/react/24/outline'
 import { authenticatedFetch } from '../../utils/api'
 import { loadOrganizationsFromBackend, readCachedOrganizations, loadTransactionsFromBackend } from '../../utils/organizationSync'
+import UpgradeModal from '../../components/common/UpgradeModal'
 
 import translations, {
   getLocale,
@@ -137,6 +138,8 @@ export default function Transactions() {
   const [directionFilter, setDirectionFilter] = useState('all')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [upgradeMessage, setUpgradeMessage] = useState('')
 
   useEffect(() => {
     // Function: handleStorage
@@ -418,6 +421,7 @@ export default function Transactions() {
               {organizationTransactions.map((transaction, index) => {
                 const amount = getSignedTransactionAmount(transaction)
                 const editPath = getTransactionEditPath(transaction)
+                const currentUser = readJSON('currentUser', {})
 
                 return (
                   <Link
@@ -434,7 +438,7 @@ export default function Transactions() {
                       className="flex items-center justify-between rounded-2xl px-4 py-4"
                     >
                       <div className="flex-1 space-y-1 pr-4">
-                        <div className="flex items-center gap-2 flex-wrap">
+                        <div className="flex items-center gap-2 flex-wrap text-left">
                           <span className="text-base font-semibold text-slate-800">
                             {transaction.note?.trim() || capitalize(translateCategoryLabel(language, transaction.category) || text.transaction)}
                           </span>
@@ -446,6 +450,56 @@ export default function Transactions() {
                             }`}>
                               {transaction.paymentMode}
                             </span>
+                          )}
+                          {currentUser?.plan_id && currentUser.plan_id !== 'free' && transaction.subcategory && (
+                            <span className="inline-flex items-center rounded bg-violet-50 text-violet-650 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+                              {transaction.subcategory}
+                            </span>
+                          )}
+                          {transaction.isPendingBill && transaction.status !== 'paid' && (
+                            <>
+                              <span className="inline-flex items-center rounded bg-amber-50 text-amber-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+                                Pending
+                              </span>
+                              <button
+                                type="button"
+                                onClick={async (event) => {
+                                   event.preventDefault()
+                                   event.stopPropagation()
+                                   try {
+                                     // Direct local update first for instant feedback
+                                     try {
+                                       const localTxns = JSON.parse(localStorage.getItem('transactions') || '[]')
+                                       const idx = localTxns.findIndex(txn => String(txn.id || txn._id) === String(transaction.id || transaction._id))
+                                       if (idx !== -1) {
+                                         localTxns[idx].status = 'paid'
+                                         localStorage.setItem('transactions', JSON.stringify(localTxns))
+                                       }
+                                       const dismissals = JSON.parse(localStorage.getItem('dismissedAlerts') || '{}')
+                                       delete dismissals[transaction.id || transaction._id]
+                                       localStorage.setItem('dismissedAlerts', JSON.stringify(dismissals))
+                                     } catch {}
+                                     window.dispatchEvent(new Event('transactions:updated'))
+
+                                     await authenticatedFetch(`/transactions/${transaction.id || transaction._id}`, {
+                                       method: 'PATCH',
+                                       headers: { 'Content-Type': 'application/json' },
+                                       body: JSON.stringify({ status: 'paid' })
+                                     })
+                                     const activeOrgId = localStorage.getItem('activeOrgId') || ''
+                                     if (activeOrgId) {
+                                       await loadTransactionsFromBackend(activeOrgId)
+                                     }
+                                     alert('Bill marked as paid!')
+                                   } catch (err) {
+                                     alert('Failed to mark as paid')
+                                   }
+                                 }}
+                                className="inline-flex items-center rounded bg-emerald-50 text-emerald-600 hover:bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider cursor-pointer transition ml-1"
+                              >
+                                Mark Paid
+                              </button>
+                            </>
                           )}
                         </div>
                         <div className="text-xs text-slate-500 flex flex-wrap items-center gap-2">
@@ -464,13 +518,19 @@ export default function Transactions() {
                                 onClick={(event) => {
                                   event.preventDefault()
                                   event.stopPropagation()
-                                  setPreviewAttachment({
-                                    ...transaction,
-                                    attachmentName: att.name,
-                                    attachmentType: att.type,
-                                    attachmentDataUrl: att.dataUrl,
-                                    ...att,
-                                  })
+                                  const currentUser = readJSON('currentUser', {})
+                                  if (currentUser.plan_id === 'free' || !currentUser.plan_id) {
+                                    setUpgradeMessage('Receipt Preview: Interactive previewing of bill/receipt attachments is a Pro workspace feature. Upgrade your workspace to Professional to view receipts.')
+                                    setShowUpgradeModal(true)
+                                  } else {
+                                    setPreviewAttachment({
+                                      ...transaction,
+                                      attachmentName: att.name,
+                                      attachmentType: att.type,
+                                      attachmentDataUrl: att.dataUrl,
+                                      ...att,
+                                    })
+                                  }
                                 }}
                                 className="inline-flex items-center gap-1 ml-2 text-primary-600 hover:underline"
                               >
@@ -581,6 +641,11 @@ export default function Transactions() {
           </div>
         </div>
       ) : null}
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        message={upgradeMessage}
+      />
     </div>
   )
 }

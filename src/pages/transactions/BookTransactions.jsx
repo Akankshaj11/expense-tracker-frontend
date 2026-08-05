@@ -17,6 +17,7 @@ import { apiRequest, authenticatedFetch } from '../../utils/api'
 import { loadOrganizationsFromBackend, readCachedOrganizations, loadTransactionsFromBackend } from '../../utils/organizationSync'
 import translations, { translateText, getLocale } from '../../i18n/translations'
 import useLanguage from '../../hooks/useLanguage'
+import UpgradeModal from '../../components/common/UpgradeModal'
 
 function readJSON(key, fallback) {
   try {
@@ -70,6 +71,8 @@ export default function BookTransactions() {
   const [previewAttachment, setPreviewAttachment] = useState(null)
   const [showRangeModal, setShowRangeModal] = useState(false)
   const [previousDateFilter, setPreviousDateFilter] = useState('all')
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [upgradeMessage, setUpgradeMessage] = useState('')
 
   const handleDateFilterChange = (val) => {
     if (val === 'date_range') {
@@ -475,6 +478,7 @@ export default function BookTransactions() {
                   {groupedTransactions[dateLabel].map((t) => {
                     const isIncome = t.direction === 'in'
                     const balanceAtTxn = runningBalances[t.id || t._id] || 0
+                    const currentUser = readJSON('currentUser', {})
 
                     return (
                       <motion.div
@@ -483,7 +487,7 @@ export default function BookTransactions() {
                         className="flex cursor-pointer items-center justify-between rounded-2xl border border-white/6 bg-[var(--card)] p-4 transition hover:-translate-y-0.5 hover:shadow-sm"
                       >
                         <div className="flex-1 space-y-1 pr-4">
-                          <div className="flex items-center gap-2 flex-wrap">
+                          <div className="flex items-center gap-2 flex-wrap text-left">
                             <span className="text-base font-medium text-slate-800">
                               {t.note || 'No description'}
                             </span>
@@ -496,6 +500,55 @@ export default function BookTransactions() {
                                 {t.paymentMode}
                               </span>
                             )}
+                            {currentUser?.plan_id && currentUser.plan_id !== 'free' && t.subcategory && (
+                              <span className="inline-flex items-center rounded bg-violet-50 text-violet-650 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+                                {t.subcategory}
+                              </span>
+                            )}
+                            {t.isPendingBill && t.status !== 'paid' && (
+                              <>
+                                <span className="inline-flex items-center rounded bg-amber-50 text-amber-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+                                  Pending
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={async (event) => {
+                                    event.preventDefault()
+                                    event.stopPropagation()
+                                    try {
+                                      try {
+                                        const localTxns = JSON.parse(localStorage.getItem('transactions') || '[]')
+                                        const idx = localTxns.findIndex(txn => String(txn.id || txn._id) === String(t.id || t._id))
+                                        if (idx !== -1) {
+                                          localTxns[idx].status = 'paid'
+                                          localStorage.setItem('transactions', JSON.stringify(localTxns))
+                                        }
+                                        const dismissals = JSON.parse(localStorage.getItem('dismissedAlerts') || '{}')
+                                        delete dismissals[t.id || t._id]
+                                        localStorage.setItem('dismissedAlerts', JSON.stringify(dismissals))
+                                      } catch {}
+                                      window.dispatchEvent(new Event('transactions:updated'))
+
+                                      await authenticatedFetch(`/transactions/${t.id || t._id}`, {
+                                        method: 'PATCH',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ status: 'paid' })
+                                      })
+                                      const activeOrgId = localStorage.getItem('activeOrgId') || ''
+                                      if (activeOrgId) {
+                                        await loadTransactionsFromBackend(activeOrgId)
+                                      }
+                                      alert('Bill marked as paid!')
+                                    } catch (err) {
+                                      alert('Failed to mark as paid')
+                                    }
+                                  }}
+                                  className="inline-flex items-center rounded bg-emerald-50 text-emerald-600 hover:bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider cursor-pointer transition ml-1"
+                                >
+                                  Mark Paid
+                                </button>
+                              </>
+                            )}
                           </div>
                           
                           <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
@@ -507,13 +560,20 @@ export default function BookTransactions() {
                             )}
                             {t.attachmentDataUrl && (
                               <button
+                                type="button"
                                 onClick={(e) => {
                                   e.stopPropagation()
-                                  setPreviewAttachment({
-                                    url: t.attachmentDataUrl,
-                                    name: t.attachmentName || 'Attachment',
-                                    type: t.attachmentType
-                                  })
+                                  const currentUser = readJSON('currentUser', {})
+                                  if (currentUser.plan_id === 'free' || !currentUser.plan_id) {
+                                    setUpgradeMessage('Receipt Preview: Interactive previewing of bill/receipt attachments is a Pro workspace feature. Upgrade your workspace to Professional to view receipts.')
+                                    setShowUpgradeModal(true)
+                                  } else {
+                                    setPreviewAttachment({
+                                      url: t.attachmentDataUrl,
+                                      name: t.attachmentName || 'Attachment',
+                                      type: t.attachmentType
+                                    })
+                                  }
                                 }}
                                 className="inline-flex items-center gap-1 text-primary-600 hover:underline"
                               >
@@ -659,6 +719,11 @@ export default function BookTransactions() {
           </div>
         )}
       </AnimatePresence>
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        message={upgradeMessage}
+      />
     </div>
   )
 }

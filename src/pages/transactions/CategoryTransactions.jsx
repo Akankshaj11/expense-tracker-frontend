@@ -7,6 +7,7 @@ import { authenticatedFetch } from '../../utils/api'
 import { loadOrganizationsFromBackend, readCachedOrganizations, loadTransactionsFromBackend } from '../../utils/organizationSync'
 import translations, { translateText, getLocale, translateCategoryLabel, translateSubcategoryLabel } from '../../i18n/translations'
 import useLanguage from '../../hooks/useLanguage'
+import UpgradeModal from '../../components/common/UpgradeModal'
 
 // Read JSON from localStorage
 // Function: readJSON
@@ -195,6 +196,8 @@ export default function CategoryTransactions() {
   const locale = getLocale(language)
   const [selectedDate, setSelectedDate] = useState(getTodayDate())
   const [previewAttachment, setPreviewAttachment] = useState(null)
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [upgradeMessage, setUpgradeMessage] = useState('')
 
   const categoryData =
     activeOrganization?.categories?.find((category) => category.name === categoryName) ||
@@ -397,16 +400,22 @@ export default function CategoryTransactions() {
                         return (
                           <button
                             type="button"
-                            onClick={() => {
-                              setPreviewAttachment({
-                                ...transaction,
-                                attachmentName: att.name,
-                                attachmentType: att.type,
-                                attachmentDataUrl: att.dataUrl,
-                                ...att,
-                              })
-                            }}
-                            className="inline-flex items-center gap-2 rounded-full bg-[var(--card)] px-3 py-1.5 ring-1 ring-slate-200 transition hover:bg-primary-50 hover:text-primary-700"
+                           onClick={() => {
+                             const currentUser = readJSON('currentUser', {})
+                             if (currentUser.plan_id === 'free' || !currentUser.plan_id) {
+                               setUpgradeMessage('Receipt Preview: Interactive previewing of bill/receipt attachments is a Pro workspace feature. Upgrade your workspace to Professional to view receipts.')
+                               setShowUpgradeModal(true)
+                             } else {
+                               setPreviewAttachment({
+                                 ...transaction,
+                                 attachmentName: att.name,
+                                 attachmentType: att.type,
+                                 attachmentDataUrl: att.dataUrl,
+                                 ...att,
+                               })
+                             }
+                           }}
+                           className="inline-flex items-center gap-2 rounded-full bg-[var(--card)] px-3 py-1.5 ring-1 ring-slate-200 transition hover:bg-primary-50 hover:text-primary-700"
                           >
                             <PaperClipIcon className="h-4 w-4 text-slate-500" />
                             {att.name}
@@ -506,6 +515,11 @@ export default function CategoryTransactions() {
             </div>
           </div>
         ) : null}
+        <UpgradeModal
+          isOpen={showUpgradeModal}
+          onClose={() => setShowUpgradeModal(false)}
+          message={upgradeMessage}
+        />
       </div>
     </div>
   )

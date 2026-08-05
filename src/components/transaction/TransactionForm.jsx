@@ -1,16 +1,20 @@
-import { useRef } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import {
   CalendarIcon,
   ClockIcon,
   PaperClipIcon,
   XMarkIcon,
-  ArrowPathIcon
+  ArrowPathIcon,
+  ChevronDownIcon,
+  PlusIcon
 } from '@heroicons/react/24/outline'
 import {
   buildAmountExpression,
   formatMoney,
   removeTokenFromExpression
 } from '../../utils/transactionHelpers'
+import { appendsubcategoryToCategory, persistOrganizationCategories } from '../../utils/organizationPersistence'
+import { AnimatePresence, motion } from 'framer-motion'
 
 function formatDisplayDate(dateStr) {
   if (!dateStr) return ''
@@ -67,9 +71,63 @@ export default function TransactionForm({
   setTransactionDirection,
   paymentMode,
   setPaymentMode,
+  attachments = [],
+  setAttachments,
+  currentUser = {},
+  dueDate = '',
+  setDueDate,
+  isPendingBill = false,
+  setIsPendingBill,
+  activeOrganization = null,
+  organizations = [],
+  setOrganizations,
+  onSubcategorySelect,
 }) {
   const dateInputRef = useRef(null)
   const timeInputRef = useRef(null)
+  const [showCategoryPopup, setShowCategoryPopup] = useState(false)
+  const [newCategoryName, setNewCategoryName] = useState('')
+
+  // Sync state for alert intervals
+  const [alertValue, setAlertValue] = useState('1h')
+  const [customHours, setCustomHours] = useState('1')
+
+  useEffect(() => {
+    const val = dueDate || '1h'
+    const isCustom = !['1h', '3h', '6h', '12h', '24h'].includes(val)
+    setAlertValue(isCustom ? 'custom' : val)
+    if (isCustom) {
+      setCustomHours(val.replace('custom:', ''))
+    }
+  }, [dueDate])
+  
+  const handleFileChange = async (e) => {
+    const files = Array.from(e.target.files || [])
+    if (!files.length) return
+    
+    const limit = currentUser?.plan_id === 'pro' || currentUser?.plan_id === 'enterprise' ? 5 : 1
+    if (attachments.length + files.length > limit) {
+      alert(`Limit exceeded. ${currentUser?.plan_id === 'pro' ? 'Pro' : 'Free'} plan is limited to ${limit} attachment(s).`)
+      return
+    }
+    
+    const readPromises = files.map(file => {
+      return new Promise((resolve) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve({
+          name: file.name,
+          type: file.type,
+          url: reader.result
+        })
+        reader.readAsDataURL(file)
+      })
+    })
+    
+    const results = await Promise.all(readPromises)
+    if (typeof setAttachments === 'function') {
+      setAttachments([...attachments, ...results])
+    }
+  }
 
   const triggerDatePicker = () => {
     if (dateInputRef.current) {
@@ -232,17 +290,64 @@ export default function TransactionForm({
           </div>
         )}
 
-        <div>
-          <input
-            type="text"
-            required
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder={text.notesPlaceholder || "Add a short note"}
-            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none focus:border-slate-300 placeholder:text-slate-400 transition"
-          />
-        </div>
+        {/* Category and Note Row selection based on Plan Tier */}
+        {(currentUser?.plan_id === 'pro' || currentUser?.plan_id === 'enterprise') ? (
+          <div className="grid grid-cols-2 gap-3 items-center">
+            {/* Category Selector Field */}
+            <div 
+              onClick={() => setShowCategoryPopup(true)}
+              className="flex items-center justify-between cursor-pointer py-3.5 px-4 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 transition text-sm h-full"
+            >
+              <span className="text-slate-500 font-semibold">Category:</span>
+              <span className="flex items-center gap-1 font-bold text-slate-800 capitalize">
+                {selectedSubcategory || 'Select'}
+                <ChevronDownIcon className="h-4 w-4 text-slate-400" />
+              </span>
+            </div>
 
+            {/* Note Input Field */}
+            <div>
+              <input
+                type="text"
+                required
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder={text.notesPlaceholder || "Add a short note"}
+                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-sm text-slate-800 outline-none focus:border-slate-300 placeholder:text-slate-400 transition h-full"
+              />
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Category Selector Field (Stacked for Free plan) */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+              <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                Category
+              </div>
+              <div 
+                onClick={() => setShowCategoryPopup(true)}
+                className="flex items-center justify-between cursor-pointer py-1.5"
+              >
+                <span className="text-sm font-semibold text-slate-800 capitalize">
+                  {selectedSubcategory || 'Select Category'}
+                </span>
+                <ChevronDownIcon className="h-4 w-4 text-slate-400" />
+              </div>
+            </div>
+
+            {/* Note Input Field (Stacked for Free plan) */}
+            <div>
+              <input
+                type="text"
+                required
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder={text.notesPlaceholder || "Add a short note"}
+                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none focus:border-slate-300 placeholder:text-slate-400 transition"
+              />
+            </div>
+          </>
+        )}
         {/* Payment Mode and Add Bills in a single row */}
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -261,30 +366,108 @@ export default function TransactionForm({
             <label className="flex cursor-pointer items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm hover:bg-slate-50 transition h-full">
               <span className="inline-flex items-center gap-2 text-slate-500 overflow-hidden text-ellipsis whitespace-nowrap">
                 <PaperClipIcon className="h-5 w-5 text-primary-600" />
-                {attachment?.name || existingAttachmentName || (text.addBills || 'Add bills...')}
+                {text.addBills || 'Add bills...'}
               </span>
-              {(attachment || existingAttachmentName) ? (
+              <input
+                type="file"
+                multiple={currentUser?.plan_id === 'pro' || currentUser?.plan_id === 'enterprise'}
+                className="hidden"
+                onChange={handleFileChange}
+              />
+            </label>
+          </div>
+        </div>
+
+        {/* Small chips for uploaded files below the uploader row */}
+        {attachments.length > 0 && (
+          <div className="flex flex-wrap gap-2 px-1 text-left">
+            {attachments.map((att, index) => (
+              <div key={index} className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs text-slate-700 shadow-sm max-w-full overflow-hidden">
+                <span className="truncate max-w-[150px]">{att.name}</span>
                 <button
                   type="button"
                   onClick={(e) => {
                     e.preventDefault()
                     e.stopPropagation()
-                    setAttachment(null)
+                    const updated = attachments.filter((_, i) => i !== index)
+                    if (typeof setAttachments === 'function') setAttachments(updated)
+                    if (index === 0 && typeof setAttachment === 'function') {
+                      setAttachment(updated.length > 0 ? updated[0] : null)
+                    }
                   }}
-                  className="rounded-full p-1 hover:bg-slate-100 text-slate-400"
+                  className="rounded-full p-0.5 text-slate-400 hover:bg-slate-200 transition"
                 >
-                  <XMarkIcon className="h-4 w-4" />
+                  <XMarkIcon className="h-3.5 w-3.5" />
                 </button>
-              ) : (
-                <input
-                  type="file"
-                  className="hidden"
-                  onChange={(e) => setAttachment(e.target.files?.[0] || null)}
-                />
-              )}
-            </label>
+              </div>
+            ))}
           </div>
-        </div>
+        )}
+
+        {/* Pending Bill configuration (only for OUTGOINGS) */}
+        {transactionDirection === 'out' && (
+          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <label className="flex items-center gap-3 cursor-pointer select-none text-left flex-1">
+                <input
+                  type="checkbox"
+                  checked={isPendingBill}
+                  onChange={(e) => setIsPendingBill(e.target.checked)}
+                  className="h-4 w-4 rounded border-slate-300 text-violet-650 focus:ring-violet-500 cursor-pointer"
+                />
+                <div>
+                  <span className="text-xs font-semibold text-slate-700 block">Mark as Pending Bill</span>
+                  <span className="text-[10px] text-slate-450 block mt-0.5">Keep track of unpaid invoices and set alert intervals</span>
+                </div>
+              </label>
+              
+              {isPendingBill && (
+                <div className="flex items-center gap-2 text-left flex-wrap">
+                  <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
+                    <span className="text-[10px] text-slate-500 font-semibold uppercase">Alert In:</span>
+                    <select
+                      value={alertValue}
+                      onChange={(e) => {
+                        const val = e.target.value
+                        setAlertValue(val)
+                        if (val !== 'custom') {
+                          setDueDate(val)
+                        } else {
+                          setDueDate(`custom:${customHours}`)
+                        }
+                      }}
+                      className="bg-transparent text-slate-800 text-xs font-semibold focus:outline-none cursor-pointer"
+                    >
+                      <option value="1h">1 hr</option>
+                      <option value="3h">3 hrs</option>
+                      <option value="6h">6 hrs</option>
+                      <option value="12h">12 hrs</option>
+                      <option value="24h">24 hrs</option>
+                      <option value="custom">Customize</option>
+                    </select>
+                  </div>
+
+                  {alertValue === 'custom' && (
+                    <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 px-2.5 py-1.5 rounded-xl min-w-[90px]">
+                      <input
+                        type="number"
+                        min="1"
+                        value={customHours}
+                        onChange={(e) => {
+                          const val = e.target.value
+                          setCustomHours(val)
+                          setDueDate(`custom:${val}`)
+                        }}
+                        className="bg-transparent text-slate-800 text-xs font-semibold w-10 text-center focus:outline-none"
+                      />
+                      <span className="text-[10px] text-slate-550 font-bold uppercase">hrs</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Error / Success Display Messages */}
         {error && <p className="text-xs text-rose-600 font-semibold px-1">{error}</p>}
@@ -332,6 +515,109 @@ export default function TransactionForm({
           </div>
         </div>
       </div>
+
+      {/* Category Picker Popup Modal */}
+      <AnimatePresence>
+        {showCategoryPopup && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-md bg-white rounded-3xl shadow-glass p-6 text-slate-800"
+            >
+              <div className="flex items-center justify-between border-b border-slate-150 pb-3 mb-4">
+                <h3 className="text-lg font-bold">Select Category</h3>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCategoryPopup(false)
+                    setNewCategoryName('')
+                  }}
+                  className="rounded-full p-1.5 hover:bg-slate-100 text-slate-400"
+                >
+                  <XMarkIcon className="h-5 w-5" />
+                </button>
+              </div>
+
+              {/* Grid of Standard Categories & Custom Categories */}
+              {(() => {
+                const catKey = transactionDirection === 'in' ? 'revenue' : 'expenses'
+                const defaultTags = catKey === 'revenue' 
+                  ? ['Salary', 'Business', 'Bonus', 'Commission', 'Incentives', 'Rental Income', 'Investment Returns']
+                  : ['Food', 'Travel', 'Shopping', 'Bills', 'Health', 'Entertainment', 'Education', 'Rent', 'Subscriptions']
+                
+                const orgSubcategories = activeOrganization?.subcategories?.[catKey] || []
+                const allTags = Array.from(new Set([...defaultTags, ...orgSubcategories]))
+
+                return (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-3 gap-2 max-h-[14rem] overflow-y-auto pr-1 text-left">
+                      {allTags.map((tag) => {
+                        const isSelected = selectedSubcategory === tag
+                        return (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => {
+                              if (typeof onSubcategorySelect === 'function') {
+                                onSubcategorySelect(tag)
+                              }
+                              setShowCategoryPopup(false)
+                            }}
+                            className={`px-2 py-2 rounded-xl text-[10px] font-semibold border transition text-center truncate ${
+                              isSelected
+                                ? 'bg-primary-605 border-primary-605 text-white'
+                                : 'bg-slate-50 border-slate-205 text-slate-705 hover:bg-slate-100'
+                            }`}
+                          >
+                            {tag}
+                          </button>
+                        )
+                      })}
+                    </div>
+
+                    {/* Create Custom Category Form */}
+                    <div className="border-t border-slate-100 pt-4 text-left">
+                      <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Create Custom Category</div>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={newCategoryName}
+                          onChange={(e) => setNewCategoryName(e.target.value)}
+                          placeholder="e.g. Health Insurance"
+                          className="flex-1 px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition"
+                        />
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const trimmed = newCategoryName.trim()
+                            if (!trimmed) return
+                            try {
+                              const nextOrgs = appendsubcategoryToCategory(organizations, activeOrganization.id, catKey, trimmed)
+                              await persistOrganizationCategories(activeOrganization.id, nextOrgs, setOrganizations)
+                              if (typeof onSubcategorySelect === 'function') {
+                                onSubcategorySelect(trimmed)
+                              }
+                              setNewCategoryName('')
+                              setShowCategoryPopup(false)
+                            } catch (err) {
+                              alert(err.message || 'Failed to create category')
+                            }
+                          }}
+                          className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-xs font-semibold transition"
+                        >
+                          Create
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })()}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </section>
   )
 }

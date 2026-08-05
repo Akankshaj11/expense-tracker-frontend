@@ -29,6 +29,7 @@ import {
   CurrencyDollarIcon,
   TicketIcon,
   TruckIcon,
+  TrashIcon,
 } from '@heroicons/react/24/outline'
 import { apiRequest, authenticatedFetch, clearStoredAuth } from '../../utils/api'
 import { loadOrganizationsFromBackend, readCachedOrganizations, loadTransactionsFromBackend } from '../../utils/organizationSync'
@@ -358,6 +359,36 @@ export default function Dashboard() {
   const [showMockContacts, setShowMockContacts] = useState(false)
   const [invitations, setInvitations] = useState([])
 
+  const [visibleWidgets, setVisibleWidgets] = useState(() => readJSON('visibleWidgets', ['yearlyTrend', 'recentActivity', 'categorySummary', 'budgetsProgress']))
+  const [widgetConfigOpen, setWidgetConfigOpen] = useState(false)
+  const [budgets, setBudgets] = useState([])
+  const [loadingBudgets, setLoadingBudgets] = useState(false)
+
+  const fetchBudgets = async (orgId) => {
+    if (!orgId) return
+    setLoadingBudgets(true)
+    try {
+      const res = await apiRequest(`/budgets?organizationId=${orgId}`)
+      if (res?.data?.items) {
+        setBudgets(res.data.items)
+      }
+    } catch (err) {
+      console.error('Failed to fetch budgets:', err)
+    } finally {
+      setLoadingBudgets(false)
+    }
+  }
+
+  useEffect(() => {
+    if (activeOrgId) {
+      fetchBudgets(activeOrgId)
+    }
+  }, [activeOrgId, transactionsRevision])
+
+  useEffect(() => {
+    localStorage.setItem('visibleWidgets', JSON.stringify(visibleWidgets))
+  }, [visibleWidgets])
+
   const loadInvitations = async () => {
     try {
       const response = await apiRequest('/organizations/invitations')
@@ -390,6 +421,74 @@ export default function Dashboard() {
       }
     } catch (err) {
       alert(err.message || 'Failed to accept invitation')
+    }
+  }
+
+  const [showCreateBudgetModal, setShowCreateBudgetModal] = useState(false)
+  const [newBudgetName, setNewBudgetName] = useState('')
+  const [newBudgetLimit, setNewBudgetLimit] = useState('')
+  const [newBudgetCategory, setNewBudgetCategory] = useState('all')
+  const [newBudgetThreshold, setNewBudgetThreshold] = useState(80)
+  const [newBudgetStartDate, setNewBudgetStartDate] = useState(() => new Date().toISOString().split('T')[0])
+  const [newBudgetEndDate, setNewBudgetEndDate] = useState(() => {
+    const d = new Date()
+    return new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0]
+  })
+  const [savingBudget, setSavingBudget] = useState(false)
+
+  const handleCreateBudgetSubmit = async (e) => {
+    e.preventDefault()
+    if (!newBudgetName.trim()) return
+    const limitVal = parseFloat(newBudgetLimit)
+    if (isNaN(limitVal) || limitVal <= 0) {
+      alert('Limit must be a positive number')
+      return
+    }
+    
+    setSavingBudget(true)
+    try {
+      const res = await apiRequest('/budgets', {
+        method: 'POST',
+        body: JSON.stringify({
+          organizationId: activeOrgId,
+          name: newBudgetName.trim(),
+          amountLimit: limitVal,
+          category: newBudgetCategory,
+          alertThreshold: parseFloat(newBudgetThreshold),
+          startDate: newBudgetStartDate,
+          endDate: newBudgetEndDate
+        })
+      })
+      if (res?.data) {
+        setBudgets([...budgets, res.data])
+        setShowCreateBudgetModal(false)
+        setNewBudgetName('')
+        setNewBudgetLimit('')
+        setNewBudgetCategory('all')
+        setNewBudgetThreshold(80)
+      }
+    } catch (err) {
+      if (err?.message?.includes('limit reached') || err?.status === 403) {
+        setShowCreateBudgetModal(false)
+        setUpgradeMessage('Multiple Budgets Limit: Free starter plan is limited to 1 budget. Upgrade to Professional Pro plan to create unlimited custom budgets with automated threshold alerts!')
+        setShowUpgradeModal(true)
+      } else {
+        alert(err.message || 'Failed to create budget')
+      }
+    } finally {
+      setSavingBudget(false)
+    }
+  }
+
+  const handleDeleteBudget = async (budgetId) => {
+    if (!window.confirm('Are you sure you want to delete this budget?')) return
+    try {
+      await apiRequest(`/budgets/${budgetId}`, {
+        method: 'DELETE'
+      })
+      setBudgets(budgets.filter(b => b.id !== budgetId))
+    } catch (err) {
+      alert(err.message || 'Failed to delete budget')
     }
   }
 
@@ -781,11 +880,13 @@ export default function Dashboard() {
       
       const bookQuery = selectedReportBook && selectedReportBook !== 'all' ? `&book=${encodeURIComponent(selectedReportBook)}` : ''
       const bookSuffix = selectedReportBook && selectedReportBook !== 'all' ? `-${selectedReportBook.toLowerCase().replace(/\s+/g, '_')}` : ''
+      const formatQuery = `&format=${reportFormat}`
 
-      response = await authenticatedFetch(`/dashboard/report?organizationId=${encodeURIComponent(activeOrganization.id)}${bookQuery}`, {
+      response = await authenticatedFetch(`/dashboard/report?organizationId=${encodeURIComponent(activeOrganization.id)}${bookQuery}${formatQuery}`, {
         method: 'GET',
       })
-      filename = `workspace-report-${activeOrganization?.organizationName || 'report'}${bookSuffix}.pdf`
+      const extension = reportFormat === 'excel' ? 'xlsx' : reportFormat === 'csv' ? 'csv' : 'pdf'
+      filename = `workspace-report-${activeOrganization?.organizationName || 'report'}${bookSuffix}.${extension}`
 
       if (!response.ok) {
         if (response.status === 401) {
@@ -809,7 +910,7 @@ export default function Dashboard() {
         bytes[index] = binaryString.charCodeAt(index)
       }
 
-      const pdfBlob = new Blob([bytes], { type: reportData.contentType || 'application/pdf' })
+      const pdfBlob = new Blob([bytes], { type: reportData.contentType || (reportFormat === 'excel' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : reportFormat === 'csv' ? 'text/csv' : 'application/pdf') })
       const downloadUrl = URL.createObjectURL(pdfBlob)
       const anchor = document.createElement('a')
       anchor.href = downloadUrl
@@ -946,7 +1047,142 @@ export default function Dashboard() {
         />
       )}
 
-      <main className="mx-auto max-w-7xl px-10 pb-12 pt-28 sm:px-12 lg:px-16">
+      <main className="mx-auto max-w-7xl px-10 pb-12 pt-28 sm:px-12 lg:px-16 space-y-6">
+        {/* Due Date Notifications below Navbar */}
+        {activeOrganization && (() => {
+          const pendingBills = activeOrganizationTransactions.filter(t => {
+            if (!t.isPendingBill || t.status === 'paid') return false
+            const val = t.dueDate || ''
+            if (val.startsWith('custom:') || val.endsWith('h')) {
+              let hours = 24
+              if (val.startsWith('custom:')) {
+                hours = parseFloat(val.split(':')[1]) || 24
+              } else if (val.endsWith('h')) {
+                hours = parseFloat(val.replace('h', '')) || 24
+              }
+              const intervalMs = hours * 60 * 60 * 1000
+              const isAlertActive = new Date().getTime() >= new Date(t.createdAt || t.date).getTime() + intervalMs
+              return isAlertActive
+            }
+            return true
+          })
+
+          if (pendingBills.length === 0) return null
+          
+          return (
+            <div className="space-y-2.5">
+              {pendingBills.map((bill) => {
+                const val = bill.dueDate || ''
+                const isAlertFormat = val.startsWith('custom:') || val.endsWith('h')
+                let alertHours = 24
+                if (val.startsWith('custom:')) {
+                  alertHours = parseFloat(val.split(':')[1]) || 24
+                } else if (val.endsWith('h')) {
+                  alertHours = parseFloat(val.replace('h', '')) || 24
+                }
+
+                const isOverdue = !isAlertFormat && new Date(bill.dueDate) < new Date()
+                
+                return (
+                  <motion.div
+                    key={bill.id}
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`flex items-center justify-between gap-4 p-4 rounded-3xl border text-xs shadow-sm transition ${
+                      isAlertFormat 
+                        ? 'bg-rose-50/90 border-rose-200 dark:bg-rose-950/20 dark:border-rose-800/30 text-rose-800 dark:text-rose-200' 
+                        : isOverdue 
+                        ? 'bg-rose-50/90 border-rose-200 dark:bg-rose-950/20 dark:border-rose-800/30 text-rose-800 dark:text-rose-200' 
+                        : 'bg-amber-50/90 border-amber-200 dark:bg-amber-950/20 dark:border-amber-800/30 text-amber-800 dark:text-amber-200'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 text-left">
+                      <span className="text-base shrink-0">🔔</span>
+                      <div>
+                        <p className="font-semibold text-slate-800 dark:text-white capitalize">
+                          {isAlertFormat ? '⏰ Unpaid Bill Alert' : (isOverdue ? 'Overdue' : 'Upcoming') + ' Bill'}: {bill.note || 'No note'} ({formatMoney(bill.amount, activeCurrency, locale)})
+                        </p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                          Category: <span className="capitalize">{bill.category}</span> | {isAlertFormat ? `Alert set: every ${alertHours} hr(s)` : `Due date: ${bill.dueDate}`}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2.5 shrink-0">
+                      {((currentUser.plan_id === 'free' || !currentUser.plan_id)) ? (
+                        <span 
+                          onClick={() => {
+                            setUpgradeMessage('Mark Paid: Transitioning pending bills to paid status is exclusive to Pro workspaces. Upgrade to unlock bill actions!')
+                            setShowUpgradeModal(true)
+                          }}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-200 dark:bg-white/10 text-slate-600 text-[10px] font-semibold cursor-pointer"
+                        >
+                          🔒 Pay (Pro)
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              // Direct local update first for instant feedback
+                              try {
+                                const localTxns = JSON.parse(localStorage.getItem('transactions') || '[]')
+                                const idx = localTxns.findIndex(txn => String(txn.id || txn._id) === String(bill.id))
+                                if (idx !== -1) {
+                                  localTxns[idx].status = 'paid'
+                                  localStorage.setItem('transactions', JSON.stringify(localTxns))
+                                }
+                                const dismissals = JSON.parse(localStorage.getItem('dismissedAlerts') || '{}')
+                                delete dismissals[bill.id]
+                                localStorage.setItem('dismissedAlerts', JSON.stringify(dismissals))
+                              } catch {}
+                              window.dispatchEvent(new Event('transactions:updated'))
+
+                              await apiRequest(`/transactions/${bill.id}`, {
+                                method: 'PATCH',
+                                body: JSON.stringify({ status: 'paid' })
+                              })
+                              if (activeOrgId) {
+                                await loadTransactionsFromBackend(activeOrgId)
+                              }
+                              alert('Bill marked as paid!')
+                            } catch (err) {
+                              alert(err.message || 'Failed to update bill')
+                            }
+                          }}
+                          className={`px-3 py-1.5 rounded-xl font-bold transition text-[10px] ${
+                            isOverdue || isAlertFormat
+                              ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-sm' 
+                              : 'bg-amber-600 hover:bg-amber-700 text-white shadow-sm'
+                          }`}
+                        >
+                          Mark Paid
+                        </button>
+                      )}
+                      {isAlertFormat && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            try {
+                              const dismissals = JSON.parse(localStorage.getItem('dismissedAlerts') || '{}')
+                              dismissals[bill.id] = new Date().toISOString()
+                              localStorage.setItem('dismissedAlerts', JSON.stringify(dismissals))
+                              setTransactionsRevision(r => r + 1)
+                            } catch {}
+                          }}
+                          className="p-1 hover:bg-slate-200/50 dark:hover:bg-white/5 rounded-full transition text-slate-400 hover:text-slate-600"
+                          title="Snooze Alert"
+                        >
+                          <XMarkIcon className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                  </motion.div>
+                )
+              })}
+            </div>
+          )
+        })()}
+
         <DashboardHero
           text={text}
           firstName={firstName}
@@ -955,6 +1191,19 @@ export default function Dashboard() {
           onAddTransaction={() => navigate('/add-transaction')}
           onManageOrganization={() => navigate('/manage-organization')}
         />
+
+        {activeOrganization && (
+          <div className="mt-4 mb-2 flex justify-end">
+            <button
+              type="button"
+              onClick={() => setWidgetConfigOpen(true)}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-slate-200 bg-[var(--card)] hover:bg-slate-50 dark:hover:bg-white/5 transition text-xs font-semibold text-slate-600 dark:text-slate-250 shadow-sm"
+            >
+              <Squares2X2Icon className="h-4 w-4 text-violet-600" />
+              Customize Widgets
+            </button>
+          </div>
+        )}
 
         {invitations.length > 0 && (
           <div className="mt-6 mb-6 space-y-4">
@@ -1012,81 +1261,185 @@ export default function Dashboard() {
               locale={locale}
             />
 
-            {/* Custom CSS vertical double-bar chart showing monthly Income vs Expense comparison */}
-            <section className="mt-8 rounded-[2rem] border border-white/6 bg-[var(--card)] p-6 shadow-sm">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-                <div>
-                  <h3 className="text-lg font-light tracking-tight text-[var(--text)]">
-                    Yearly Trend ({new Date().getFullYear()})
-                  </h3>
-                  <p className="text-xs font-light text-slate-500 mt-0.5">
-                    Side-by-side comparison of monthly income and expenses
-                  </p>
+            {/* Widget: Yearly Trend */}
+            {visibleWidgets.includes('yearlyTrend') && (
+              <section className="mt-8 rounded-[2rem] border border-white/6 bg-[var(--card)] p-6 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                  <div>
+                    <h3 className="text-lg font-light tracking-tight text-[var(--text)]">
+                      Yearly Trend ({new Date().getFullYear()})
+                    </h3>
+                    <p className="text-xs font-light text-slate-500 mt-0.5">
+                      Side-by-side comparison of monthly income and expenses
+                    </p>
+                  </div>
+                  
+                  {/* Legend */}
+                  <div className="flex gap-4 items-center text-xs font-light text-slate-500">
+                    <div className="flex items-center gap-1.5">
+                      <div className="h-3 w-3 rounded-full bg-emerald-500" />
+                      <span>Income</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="h-3 w-3 rounded-full bg-rose-500" />
+                      <span>Expenses</span>
+                    </div>
+                  </div>
                 </div>
                 
-                {/* Legend */}
-                <div className="flex gap-4 items-center text-xs font-light text-slate-500">
-                  <div className="flex items-center gap-1.5">
-                    <div className="h-3 w-3 rounded-full bg-emerald-500" />
-                    <span>Income</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <div className="h-3 w-3 rounded-full bg-rose-500" />
-                    <span>Expenses</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex items-end justify-between gap-2 overflow-x-auto pb-4 pt-8 h-56 select-none">
-                {yearlyTrendData.map((data) => {
-                  const maxVal = Math.max(...yearlyTrendData.map(d => Math.max(d.income, d.expense)), 1)
-                  const incomeHeight = `${(data.income / maxVal) * 100}%`
-                  const expenseHeight = `${(data.expense / maxVal) * 100}%`
+                <div className="flex items-end justify-between gap-2 overflow-x-auto pb-4 pt-8 h-56 select-none">
+                  {yearlyTrendData.map((data) => {
+                    const maxVal = Math.max(...yearlyTrendData.map(d => Math.max(d.income, d.expense)), 1)
+                    const incomeHeight = `${(data.income / maxVal) * 100}%`
+                    const expenseHeight = `${(data.expense / maxVal) * 100}%`
 
-                  return (
-                    <div key={data.key} className="flex-1 flex flex-col items-center min-w-[50px] group relative">
-                      {/* Bars Container */}
-                      <div className="h-36 w-full flex items-end justify-center gap-1 relative">
-                        {/* Tooltip */}
-                        <div className="absolute bottom-full mb-2 bg-slate-950/95 backdrop-blur-sm text-white text-[9px] rounded-lg p-2 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 shadow-xl z-20 flex flex-col gap-0.5 whitespace-nowrap">
-                          <span className="font-semibold text-slate-300">{data.label} {new Date().getFullYear()}</span>
-                          <span className="text-emerald-400">Income: {formatMoney(data.income, activeCurrency, locale)}</span>
-                          <span className="text-rose-400">Expense: {formatMoney(data.expense, activeCurrency, locale)}</span>
+                    return (
+                      <div key={data.key} className="flex-1 flex flex-col items-center min-w-[50px] group relative">
+                        {/* Bars Container */}
+                        <div className="h-36 w-full flex items-end justify-center gap-1 relative">
+                          {/* Tooltip */}
+                          <div className="absolute bottom-full mb-2 bg-slate-950/95 backdrop-blur-sm text-white text-[9px] rounded-lg p-2 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 shadow-xl z-20 flex flex-col gap-0.5 whitespace-nowrap">
+                            <span className="font-semibold text-slate-300">{data.label} {new Date().getFullYear()}</span>
+                            <span className="text-emerald-400">Income: {formatMoney(data.income, activeCurrency, locale)}</span>
+                            <span className="text-rose-400">Expense: {formatMoney(data.expense, activeCurrency, locale)}</span>
+                          </div>
+
+                          {/* Income Bar */}
+                          <div 
+                            style={{ height: incomeHeight }} 
+                            className="w-2.5 bg-emerald-500 rounded-t-sm transition-all duration-300 hover:bg-emerald-400"
+                          />
+                          {/* Expense Bar */}
+                          <div 
+                            style={{ height: expenseHeight }} 
+                            className="w-2.5 bg-rose-500 rounded-t-sm transition-all duration-300 hover:bg-rose-400"
+                          />
                         </div>
-
-                        {/* Income Bar */}
-                        <div 
-                          style={{ height: incomeHeight }} 
-                          className="w-2.5 bg-emerald-500 rounded-t-sm transition-all duration-300 hover:bg-emerald-400"
-                        />
-                        {/* Expense Bar */}
-                        <div 
-                          style={{ height: expenseHeight }} 
-                          className="w-2.5 bg-rose-500 rounded-t-sm transition-all duration-300 hover:bg-rose-400"
-                        />
+                        
+                        {/* Month Label */}
+                        <span className="text-[10px] text-slate-500 mt-3 font-light">{data.label}</span>
                       </div>
+                    )
+                  })}
+                </div>
+              </section>
+            )}
+
+            {/* Widget: Budgets Progress Tracker */}
+            {visibleWidgets.includes('budgetsProgress') && (
+              <section className="mt-8 rounded-[2rem] border border-white/6 bg-[var(--card)] p-6 shadow-sm text-left">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                  <div>
+                    <h3 className="text-lg font-light tracking-tight text-[var(--text)]">Budgets Progress</h3>
+                    <p className="text-xs font-light text-slate-500 mt-0.5">Track your spending limits against custom target thresholds</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if ((currentUser.plan_id === 'free' || !currentUser.plan_id) && budgets.length >= 1) {
+                        setUpgradeMessage('Multiple Budgets Limit: Free starter plan is limited to 1 budget. Upgrade to Professional Pro plan to create unlimited custom budgets with automated threshold alerts!')
+                        setShowUpgradeModal(true)
+                      } else {
+                        setShowCreateBudgetModal(true)
+                      }
+                    }}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-violet-650 text-white text-xs font-semibold hover:bg-violet-755 transition shadow-sm"
+                  >
+                    <PlusIcon className="h-3.5 w-3.5" />
+                    Create Budget
+                  </button>
+                </div>
+                
+                {budgets.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center p-8 rounded-2xl border border-dashed border-slate-205 bg-slate-50/50 dark:bg-white/5 text-center">
+                    <p className="text-xs text-slate-500">No budgets created yet. Set up spending goals to stay on track!</p>
+                  </div>
+                ) : (
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {budgets.map((b) => {
+                      const limit = b.amountLimit || 1
+                      const current = b.currentSpending || 0
+                      const pct = Math.min(100, Math.round((current / limit) * 100))
+                      const threshold = b.alertThreshold || 80
+                      const isAlert = current >= (limit * (threshold / 100))
+                      const isExceeded = current >= limit
                       
-                      {/* Month Label */}
-                      <span className="text-[10px] text-slate-500 mt-3 font-light">{data.label}</span>
-                    </div>
-                  )
-                })}
-              </div>
-            </section>
+                      return (
+                        <div key={b.id} className="relative rounded-2xl border border-slate-150 dark:border-white/5 bg-[var(--card)] p-4 shadow-sm flex flex-col justify-between">
+                          <div className="flex items-center justify-between mb-2">
+                            <div>
+                              <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200">{b.name}</h4>
+                              <span className="text-[10px] text-slate-455 dark:text-slate-400 capitalize">Category: {b.category || 'all'}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-bold ${
+                                isExceeded ? 'bg-rose-50 text-rose-600 dark:bg-rose-950/20' :
+                                isAlert ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/20' :
+                                'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/20'
+                              }`}>
+                                {isExceeded ? 'Exceeded' : isAlert ? 'Near Limit' : 'On Track'}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteBudget(b.id)}
+                                className="text-slate-400 hover:text-rose-600 transition p-1 rounded-full hover:bg-slate-50 dark:hover:bg-white/5"
+                              >
+                                <TrashIcon className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-1.5 mt-2">
+                            <div className="flex justify-between text-xs font-light text-slate-500">
+                              <span>Spent: {formatMoney(current, activeCurrency, locale)}</span>
+                              <span>Limit: {formatMoney(limit, activeCurrency, locale)}</span>
+                            </div>
+                            
+                            <div className="relative h-2 w-full bg-slate-100 dark:bg-white/10 rounded-full overflow-hidden">
+                              <div 
+                                style={{ left: `${threshold}%` }} 
+                                className="absolute top-0 bottom-0 w-0.5 bg-amber-500/80 z-10" 
+                                title={`Alert Threshold: ${threshold}%`}
+                              />
+                              <div 
+                                style={{ width: `${pct}%` }} 
+                                className={`h-full rounded-full transition-all duration-300 ${
+                                  isExceeded ? 'bg-rose-500' :
+                                  isAlert ? 'bg-amber-500' :
+                                  'bg-emerald-500'
+                                }`}
+                              />
+                            </div>
+                            <div className="flex justify-between text-[9px] text-slate-400">
+                              <span>{pct}% of limit</span>
+                              <span>Alert threshold: {threshold}%</span>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </section>
+                 )}
 
             <section className="mt-8 grid gap-6 lg:grid-cols-[1.5fr_1fr]">
-              <DashboardRecentActivity text={text} recentActivity={recentActivity} />
-              <DashboardWorkspaceSummary
-                text={text}
-                activeOrganization={activeOrganization}
-                activeCurrency={activeCurrency}
-                categoryCards={categoryCards}
-                onDownloadReport={() => {
-                  setSelectedReportBook('all')
-                  setReportFormat('pdf')
-                  setShowDownloadModal(true)
-                }}
-              />
+              {visibleWidgets.includes('recentActivity') ? (
+                <DashboardRecentActivity text={text} recentActivity={recentActivity} />
+              ) : <div />}
+              {visibleWidgets.includes('categorySummary') ? (
+                <DashboardWorkspaceSummary
+                  text={text}
+                  activeOrganization={activeOrganization}
+                  activeCurrency={activeCurrency}
+                  categoryCards={categoryCards}
+                  onDownloadReport={() => {
+                    setSelectedReportBook('all')
+                    setReportFormat('pdf')
+                    setShowDownloadModal(true)
+                  }}
+                />
+              ) : <div />}
             </section>
           </>
         ) : (
@@ -1251,6 +1604,201 @@ export default function Dashboard() {
                     className="flex-1 rounded-2xl bg-primary-600 py-2.5 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50 transition"
                   >
                     {isInviting ? 'Inviting...' : 'Add Member'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Widget Configuration Modal */}
+      <AnimatePresence>
+        {widgetConfigOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-md bg-[var(--card)] rounded-3xl shadow-glass p-6 border border-white/10 text-slate-800 dark:text-white"
+            >
+              <div className="flex items-center justify-between border-b border-slate-150 dark:border-white/10 pb-3 mb-4">
+                <h3 className="text-lg font-bold">Customize Widgets</h3>
+                <button
+                  type="button"
+                  onClick={() => setWidgetConfigOpen(false)}
+                  className="rounded-full p-1.5 hover:bg-slate-100 dark:hover:bg-white/5 text-slate-400"
+                >
+                  <XMarkIcon className="h-5 w-5" />
+                </button>
+              </div>
+
+              <p className="text-xs text-slate-400 mb-4 text-left">Select which cards and tools you want to display on your workspace dashboard:</p>
+
+              <div className="space-y-3.5 text-left">
+                {[
+                  { id: 'yearlyTrend', label: 'Yearly Trend Comparison', desc: 'Monthly income vs expense bar chart' },
+                  { id: 'recentActivity', label: 'Recent Transactions Log', desc: 'Quick view of latest 4 transactions' },
+                  { id: 'categorySummary', label: 'Category Summary Distribution', desc: 'Visual category distribution report' },
+                  { id: 'budgetsProgress', label: 'Budgets Progress Tracker', desc: 'Custom budget limit trackers' },
+                ].map((w) => {
+                  const checked = visibleWidgets.includes(w.id)
+                  return (
+                    <label key={w.id} className="flex items-start gap-3 p-3 rounded-2xl border border-slate-100 dark:border-white/5 bg-slate-50/55 dark:bg-white/5 hover:bg-slate-50 dark:hover:bg-white/10 transition cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => {
+                          if (checked) {
+                            setVisibleWidgets(visibleWidgets.filter(item => item !== w.id))
+                          } else {
+                            setVisibleWidgets([...visibleWidgets, w.id])
+                          }
+                        }}
+                        className="mt-1 h-4.5 w-4.5 rounded border-slate-350 text-violet-600 focus:ring-violet-500"
+                      />
+                      <div>
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 block">{w.label}</span>
+                        <span className="text-[10px] text-slate-455 dark:text-slate-400 block mt-0.5">{w.desc}</span>
+                      </div>
+                    </label>
+                  )
+                })}
+              </div>
+
+              <div className="mt-6 flex">
+                <button
+                  type="button"
+                  onClick={() => setWidgetConfigOpen(false)}
+                  className="flex-1 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-750 font-bold text-white text-xs shadow-sm transition"
+                >
+                  Apply Configuration
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Create Budget Modal */}
+      <AnimatePresence>
+        {showCreateBudgetModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-md bg-[var(--card)] rounded-3xl shadow-glass p-6 border border-white/10 text-slate-800 dark:text-white"
+            >
+              <div className="flex items-center justify-between border-b border-slate-150 dark:border-white/10 pb-3 mb-4">
+                <h3 className="text-lg font-bold">Create Budget</h3>
+                <button
+                  type="button"
+                  onClick={() => setShowCreateBudgetModal(false)}
+                  className="rounded-full p-1.5 hover:bg-slate-100 dark:hover:bg-white/5 text-slate-400"
+                >
+                  <XMarkIcon className="h-5 w-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleCreateBudgetSubmit} className="space-y-4 text-left">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-450 uppercase tracking-wider mb-1">Budget Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={newBudgetName}
+                    onChange={(e) => setNewBudgetName(e.target.value)}
+                    placeholder="e.g. Monthly Dining Limit"
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-white/10 bg-[var(--card)] text-[var(--text)] text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 transition"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-450 uppercase tracking-wider mb-1">Amount Limit</label>
+                    <input
+                      type="number"
+                      required
+                      min="1"
+                      value={newBudgetLimit}
+                      onChange={(e) => setNewBudgetLimit(e.target.value)}
+                      placeholder="e.g. 500"
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-white/10 bg-[var(--card)] text-[var(--text)] text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 transition"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-455 uppercase tracking-wider mb-1">Alert Threshold (%)</label>
+                    <input
+                      type="number"
+                      required
+                      min="1"
+                      max="100"
+                      value={newBudgetThreshold}
+                      onChange={(e) => setNewBudgetThreshold(e.target.value)}
+                      placeholder="e.g. 80"
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-white/10 bg-[var(--card)] text-[var(--text)] text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 transition"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-455 uppercase tracking-wider mb-1">Category</label>
+                  <select
+                    value={newBudgetCategory}
+                    onChange={(e) => setNewBudgetCategory(e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-white/10 bg-[var(--card)] text-[var(--text)] text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 transition cursor-pointer"
+                  >
+                    <option value="all">All Outgoings</option>
+                    {['Food', 'Travel', 'Shopping', 'Bills', 'Health', 'Entertainment', 'Rent', 'Subscriptions'].map((cat) => (
+                      <option key={cat} value={cat.toLowerCase()}>{cat}</option>
+                    ))}
+                    {activeOrganization?.subcategories && Object.values(activeOrganization.subcategories).flat().map((sub) => {
+                      if (!sub) return null;
+                      const lowerSub = sub.toLowerCase();
+                      if (['food', 'travel', 'shopping', 'bills', 'health', 'entertainment', 'rent', 'subscriptions'].includes(lowerSub)) return null;
+                      return <option key={sub} value={lowerSub}>{sub}</option>;
+                    })}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-455 uppercase tracking-wider mb-1">Start Date</label>
+                    <input
+                      type="date"
+                      required
+                      value={newBudgetStartDate}
+                      onChange={(e) => setNewBudgetStartDate(e.target.value)}
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-white/10 bg-[var(--card)] text-[var(--text)] text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 transition"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-455 uppercase tracking-wider mb-1">End Date</label>
+                    <input
+                      type="date"
+                      required
+                      value={newBudgetEndDate}
+                      onChange={(e) => setNewBudgetEndDate(e.target.value)}
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-white/10 bg-[var(--card)] text-[var(--text)] text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 transition"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateBudgetModal(false)}
+                    className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 text-slate-655 hover:bg-slate-50 transition text-sm"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingBudget}
+                    className="flex-1 py-2.5 rounded-xl bg-violet-650 font-bold text-white shadow-sm hover:bg-violet-750 transition text-sm disabled:opacity-50"
+                  >
+                    {savingBudget ? 'Saving...' : 'Save Budget'}
                   </button>
                 </div>
               </form>
